@@ -41,7 +41,7 @@ A worked example — a finance-sector ransomware tabletop (*Operation Frostbite*
 ## Run it
 
 ```bash
-cd gauntlet/backend
+cd backend
 python -m venv .venv && . .venv/bin/activate
 pip install -r requirements.txt
 python -m uvicorn app.main:app --reload --port 8000
@@ -52,8 +52,26 @@ Then open:
 - **Facilitator console** — <http://localhost:8000/>
 - **API docs (OpenAPI)** — <http://localhost:8000/docs>
 
-Zero infrastructure: it uses a local SQLite file by default. Point
-`GAUNTLET_DB_URL` at Postgres to scale out.
+Sign in with the seeded demo account **`admin@demo.gauntlet` / `gauntlet-admin`**
+(override the password with `GAUNTLET_DEMO_PASSWORD`). The console also links the
+**evaluator**, **participant**, **parallel roll-up**, and **program coverage**
+surfaces.
+
+Zero infrastructure: it uses a local SQLite file by default and runs Alembic
+migrations on startup. Point `GAUNTLET_DB_URL` at Postgres to scale out. **Set
+`GAUNTLET_SECRET_KEY` to a strong value in any real deployment** — it signs both
+auth tokens and the tamper-evident timeline.
+
+## Access control & real-time
+
+- **Auth & tenancy (M5):** JWT auth with organisations and roles
+  (admin / facilitator / evaluator / participant). Every object belongs to one
+  organisation and is invisible to others. `POST /api/auth/register` creates an
+  org and its admin; admins add users via `POST /api/auth/users`.
+- **Real-time (M6):** start a session with `mode: real_time, auto_advance: true`
+  (or tick "Real-time" in the console). Injects with a timeout branch
+  auto-advance after their clock-scaled duration (`GAUNTLET_SECONDS_PER_MIN`),
+  and every surface updates live over a WebSocket (`/ws/sessions/{id}`).
 
 ## Test
 
@@ -101,9 +119,11 @@ gauntlet/
 | **M1 — Tabletop core** | Intake, scenario + MSEL, console, adjudication, timeline, reports | Shipped |
 | **M2 — Authoring & library** | Template library, threat-actor-driven generation, inject bank, multi-channel delivery | Shipped |
 | **M3 — Multi-cell & parallel** | Fog-of-war per cell, evaluator companion, parallel/functional roll-up | Shipped |
-| **M4 — Sandbox & real-time** | Authorization-gated live/technical injects (pluggable range adapter), program-level coverage analytics | Shipped |
+| **M4 — Sandbox & program analytics** | Authorization-gated live/technical injects (pluggable range adapter), program-level coverage analytics | Shipped |
+| **M5 — Production-readiness** | Alembic migrations, auth + multi-tenancy + RBAC, HMAC-signed timeline, CI | Shipped |
+| **M6 — Real-time** | WebSocket live updates, auto-advance timeout timers, participant console | Shipped |
 
-### Sandbox, real-time & program analytics (M4)
+### Sandbox & program analytics (M4)
 
 Operational modes execute technical injects through a **pluggable range
 adapter** — the shipped default is a **simulation** adapter that contacts
