@@ -5,11 +5,14 @@
   let sessions = [];
   let scenarioCache = {};
 
+  function token() { try { return localStorage.getItem("gauntlet-token") || ""; } catch (e) { return ""; } }
   async function api(path, method = "GET", body) {
-    const res = await fetch(path, {
-      method, headers: body ? { "Content-Type": "application/json" } : undefined,
-      body: body ? JSON.stringify(body) : undefined,
-    });
+    const headers = {};
+    if (body) headers["Content-Type"] = "application/json";
+    const t = token();
+    if (t) headers["Authorization"] = `Bearer ${t}`;
+    const res = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : undefined });
+    if (res.status === 401) { location.href = "/"; throw new Error("Sign in via the console."); }
     if (!res.ok) {
       let d = res.statusText;
       try { d = (await res.json()).detail || d; } catch (e) { /* noop */ }

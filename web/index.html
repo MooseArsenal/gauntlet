@@ -24,14 +24,31 @@
       <button class="btn ghost" id="btnPause" hidden>Pause</button>
       <button class="btn ghost" id="btnResume" hidden>Resume</button>
       <button class="btn ghost" id="btnVerify" hidden title="Verify the timeline hash-chain">Verify chain</button>
-      <button class="btn" id="btnNew">New exercise</button>
+      <button class="btn" id="btnNew" hidden>New exercise</button>
+      <span class="userchip" id="userChip" hidden><span id="userLabel"></span><button class="btn ghost small" id="btnLogout">Sign out</button></span>
       <button class="btn toggle" id="btnTheme" aria-label="Toggle theme">◑</button>
     </div>
   </header>
 
   <main id="app">
+    <!-- Login -->
+    <section class="empty" id="loginView" hidden>
+      <div class="empty-card">
+        <p class="eyebrow">Sign in</p>
+        <h1>Gauntlet</h1>
+        <p class="sub">Sign in to design and run exercises.</p>
+        <div class="setup">
+          <label>Email <input id="loginEmail" type="email" autocomplete="username" placeholder="you@org.example"></label>
+          <label>Password <input id="loginPassword" type="password" autocomplete="current-password" placeholder="••••••••"></label>
+          <button class="btn primary" id="btnLogin">Sign in</button>
+          <p class="loginerr" id="loginErr" hidden></p>
+          <p class="hint" id="demoHint">Demo: <code>admin@demo.gauntlet</code> / <code>gauntlet-admin</code></p>
+        </div>
+      </div>
+    </section>
+
     <!-- Empty / setup state -->
-    <section class="empty" id="emptyState">
+    <section class="empty" id="emptyState" hidden>
       <div class="empty-card">
         <p class="eyebrow">Ready to run</p>
         <h1>Start a facilitated exercise.</h1>

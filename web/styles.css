@@ -1,4 +1,8 @@
 /* Gauntlet facilitator console — situation-room treatment, dark-first. */
+.userchip{display:inline-flex;align-items:center;gap:.5rem;font-size:.76rem;color:var(--muted)}
+.userchip #userLabel{font-family:"IBM Plex Mono",monospace;font-size:.7rem}
+.loginerr{color:var(--crit);font-size:.82rem;background:var(--crit-wash);border:1px solid color-mix(in srgb,var(--crit) 35%,transparent);border-radius:8px;padding:.5rem .7rem;margin:0}
+#demoHint code{font-family:"IBM Plex Mono",monospace;font-size:.82em;background:var(--surface-3);border:1px solid var(--line-soft);border-radius:4px;padding:.05rem .3rem}
 :root{
   --bg:#0D1013; --surface:#14181E; --surface-2:#1A1F26; --surface-3:#212832;
   --ink:#E6EAF0; --ink-soft:#B0B8C4; --muted:#7E8794; --line:#2A313B; --line-soft:#222932;
