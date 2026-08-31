@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from .. import models, schemas
+from .. import models, schemas, ws
 from ..database import get_db
 from ..engine import range_adapter
 from ..security import require_facilitator, scope_or_404
@@ -96,6 +96,7 @@ def live_inject(
     })
     db.commit()
     db.refresh(event)
+    ws.manager.notify(s.id)
     return schemas.LiveInjectOut(
         executed=result["executed"],
         adapter=result["adapter"],

@@ -169,6 +169,9 @@ class Session(Base):
     status: Mapped[str] = mapped_column(String(20), default="setup")  # setup|running|paused|complete
     clock_mode: Mapped[str] = mapped_column(String(20), default="compressed")
     mode: Mapped[str] = mapped_column(String(20), default="tabletop")  # tabletop|sandbox|real_time
+    # When true, a running inject with a timeout branch auto-advances after its
+    # (clock-scaled) duration — for functional/real-time exercises.
+    auto_advance: Mapped[bool] = mapped_column(Boolean, default=False)
     current_inject_code: Mapped[str | None] = mapped_column(String(40), nullable=True)
 
     # Authorization for live/technical injects (M4). Empty until explicitly granted.

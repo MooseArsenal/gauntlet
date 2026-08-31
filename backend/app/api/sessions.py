@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .. import models, schemas
+from .. import models, schemas, scheduler, session_ops, ws
 from ..database import get_db
 from ..engine import adjudication, msel
 from ..security import get_current_user, require_evaluator, require_facilitator, scope_or_404
@@ -67,23 +67,8 @@ def _state(db: Session, s: models.Session) -> schemas.SessionState:
 
 
 def _fire_inject(db: Session, s: models.Session, inject: models.Inject) -> None:
-    s.current_inject_code = inject.code
-    append_event(
-        db,
-        s.id,
-        kind="inject_fired",
-        ref=inject.code,
-        game_clock=inject.clock,
-        payload={
-            "title": inject.title,
-            "channel": inject.channel,
-            "narrative": inject.narrative,
-            "techniques": inject.attack_techniques,
-            "objective_code": inject.objective_code,
-            "expected_actions": inject.expected_actions,
-            "visible_to": inject.visible_to,
-        },
-    )
+    session_ops.fire_inject(db, s, inject)
+    scheduler.arm(s, inject)
 
 
 # --------------------------------------------------------------------------- #
@@ -98,7 +83,7 @@ def create_session(
     scope_or_404(db.get(models.Scenario, payload.scenario_id), user)
     s = models.Session(
         org_id=user.org_id, scenario_id=payload.scenario_id, name=payload.name,
-        clock_mode=payload.clock_mode, mode=payload.mode,
+        clock_mode=payload.clock_mode, mode=payload.mode, auto_advance=payload.auto_advance,
     )
     db.add(s)
     db.commit()
@@ -143,6 +128,7 @@ def start_session(
     _fire_inject(db, s, start)
     db.commit()
     db.refresh(s)
+    ws.manager.notify(s.id)
     return _state(db, s)
 
 
@@ -160,43 +146,26 @@ def advance_session(
     if not current:
         raise HTTPException(409, "session has no current inject; start it first")
 
-    branch = msel.resolve_branch(
-        current, when=decision.when, trigger=decision.trigger, explicit_goto=decision.goto
-    )
-    if not branch:
+    # A proctor decision cancels any pending auto-advance timer for this inject.
+    scheduler.cancel(s.id)
+    try:
+        nxt = session_ops.advance(
+            db, s, current, when=decision.when, trigger=decision.trigger,
+            goto=decision.goto, note=decision.note,
+        )
+    except LookupError:
         raise HTTPException(
             422,
             "no branch matched this decision — pick a branch, or pass an explicit "
             "'goto' to override as proctor",
         )
+    except ValueError as e:
+        raise HTTPException(422, str(e))
 
-    append_event(
-        db,
-        s.id,
-        kind="decision",
-        ref=current.code,
-        game_clock=current.clock,
-        payload={
-            "when": decision.when,
-            "trigger": decision.trigger,
-            "goto": branch.get("goto"),
-            "label": branch.get("label", ""),
-            "note": decision.note,
-        },
-    )
-
-    goto = branch.get("goto")
-    nxt = db.execute(
-        select(models.Inject).where(
-            models.Inject.scenario_id == s.scenario_id, models.Inject.code == goto
-        )
-    ).scalar_one_or_none()
-    if not nxt:
-        raise HTTPException(422, f"branch points to unknown inject '{goto}'")
-
-    _fire_inject(db, s, nxt)
+    scheduler.arm(s, nxt)
     db.commit()
     db.refresh(s)
+    ws.manager.notify(s.id)
     return _state(db, s)
 
 
@@ -226,6 +195,7 @@ def adjudicate_action(
     )
     db.commit()
     db.refresh(event)
+    ws.manager.notify(s.id)
     return schemas.AdjudicationOut(
         ruling=ruling, event=schemas.TimelineEventOut.model_validate(event)
     )
@@ -251,6 +221,7 @@ def add_observation(
     )
     db.commit()
     db.refresh(obs)
+    ws.manager.notify(s.id)
     return obs
 
 
@@ -273,6 +244,7 @@ def add_note(
     )
     db.commit()
     db.refresh(event)
+    ws.manager.notify(s.id)
     return event
 
 
@@ -281,10 +253,12 @@ def pause_session(
     session_id: int, user: models.User = Depends(require_facilitator), db: Session = Depends(get_db)
 ):
     s = _get_session(db, session_id, user)
+    scheduler.cancel(s.id)
     s.status = "paused"
     append_event(db, s.id, kind="status", payload={"status": "paused"})
     db.commit()
     db.refresh(s)
+    ws.manager.notify(s.id)
     return _state(db, s)
 
 
@@ -299,6 +273,10 @@ def resume_session(
     append_event(db, s.id, kind="status", payload={"status": "running"})
     db.commit()
     db.refresh(s)
+    current = _current_inject(db, s)
+    if current:
+        scheduler.arm(s, current)  # resume any pending auto-advance
+    ws.manager.notify(s.id)
     return _state(db, s)
 
 
@@ -307,11 +285,13 @@ def complete_session(
     session_id: int, user: models.User = Depends(require_facilitator), db: Session = Depends(get_db)
 ):
     s = _get_session(db, session_id, user)
+    scheduler.cancel(s.id)
     s.status = "complete"
     s.completed_at = datetime.now(timezone.utc)
     append_event(db, s.id, kind="status", payload={"status": "complete"})
     db.commit()
     db.refresh(s)
+    ws.manager.notify(s.id)
     return _state(db, s)
 
 

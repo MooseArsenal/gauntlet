@@ -7,7 +7,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from . import __version__
+import asyncio
+
+from . import __version__, ws
 from .api import (
     auth, authoring, environments, live, multicell, program, reports, scenarios, sessions,
 )
@@ -17,6 +19,8 @@ from .database import SessionLocal, create_all
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    # Bind the running loop so sync handlers / timer threads can push WS updates.
+    ws.manager.bind_loop(asyncio.get_running_loop())
     # Alembic migrations are the schema authority in real deployments; tests set
     # GAUNTLET_USE_ALEMBIC=0 to use the fast create_all path.
     if USE_ALEMBIC:
@@ -65,6 +69,7 @@ app.include_router(authoring.router)
 app.include_router(multicell.router)
 app.include_router(live.router)
 app.include_router(program.router)
+app.include_router(ws.router)
 
 # Facilitator console (served last so it never shadows the API routes).
 if WEB_DIR.exists():

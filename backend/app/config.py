@@ -41,6 +41,10 @@ TIMELINE_KEY = os.environ.get("GAUNTLET_TIMELINE_KEY", SECRET_KEY).encode("utf-8
 # Auth token lifetime, in minutes.
 TOKEN_TTL_MIN = int(os.environ.get("GAUNTLET_TOKEN_TTL_MIN", "720"))
 
+# Real seconds per game-minute for auto-advance timers. The default is
+# compressed for demos; set to 60 for wall-clock real-time exercises.
+SECONDS_PER_GAME_MINUTE = float(os.environ.get("GAUNTLET_SECONDS_PER_MIN", "3"))
+
 # Test/dev convenience ONLY: when true, unauthenticated requests resolve to the
 # seeded default organisation's admin, so the product is usable without login.
 # Never enable in production — it disables access control.

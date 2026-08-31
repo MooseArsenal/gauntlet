@@ -4,6 +4,17 @@
   const $ = (id) => document.getElementById(id);
   let sessions = [];
   let scenarioCache = {};
+  let socket = null;
+
+  function subscribe(sid) {
+    if (socket) { try { socket.onclose = null; socket.close(); } catch (e) { /* noop */ } }
+    const scheme = location.protocol === "https:" ? "wss" : "ws";
+    try {
+      socket = new WebSocket(`${scheme}://${location.host}/ws/sessions/${sid}?token=${encodeURIComponent(token())}`);
+      socket.onmessage = (ev) => { try { if (JSON.parse(ev.data).type === "changed") loadView(); } catch (e) { /* noop */ } };
+      socket.onclose = () => { if (Number($("sessionSel").value) === sid) setTimeout(() => subscribe(sid), 2000); };
+    } catch (e) { /* realtime best-effort */ }
+  }
 
   function token() { try { return localStorage.getItem("gauntlet-token") || ""; } catch (e) { return ""; } }
   async function api(path, method = "GET", body) {
@@ -63,6 +74,7 @@
     // Default to observing the participant cell if present.
     const blue = cells.find((c) => c.kind === "participant");
     if (blue) $("cellSel").value = blue.key;
+    subscribe(sid);
     await loadView();
   }
 
