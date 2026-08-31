@@ -1,13 +1,14 @@
 """Multi-cell & parallel (M3): fog-of-war views and cross-session roll-up."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
 from ..engine import rollup, visibility
+from ..security import get_current_user, scope_or_404
 
 router = APIRouter(tags=["multicell"])
 
@@ -20,12 +21,15 @@ def _cell_name(scenario, cell_key: str) -> str:
 
 
 @router.get("/api/sessions/{session_id}/cell/{cell_key}", response_model=schemas.CellSessionView)
-def cell_session_view(session_id: int, cell_key: str, db: Session = Depends(get_db)):
+def cell_session_view(
+    session_id: int,
+    cell_key: str,
+    user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """The session as one cell may see it — injects addressed to it only, no
     White Cell machinery (unless the cell is itself a control cell)."""
-    s = db.get(models.Session, session_id)
-    if not s:
-        raise HTTPException(404, "session not found")
+    s = scope_or_404(db.get(models.Session, session_id), user)
     scenario = db.get(models.Scenario, s.scenario_id)
 
     current = None
@@ -52,25 +56,27 @@ def cell_session_view(session_id: int, cell_key: str, db: Session = Depends(get_
 
 
 @router.get("/api/environments/{env_id}/view/{cell_key}")
-def environment_cell_view(env_id: int, cell_key: str, scenario_id: int, db: Session = Depends(get_db)):
+def environment_cell_view(
+    env_id: int,
+    cell_key: str,
+    scenario_id: int,
+    user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """A per-cell redacted environment — the white/grey/black-box view. The
     ``scenario_id`` query param supplies the cell roster used to resolve the
     cell's control status."""
-    env = db.get(models.Environment, env_id)
-    if not env:
-        raise HTTPException(404, "environment not found")
-    scenario = db.get(models.Scenario, scenario_id)
-    if not scenario:
-        raise HTTPException(400, "scenario_id does not exist")
+    env = scope_or_404(db.get(models.Environment, env_id), user)
+    scenario = scope_or_404(db.get(models.Scenario, scenario_id), user)
     return visibility.filter_environment(env, scenario, cell_key)
 
 
 @router.get("/api/scenarios/{scenario_id}/rollup", response_model=schemas.RollupOut)
-def scenario_rollup(scenario_id: int, db: Session = Depends(get_db)):
+def scenario_rollup(
+    scenario_id: int, user: models.User = Depends(get_current_user), db: Session = Depends(get_db)
+):
     """Compare every run of a scenario — the parallel / program view."""
-    scenario = db.get(models.Scenario, scenario_id)
-    if not scenario:
-        raise HTTPException(404, "scenario not found")
+    scenario = scope_or_404(db.get(models.Scenario, scenario_id), user)
     sessions = (
         db.execute(
             select(models.Session)

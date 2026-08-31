@@ -1,24 +1,30 @@
 """Append-only, hash-chained timeline helper.
 
-Every material moment in a session is written here. Each event hashes the
-previous event's hash together with its own canonical content, so any later
-edit to the record breaks the chain — the property that makes an exercise
-report defensible for audit.
+Every material moment in a session is written here. Each event is HMAC-signed
+(with the server's timeline key) over the previous event's signature together
+with its own canonical content, so any later edit breaks the chain and forging
+a valid chain requires the key — the property that makes an exercise report
+defensible for audit.
 """
 from __future__ import annotations
 
-import hashlib
+import hmac
 import json
 from datetime import datetime
+from hashlib import sha256
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session as DbSession
 
+from .config import TIMELINE_KEY
 from .models import TimelineEvent
 
 
 def _hash(prev_hash: str, canonical: str) -> str:
-    return hashlib.sha256((prev_hash + canonical).encode("utf-8")).hexdigest()
+    # HMAC (not a bare hash) so recomputing a valid chain requires the server
+    # key — the timeline stays tamper-evident even against someone with DB
+    # write access but not the key.
+    return hmac.new(TIMELINE_KEY, (prev_hash + canonical).encode("utf-8"), sha256).hexdigest()
 
 
 def append_event(

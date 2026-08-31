@@ -4,7 +4,9 @@
   const $ = (id) => document.getElementById(id);
 
   async function api(path) {
-    const res = await fetch(path);
+    const t = (() => { try { return localStorage.getItem("gauntlet-token") || ""; } catch (e) { return ""; } })();
+    const res = await fetch(path, { headers: t ? { Authorization: `Bearer ${t}` } : {} });
+    if (res.status === 401) { location.href = "/"; throw new Error("Sign in via the console."); }
     if (!res.ok) throw new Error(res.statusText);
     return res.json();
   }

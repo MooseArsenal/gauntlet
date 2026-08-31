@@ -8,23 +8,27 @@ from sqlalchemy.orm import Session
 from .. import models
 from ..database import get_db
 from ..engine import program
+from ..security import get_current_user
 
 router = APIRouter(prefix="/api/program", tags=["program"])
 
 
-def _all(db: Session):
-    scenarios = db.execute(select(models.Scenario)).scalars().all()
-    sessions = db.execute(select(models.Session)).scalars().all()
+def _all(db: Session, user: models.User):
+    """Every scenario and session belonging to the caller's organisation."""
+    scenarios = db.execute(
+        select(models.Scenario).where(models.Scenario.org_id == user.org_id)
+    ).scalars().all()
+    sessions = db.execute(
+        select(models.Session).where(models.Session.org_id == user.org_id)
+    ).scalars().all()
     return scenarios, sessions
 
 
 @router.get("/coverage")
-def program_coverage(db: Session = Depends(get_db)):
-    scenarios, sessions = _all(db)
-    return program.build_program_coverage(scenarios, sessions)
+def program_coverage(user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return program.build_program_coverage(*_all(db, user))
 
 
 @router.get("/improvements")
-def program_improvements(db: Session = Depends(get_db)):
-    scenarios, sessions = _all(db)
-    return program.build_improvements(scenarios, sessions)
+def program_improvements(user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return program.build_improvements(*_all(db, user))

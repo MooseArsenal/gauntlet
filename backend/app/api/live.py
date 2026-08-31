@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..database import get_db
 from ..engine import range_adapter
+from ..security import require_facilitator, scope_or_404
 from ..timeline import append_event
 
 router = APIRouter(prefix="/api/sessions", tags=["live"])
@@ -41,10 +42,13 @@ def _authorization_error(session: models.Session, target: str) -> str | None:
 
 
 @router.post("/{session_id}/authorize", response_model=schemas.SessionSummary)
-def authorize_session(session_id: int, payload: schemas.AuthorizeIn, db: Session = Depends(get_db)):
-    s = db.get(models.Session, session_id)
-    if not s:
-        raise HTTPException(404, "session not found")
+def authorize_session(
+    session_id: int,
+    payload: schemas.AuthorizeIn,
+    user: models.User = Depends(require_facilitator),
+    db: Session = Depends(get_db),
+):
+    s = scope_or_404(db.get(models.Session, session_id), user)
     expires = datetime.utcnow() + timedelta(minutes=max(1, payload.ttl_minutes))
     s.auth_scope = payload.scope
     s.authorized_by = payload.authorized_by
@@ -61,10 +65,13 @@ def authorize_session(session_id: int, payload: schemas.AuthorizeIn, db: Session
 
 
 @router.post("/{session_id}/live-inject", response_model=schemas.LiveInjectOut)
-def live_inject(session_id: int, payload: schemas.LiveInjectIn, db: Session = Depends(get_db)):
-    s = db.get(models.Session, session_id)
-    if not s:
-        raise HTTPException(404, "session not found")
+def live_inject(
+    session_id: int,
+    payload: schemas.LiveInjectIn,
+    user: models.User = Depends(require_facilitator),
+    db: Session = Depends(get_db),
+):
+    s = scope_or_404(db.get(models.Session, session_id), user)
 
     reason = _authorization_error(s, payload.target)
     if reason:

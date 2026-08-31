@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .database import Base
@@ -17,6 +17,41 @@ from .database import Base
 
 def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
+
+
+# Roles, most privileged first. Facilitators run exercises; evaluators only
+# observe and log; participants read the surfaces meant for them.
+ROLES = ("admin", "facilitator", "evaluator", "participant")
+
+
+class Organization(Base):
+    """A tenant. Every domain object belongs to exactly one organisation."""
+
+    __tablename__ = "organizations"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(200))
+    slug: Mapped[str] = mapped_column(String(80), unique=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+    users: Mapped[list["User"]] = relationship(back_populates="organization")
+
+
+class User(Base):
+    """A member of an organisation, with a role that gates what they may do."""
+
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id"), index=True)
+    email: Mapped[str] = mapped_column(String(200), unique=True, index=True)
+    password_hash: Mapped[str] = mapped_column(String(255))
+    name: Mapped[str] = mapped_column(String(160), default="")
+    role: Mapped[str] = mapped_column(String(20), default="facilitator")
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+    organization: Mapped["Organization"] = relationship(back_populates="users")
 
 
 class Environment(Base):
@@ -30,6 +65,7 @@ class Environment(Base):
     __tablename__ = "environments"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id"), index=True)
     name: Mapped[str] = mapped_column(String(200))
     sector: Mapped[str] = mapped_column(String(120), default="")
     description: Mapped[str] = mapped_column(Text, default="")
@@ -56,6 +92,7 @@ class Scenario(Base):
     __tablename__ = "scenarios"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id"), index=True)
     environment_id: Mapped[int] = mapped_column(ForeignKey("environments.id"))
     name: Mapped[str] = mapped_column(String(200))
     threat_actor: Mapped[str] = mapped_column(String(200), default="")
@@ -126,6 +163,7 @@ class Session(Base):
     __tablename__ = "sessions"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id"), index=True)
     scenario_id: Mapped[int] = mapped_column(ForeignKey("scenarios.id"))
     name: Mapped[str] = mapped_column(String(200))
     status: Mapped[str] = mapped_column(String(20), default="setup")  # setup|running|paused|complete
