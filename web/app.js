@@ -101,6 +101,8 @@
 
   // ---- empty / setup ----------------------------------------------------- //
   async function loadHome() {
+    currentSid = null;
+    closeSocket();
     $("loginView").hidden = true;
     $("console").hidden = true;
     $("emptyState").hidden = false;
@@ -187,11 +189,32 @@
   async function startNew() {
     const scenarioId = Number($("scenarioSel").value);
     const name = $("sessInput").value.trim() || "Untitled exercise";
+    const realtime = $("rtToggle").checked;
     try {
-      const sess = await api("/api/sessions", "POST", { scenario_id: scenarioId, name });
+      const sess = await api("/api/sessions", "POST", {
+        scenario_id: scenarioId, name,
+        mode: realtime ? "real_time" : "tabletop", auto_advance: realtime,
+      });
       await api(`/api/sessions/${sess.id}/start`, "POST");
       openSession(sess.id);
     } catch (e) { toast("Could not start: " + e.message); }
+  }
+
+  // ---- realtime ---------------------------------------------------------- //
+  let socket = null;
+  function closeSocket() { if (socket) { try { socket.onclose = null; socket.close(); } catch (e) { /* noop */ } socket = null; } }
+  function subscribeSocket(sid) {
+    closeSocket();
+    const scheme = location.protocol === "https:" ? "wss" : "ws";
+    const url = `${scheme}://${location.host}/ws/sessions/${sid}?token=${encodeURIComponent(getToken())}`;
+    try {
+      socket = new WebSocket(url);
+      socket.onmessage = (ev) => {
+        try { if (JSON.parse(ev.data).type === "changed") loadState(); } catch (e) { /* noop */ }
+      };
+      // Reconnect if the socket drops while the same session is open.
+      socket.onclose = () => { if (currentSid === sid) setTimeout(() => { if (currentSid === sid) subscribeSocket(sid); }, 2000); };
+    } catch (e) { /* realtime is best-effort */ }
   }
 
   async function openSession(sid) {
@@ -199,6 +222,7 @@
     $("emptyState").hidden = true;
     $("console").hidden = false;
     $("sessionMeta").hidden = false;
+    subscribeSocket(sid);
     await loadState();
   }
 

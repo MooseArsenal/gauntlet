@@ -129,6 +129,7 @@ class SessionCreate(BaseModel):
     name: str
     clock_mode: str = "compressed"
     mode: str = "tabletop"  # tabletop | sandbox | real_time
+    auto_advance: bool = False
 
 
 class SessionSummary(BaseModel):
