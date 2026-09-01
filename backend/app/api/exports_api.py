@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from .. import audit, compliance, exports, models
 from ..database import get_db
 from ..exports import markdown_to_docx
-from ..security import get_current_user, scope_or_404
+from ..security import require_evaluator, scope_or_404
 
 router = APIRouter(prefix="/api/sessions", tags=["exports"])
 
@@ -31,7 +31,7 @@ def _session(db: Session, session_id: int, user: models.User) -> models.Session:
 
 @router.get("/{session_id}/timeline.csv")
 def timeline_csv(session_id: int, request: Request,
-                 user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+                 user: models.User = Depends(require_evaluator), db: Session = Depends(get_db)):
     s = _session(db, session_id, user)
     audit.record(db, "timeline.export", request=request, user=user,
                  detail={"session_id": s.id, "format": "csv"})
@@ -41,7 +41,7 @@ def timeline_csv(session_id: int, request: Request,
 
 @router.get("/{session_id}/timeline.json")
 def timeline_json(session_id: int, request: Request,
-                  user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+                  user: models.User = Depends(require_evaluator), db: Session = Depends(get_db)):
     s = _session(db, session_id, user)
     scenario = db.get(models.Scenario, s.scenario_id)
     audit.record(db, "timeline.export", request=request, user=user,
@@ -53,7 +53,7 @@ def timeline_json(session_id: int, request: Request,
 
 @router.get("/{session_id}/reports/{report_id}.docx")
 def report_docx(session_id: int, report_id: int, request: Request,
-                user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+                user: models.User = Depends(require_evaluator), db: Session = Depends(get_db)):
     s = _session(db, session_id, user)
     report = db.get(models.Report, report_id)
     if not report or report.session_id != s.id:
@@ -66,7 +66,7 @@ def report_docx(session_id: int, report_id: int, request: Request,
 
 @router.get("/{session_id}/evidence.docx")
 def evidence_docx(session_id: int, request: Request, framework: str | None = None,
-                  user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+                  user: models.User = Depends(require_evaluator), db: Session = Depends(get_db)):
     s = _session(db, session_id, user)
     scenario = db.get(models.Scenario, s.scenario_id)
     ev = compliance.build_evidence(scenario, s, list(s.observations), only=framework)

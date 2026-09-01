@@ -91,6 +91,14 @@ LOGIN_LOCKOUT_SEC = int(os.environ.get("GAUNTLET_LOGIN_LOCKOUT_SEC", "900"))
 # Scenario-import safety caps (a huge scenario must not DoS validation).
 MAX_YAML_BYTES = int(os.environ.get("GAUNTLET_MAX_YAML_BYTES", str(256 * 1024)))
 MAX_INJECTS = int(os.environ.get("GAUNTLET_MAX_INJECTS", "1000"))
+# Bulk environment-intake (F6) payload cap — CSV/JSON of assets can be larger
+# than a scenario but must still be bounded.
+MAX_IMPORT_BYTES = int(os.environ.get("GAUNTLET_MAX_IMPORT_BYTES", str(2 * 1024 * 1024)))
+# Absolute request-body cap — a defence-in-depth backstop against oversized
+# JSON on any endpoint (individual fields are otherwise schema-unbounded).
+MAX_REQUEST_BYTES = int(os.environ.get("GAUNTLET_MAX_REQUEST_BYTES", str(4 * 1024 * 1024)))
+# Live-inject authorization grants must stay time-boxed (minutes).
+MAX_AUTHORIZATION_TTL_MIN = int(os.environ.get("GAUNTLET_MAX_AUTH_TTL_MIN", "1440"))
 
 # --- Data protection (M10) ------------------------------------------------- #
 # Encrypt sensitive environment fields at rest. Enabled by GAUNTLET_ENCRYPT_AT_REST

@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
 
 from .. import audit, intake, models, schemas
+from ..config import MAX_IMPORT_BYTES
 from ..database import get_db
 from ..security import get_current_user, require_facilitator, scope_or_404
 
@@ -35,6 +36,8 @@ def import_environment(
 ):
     """Map a CMDB / EDR / SIEM / ASM export into an environment — create a new
     one, or merge (append) into an existing one."""
+    if len(payload.data.encode("utf-8")) > MAX_IMPORT_BYTES:
+        raise HTTPException(413, f"import payload exceeds the {MAX_IMPORT_BYTES}-byte limit")
     try:
         mapped = intake.build_import(payload.source, payload.format, payload.data)
     except intake.IntakeError as exc:
