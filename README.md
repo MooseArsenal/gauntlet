@@ -79,8 +79,11 @@ curl        localhost:8000/api/scenarios/1/export                               
 
 **Compliance evidence**: every exercise objective maps to a canonical capability
 (detect/triage/contain/recover/communicate/govern) that cross-walks to the
-relevant controls in **PCI-DSS v4.0, DORA, NIST CSF 2.0, CIS Controls v8, ISO/IEC
-27001:2022, and SOC 2** — so one exercise emits evidence for all six at once.
+relevant controls across **eleven frameworks** — so one exercise emits evidence
+for all of them at once. Tier 1 (core): **PCI-DSS v4.0, DORA, NIST CSF 2.0, CIS
+Controls v8, ISO/IEC 27001:2022, SOC 2**. Tier 2 (sector & regional, F2):
+**HIPAA Security Rule, NERC CIP, FFIEC, NIS2 Directive, NIST SP 800-53 Rev. 5**.
+Adding a framework is a crosswalk table, not new exercise logic.
 
 ```bash
 curl localhost:8000/api/sessions/1/evidence                 # JSON, all frameworks

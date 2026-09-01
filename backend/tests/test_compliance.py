@@ -37,7 +37,9 @@ def test_evidence_spans_all_frameworks():
     with TestClient(app) as client:
         sid = _run_with_outcomes(client, met_obj="OBJ-1", missed_obj="OBJ-3")
         ev = client.get(f"/api/sessions/{sid}/evidence").json()
-        assert len(ev["frameworks"]) == 6
+        # Tier-1 (6) + Tier-2 (5) packs.
+        from app.compliance import FRAMEWORKS
+        assert len(ev["frameworks"]) == len(FRAMEWORKS)
         assert "not a compliance assessment" in ev["disclaimer"].lower()
 
 
