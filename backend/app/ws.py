@@ -12,12 +12,10 @@ from __future__ import annotations
 
 import asyncio
 
-import jwt
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
-from sqlalchemy import select
 
-from .config import SECRET_KEY
 from .database import SessionLocal
+from .ws_ticket import tickets
 from . import models
 
 router = APIRouter()
@@ -70,31 +68,25 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 
-def _user_from_token(token: str) -> models.User | None:
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-    except jwt.PyJWTError:
-        return None
-    db = SessionLocal()
-    try:
-        return db.get(models.User, int(payload.get("sub", 0)))
-    finally:
-        db.close()
-
-
 @router.websocket("/ws/sessions/{session_id}")
-async def session_socket(websocket: WebSocket, session_id: int, token: str = ""):
-    """Subscribe to a session's change stream. Auth via ``?token=<jwt>``; the
-    session must belong to the caller's organisation."""
-    user = _user_from_token(token)
-    if user is None:
+async def session_socket(websocket: WebSocket, session_id: int, ticket: str = ""):
+    """Subscribe to a session's change stream.
+
+    Auth via ``?ticket=<t>`` — a short-lived, single-use ticket minted at
+    ``POST /api/sessions/{id}/ws-ticket`` (which requires a bearer token and
+    checks org ownership). The ticket keeps the JWT out of the URL and is bound
+    to this exact session, so it cannot be replayed against another.
+    """
+    user_id = tickets.consume(ticket, session_id) if ticket else None
+    if user_id is None:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
 
     db = SessionLocal()
     try:
+        user = db.get(models.User, user_id)
         s = db.get(models.Session, session_id)
-        if s is None or s.org_id != user.org_id:
+        if user is None or not user.is_active or s is None or s.org_id != user.org_id:
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             return
     finally:

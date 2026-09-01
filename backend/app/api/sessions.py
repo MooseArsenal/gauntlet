@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas, scheduler, session_ops, ws
 from ..database import get_db
+from ..ws_ticket import tickets as ws_tickets
 from ..engine import adjudication, msel
 from ..security import get_current_user, require_evaluator, require_facilitator, scope_or_404
 from ..timeline import append_event, verify_chain
@@ -27,6 +28,22 @@ router = APIRouter(prefix="/api/sessions", tags=["sessions"])
 # --------------------------------------------------------------------------- #
 def _get_session(db: Session, session_id: int, user: models.User) -> models.Session:
     return scope_or_404(db.get(models.Session, session_id), user)
+
+
+@router.post("/{session_id}/ws-ticket", response_model=schemas.WsTicketOut)
+def ws_ticket(
+    session_id: int,
+    user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Mint a short-lived, single-use ticket for the session's WebSocket.
+
+    Keeps the bearer token out of the ``ws://`` URL: the client authenticates
+    this HTTPS call with its header, then connects with ``?ticket=<t>``.
+    """
+    _get_session(db, session_id, user)  # 404 unless it's in the caller's org
+    value, ttl = ws_tickets.issue(user.id, session_id)
+    return schemas.WsTicketOut(ticket=value, expires_in=ttl)
 
 
 def _injects(db: Session, scenario_id: int) -> list[models.Inject]:

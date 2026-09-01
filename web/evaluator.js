@@ -6,11 +6,15 @@
   let scenarioCache = {};
   let socket = null;
 
-  function subscribe(sid) {
+  async function subscribe(sid) {
     if (socket) { try { socket.onclose = null; socket.close(); } catch (e) { /* noop */ } }
+    let ticket;
+    try { ticket = (await api(`/api/sessions/${sid}/ws-ticket`, "POST")).ticket; }
+    catch (e) { return; }  // realtime best-effort
+    if (Number($("sessionSel").value) !== sid) return;
     const scheme = location.protocol === "https:" ? "wss" : "ws";
     try {
-      socket = new WebSocket(`${scheme}://${location.host}/ws/sessions/${sid}?token=${encodeURIComponent(token())}`);
+      socket = new WebSocket(`${scheme}://${location.host}/ws/sessions/${sid}?ticket=${encodeURIComponent(ticket)}`);
       socket.onmessage = (ev) => { try { if (JSON.parse(ev.data).type === "changed") loadView(); } catch (e) { /* noop */ } };
       socket.onclose = () => { if (Number($("sessionSel").value) === sid) setTimeout(() => subscribe(sid), 2000); };
     } catch (e) { /* realtime best-effort */ }

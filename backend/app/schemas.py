@@ -399,6 +399,7 @@ class UserOut(BaseModel):
     email: str
     name: str
     role: str
+    mfa_enabled: bool = False
 
 
 class RegisterIn(BaseModel):
@@ -422,8 +423,55 @@ class CreateUserIn(BaseModel):
 
 class TokenOut(BaseModel):
     access_token: str
+    refresh_token: str = ""
     token_type: str = "bearer"
     user: UserOut
+
+
+class LoginResult(BaseModel):
+    """Login returns tokens, or an MFA challenge when the account requires MFA."""
+    mfa_required: bool = False
+    challenge: Optional[str] = None
+    access_token: Optional[str] = None
+    refresh_token: Optional[str] = None
+    token_type: str = "bearer"
+    user: Optional[UserOut] = None
+
+
+class MfaLoginIn(BaseModel):
+    challenge: str
+    code: str
+
+
+class RefreshIn(BaseModel):
+    refresh_token: str
+
+
+class LogoutIn(BaseModel):
+    refresh_token: str
+
+
+class ChangePasswordIn(BaseModel):
+    old_password: str
+    new_password: str
+
+
+class MfaSetupOut(BaseModel):
+    secret: str
+    uri: str
+
+
+class MfaCodeIn(BaseModel):
+    code: str
+
+
+class WsTicketRequest(BaseModel):
+    session_id: int
+
+
+class WsTicketOut(BaseModel):
+    ticket: str
+    expires_in: int
 
 
 class AuditLogOut(BaseModel):

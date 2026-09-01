@@ -9,7 +9,7 @@ from app import security
 from app.main import app
 
 
-def _register(client, org, email, password="password123"):
+def _register(client, org, email, password="Str0ngPass!9"):
     r = client.post("/api/auth/register",
                     json={"org_name": org, "email": email, "password": password, "name": "A"})
     assert r.status_code == 201, r.text
@@ -31,7 +31,7 @@ def test_register_login_me():
 
         # Correct login, then /me reflects the identity.
         ok = client.post("/api/auth/login",
-                         json={"email": "acme-admin@example.com", "password": "password123"})
+                         json={"email": "acme-admin@example.com", "password": "Str0ngPass!9"})
         assert ok.status_code == 200
         me = client.get("/api/auth/me", headers=_auth(ok.json()["access_token"])).json()
         assert me["email"] == "acme-admin@example.com"
@@ -42,7 +42,7 @@ def test_duplicate_email_rejected():
     with TestClient(app) as client:
         _register(client, "Org1", "dup@example.com")
         r = client.post("/api/auth/register",
-                        json={"org_name": "Org2", "email": "dup@example.com", "password": "password123"})
+                        json={"org_name": "Org2", "email": "dup@example.com", "password": "Str0ngPass!9"})
         assert r.status_code == 409
 
 
@@ -71,10 +71,10 @@ def test_rbac_evaluator_cannot_author_but_can_observe():
         admin = _register(client, "Gamma", "gamma-admin@example.com")
         # Admin adds an evaluator to the org.
         client.post("/api/auth/users", headers=_auth(admin),
-                    json={"email": "evaluator@example.com", "password": "password123",
+                    json={"email": "evaluator@example.com", "password": "Str0ngPass!9",
                           "role": "evaluator"})
         ev = client.post("/api/auth/login",
-                         json={"email": "evaluator@example.com", "password": "password123"}).json()["access_token"]
+                         json={"email": "evaluator@example.com", "password": "Str0ngPass!9"}).json()["access_token"]
 
         # Admin sets up an environment + scenario + session.
         env_id = client.post("/api/environments", headers=_auth(admin),

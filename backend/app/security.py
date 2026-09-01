@@ -8,9 +8,13 @@ organisation.
 """
 from __future__ import annotations
 
+import base64
 import hashlib
 import hmac
 import os
+import secrets
+import struct
+import time
 from datetime import datetime, timedelta, timezone
 
 import jwt
@@ -20,11 +24,38 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from . import models
-from .config import AUTH_OPTIONAL, SECRET_KEY, TOKEN_TTL_MIN
+from .config import (
+    ACCESS_TTL_MIN,
+    AUTH_OPTIONAL,
+    MFA_ISSUER,
+    PASSWORD_MIN_LEN,
+    REFRESH_TTL_DAYS,
+    SECRET_KEY,
+)
 from .database import get_db
 
 _PBKDF2_ROUNDS = 240_000
 _bearer = HTTPBearer(auto_error=False)
+
+
+# --------------------------------------------------------------------------- #
+# password policy
+# --------------------------------------------------------------------------- #
+_COMMON_PASSWORDS = {
+    "password", "password1", "password123", "12345678", "123456789", "qwerty",
+    "letmein", "changeme", "admin123", "welcome1", "iloveyou", "abc12345",
+}
+
+
+def password_problems(pw: str) -> list[str]:
+    problems = []
+    if len(pw) < PASSWORD_MIN_LEN:
+        problems.append(f"must be at least {PASSWORD_MIN_LEN} characters")
+    if pw.isdigit():
+        problems.append("must not be all digits")
+    if pw.lower() in _COMMON_PASSWORDS:
+        problems.append("is too common")
+    return problems
 
 
 # --------------------------------------------------------------------------- #
@@ -50,19 +81,151 @@ def verify_password(password: str, stored: str) -> bool:
 # tokens
 # --------------------------------------------------------------------------- #
 def create_token(user: models.User) -> str:
+    """Short-lived access token (JWT). Refresh tokens are opaque (see below)."""
     now = datetime.now(timezone.utc)
     payload = {
         "sub": str(user.id),
         "org": user.org_id,
         "role": user.role,
+        "type": "access",
         "iat": now,
-        "exp": now + timedelta(minutes=TOKEN_TTL_MIN),
+        "exp": now + timedelta(minutes=ACCESS_TTL_MIN),
     }
     return jwt.encode(payload, SECRET_KEY, algorithm="HS256")
 
 
 def _decode(token: str) -> dict:
     return jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+
+
+# --------------------------------------------------------------------------- #
+# refresh tokens (opaque, rotating, revocable)
+# --------------------------------------------------------------------------- #
+def _hash_token(raw: str) -> str:
+    return hashlib.sha256(raw.encode()).hexdigest()
+
+
+def issue_refresh_token(db: Session, user: models.User, family_id: str | None = None) -> str:
+    """Create and store a refresh token; return the plaintext (shown once)."""
+    raw = secrets.token_urlsafe(32)
+    rec = models.RefreshToken(
+        user_id=user.id,
+        family_id=family_id or secrets.token_hex(16),
+        token_hash=_hash_token(raw),
+        expires_at=datetime.now(timezone.utc) + timedelta(days=REFRESH_TTL_DAYS),
+    )
+    db.add(rec)
+    db.flush()
+    return raw
+
+
+def _revoke_family(db: Session, family_id: str) -> None:
+    for rec in db.execute(
+        select(models.RefreshToken).where(models.RefreshToken.family_id == family_id)
+    ).scalars():
+        rec.revoked = True
+
+
+def rotate_refresh_token(db: Session, raw: str) -> tuple[models.User, str]:
+    """Validate + rotate a refresh token. Returns (user, new_raw).
+
+    Reuse of a revoked token revokes the whole family (compromise response).
+    """
+    rec = db.execute(
+        select(models.RefreshToken).where(models.RefreshToken.token_hash == _hash_token(raw))
+    ).scalar_one_or_none()
+    if rec is None:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid refresh token")
+    if rec.revoked:
+        # Reuse of a burned token = likely theft. Kill the whole family and
+        # commit that now, since the caller aborts (no commit) on the raise.
+        _revoke_family(db, rec.family_id)
+        db.commit()
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "refresh token reuse detected")
+    exp = rec.expires_at
+    if exp.tzinfo is None:  # SQLite returns naive UTC
+        exp = exp.replace(tzinfo=timezone.utc)
+    if exp < datetime.now(timezone.utc):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "refresh token expired")
+
+    user = db.get(models.User, rec.user_id)
+    if not user or not user.is_active:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "user not found or inactive")
+
+    rec.revoked = True  # rotate: burn the presented token
+    new_raw = issue_refresh_token(db, user, family_id=rec.family_id)
+    return user, new_raw
+
+
+def revoke_all_refresh(db: Session, user_id: int) -> None:
+    for rec in db.execute(
+        select(models.RefreshToken).where(
+            models.RefreshToken.user_id == user_id, models.RefreshToken.revoked.is_(False)
+        )
+    ).scalars():
+        rec.revoked = True
+
+
+def revoke_refresh_token(db: Session, raw: str) -> None:
+    rec = db.execute(
+        select(models.RefreshToken).where(models.RefreshToken.token_hash == _hash_token(raw))
+    ).scalar_one_or_none()
+    if rec:
+        rec.revoked = True
+
+
+# --------------------------------------------------------------------------- #
+# TOTP (RFC 6238) — stdlib, no external dependency
+# --------------------------------------------------------------------------- #
+def new_totp_secret() -> str:
+    return base64.b32encode(os.urandom(20)).decode().rstrip("=")
+
+
+def _totp_at(secret_b32: str, counter: int, digits: int = 6) -> str:
+    pad = "=" * ((8 - len(secret_b32) % 8) % 8)
+    key = base64.b32decode(secret_b32 + pad, casefold=True)
+    digest = hmac.new(key, struct.pack(">Q", counter), hashlib.sha1).digest()
+    off = digest[-1] & 0x0F
+    code = (struct.unpack(">I", digest[off:off + 4])[0] & 0x7FFFFFFF) % (10 ** digits)
+    return str(code).zfill(digits)
+
+
+def totp_verify(secret_b32: str, code: str, step: int = 30, window: int = 1) -> bool:
+    if not code or not code.isdigit():
+        return False
+    counter = int(time.time() // step)
+    return any(
+        hmac.compare_digest(_totp_at(secret_b32, counter + drift), code)
+        for drift in range(-window, window + 1)
+    )
+
+
+def totp_uri(secret_b32: str, email: str) -> str:
+    from urllib.parse import quote
+
+    label = quote(f"{MFA_ISSUER}:{email}")
+    return f"otpauth://totp/{label}?secret={secret_b32}&issuer={quote(MFA_ISSUER)}"
+
+
+def create_mfa_challenge(user: models.User) -> str:
+    """A short-lived token proving the first factor passed; exchanged for real
+    tokens once the TOTP code is supplied."""
+    now = datetime.now(timezone.utc)
+    return jwt.encode(
+        {"sub": str(user.id), "type": "mfa_challenge", "iat": now,
+         "exp": now + timedelta(minutes=5)},
+        SECRET_KEY, algorithm="HS256",
+    )
+
+
+def read_mfa_challenge(token: str) -> int:
+    try:
+        payload = _decode(token)
+    except jwt.PyJWTError:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid or expired challenge")
+    if payload.get("type") != "mfa_challenge":
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "not an MFA challenge")
+    return int(payload.get("sub", 0))
 
 
 # --------------------------------------------------------------------------- #
@@ -87,6 +250,8 @@ def get_current_user(
         payload = _decode(creds.credentials)
     except jwt.PyJWTError:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid or expired token")
+    if payload.get("type", "access") != "access":
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "not an access token")
     user = db.get(models.User, int(payload.get("sub", 0)))
     if not user or not user.is_active:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "user not found or inactive")
