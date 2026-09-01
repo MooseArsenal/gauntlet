@@ -144,6 +144,24 @@ a "Compliance evidence & PDF" action; reports also export to PDF.
   a "Sign in with SSO" button. SSO **links to an existing account** by subject or
   email — it does not auto-provision, since org and role can't be inferred.
 
+## LLM-assisted authoring (F8)
+
+`POST /api/authoring/assist/inject` drafts one inject from a short brief:
+
+- **Template generator** (default, offline) picks the best-matching entry from
+  the vetted inject bank for the requested kill-chain phase / ATT&CK technique
+  and fills it with a real asset — reproducible and needs no network. This is
+  what runs unless an LLM is configured.
+- **LLM provider** (opt-in via `GAUNTLET_LLM_PROVIDER=anthropic` + `_API_KEY`,
+  optional `_MODEL`/`_BASE_URL`) generates a tailored inject **behind a defensive
+  guardrail**: a system prompt constrains output to a blue-team exercise event +
+  defensive actions, briefs that ask for operational offensive tooling are
+  **refused (422)**, and any provider error or unusable response **falls back to
+  the template**.
+
+It returns a **draft only** — nothing is persisted; the facilitator reviews it
+and adds it through the normal authoring endpoints. Facilitator-gated, audited.
+
 ## Real range adapter (F7)
 
 Operational exercises can execute technical injects through a real range instead
@@ -346,6 +364,7 @@ gauntlet/
 | `GAUNTLET_RANGE_ALLOWLIST` | — | Comma-separated hosts a real range may target (empty = block all) |
 | `GAUNTLET_CALDERA_URL` / `_API_KEY` | — | MITRE Caldera endpoint for live injects |
 | `GAUNTLET_ATOMIC_URL` / `_TOKEN` | — | Atomic Red Team runner endpoint for live injects |
+| `GAUNTLET_LLM_PROVIDER` / `_API_KEY` / `_MODEL` / `_BASE_URL` | — | Opt-in LLM for authoring assist (else a deterministic template) |
 
 ---
 
@@ -363,6 +382,7 @@ gauntlet/
 | **M8 — Platform hardening** | Config fail-fast, security headers, login throttling + lockout, input caps, security audit log, CI security scanning | Shipped |
 | **M9 — Identity & sessions** | Password policy, short access + rotating refresh tokens (reuse detection), TOTP MFA, WebSocket connection tickets, OIDC SSO | Shipped |
 | **M10 — Data protection & isolation depth** | Key separation/rotation, encryption at rest, Postgres RLS + tenant-isolation fuzzing, retention/GDPR, threat model | Shipped |
+| **F1–F8 — Features & options** | Exports (CSV/JSON/DOCX, branded PDF), Tier-2 compliance packs (11 frameworks), scheduling & cadence, improvement plan + tracker sync, purple-team mode, automated environment intake, real range adapter, LLM-assisted authoring | Shipped |
 
 ### Sandbox & program analytics (M4)
 
