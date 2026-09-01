@@ -268,4 +268,22 @@ table.grid tbody tr:hover{background:var(--surface-2)}
 .nav-links a{color:var(--accent-ink);text-decoration:none}
 .nav-links a:hover{text-decoration:underline}
 
+/* Blue-vs-red live scoreboard (Q4) — clean stat tiles, not an arcade HUD. */
+.score-tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:.45rem}
+.stile{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;
+  padding:.5rem .6rem;display:grid;gap:.1rem;border-left:3px solid var(--line)}
+.stile .v{font-family:"Archivo",sans-serif;font-weight:800;font-size:1.25rem;line-height:1;color:var(--ink)}
+.stile .k{font-size:.66rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.stile.good{border-left-color:var(--good)} .stile.good .v{color:var(--good)}
+.stile.warn{border-left-color:var(--warn)} .stile.warn .v{color:var(--warn)}
+.stile.crit{border-left-color:var(--crit)} .stile.crit .v{color:var(--crit)}
+.stile.info{border-left-color:var(--info)} .stile.info .v{color:var(--info)}
+.score-tech{margin-top:.6rem}
+.score-lbl{font-size:.66rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 .35rem}
+.tcov{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:.5rem;margin-bottom:.3rem}
+.tcov .tt{font-family:"IBM Plex Mono",monospace;font-size:.7rem;color:var(--accent-ink)}
+.tcov .bar{height:6px;border-radius:3px;background:var(--surface-3);overflow:hidden}
+.tcov .fill{display:block;height:100%;background:var(--good);border-radius:3px;transition:width .4s ease}
+.tcov .n{font-size:.68rem;color:var(--muted);font-variant-numeric:tabular-nums}
+
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}

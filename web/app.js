@@ -386,6 +386,9 @@
     // kill-chain progress map (how far along the exercise is)
     updateKillChain(scenario.id, current_inject, timeline);
 
+    // live blue-vs-red scoreboard (detections vs adjudicated red moves)
+    updateScoreboard(currentSid);
+
     // objectives (rail) + observation selector
     objectives = scenario_objectives_cache[scenario.id] || [];
     if (!objectives.length) fetchObjectives(scenario.id);
@@ -440,6 +443,36 @@
     objectives = scn.objectives;
     $("scnRoe").textContent = scn.rules_of_engagement;
     renderObjectives();
+  }
+
+  // Live blue-vs-red scoreboard, tallied from every adjudicated red move.
+  async function updateScoreboard(sid) {
+    const panel = $("scorePanel");
+    if (!panel || !sid) return;
+    let sb;
+    try { sb = await api(`/api/sessions/${sid}/scoreboard`); } catch (e) { panel.hidden = true; return; }
+    if (!sb || !sb.red_actions) { panel.hidden = true; return; }  // nothing adjudicated yet
+    panel.hidden = false;
+    const rate = sb.detection_rate != null ? Math.round(sb.detection_rate * 100) + "%" : "—";
+    const mttd = sb.mean_time_to_detect_min != null ? sb.mean_time_to_detect_min + "′" : "—";
+    const tiles = [
+      { k: "Detection rate", v: rate, tone: "good" },
+      { k: "Detected", v: `${sb.detected}/${sb.red_actions}`, tone: "info" },
+      { k: "Mean TTD", v: mttd, tone: "info" },
+      { k: "Missed", v: sb.missed, tone: sb.missed ? "crit" : "good" },
+      { k: "Deceptions tripped", v: sb.deceptions_tripped, tone: "warn" },
+    ];
+    $("scoreTiles").innerHTML = tiles.map((t) =>
+      `<div class="stile ${t.tone}"><span class="v">${escapeHtml(String(t.v))}</span><span class="k">${escapeHtml(t.k)}</span></div>`).join("");
+    // Compact ATT&CK technique coverage bars (detected / attempts).
+    const tech = (sb.by_technique || []).filter((r) => r.technique && r.technique !== "(unspecified)");
+    $("scoreTech").innerHTML = !tech.length ? "" :
+      `<p class="score-lbl">Technique coverage</p>` + tech.map((r) => {
+        const pct = r.attempts ? Math.round((r.detected / r.attempts) * 100) : 0;
+        return `<div class="tcov"><span class="tt">${escapeHtml(r.technique)}</span>` +
+          `<span class="bar"><span class="fill" style="width:${pct}%"></span></span>` +
+          `<span class="n">${r.detected}/${r.attempts}</span></div>`;
+      }).join("");
   }
 
   function renderObjectives(observations = []) {
