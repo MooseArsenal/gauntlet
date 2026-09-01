@@ -30,9 +30,9 @@ from .config import (
     MFA_ISSUER,
     PASSWORD_MIN_LEN,
     REFRESH_TTL_DAYS,
-    SECRET_KEY,
 )
 from .database import get_db
+from .keys import jwt_key
 
 _PBKDF2_ROUNDS = 240_000
 _bearer = HTTPBearer(auto_error=False)
@@ -91,11 +91,11 @@ def create_token(user: models.User) -> str:
         "iat": now,
         "exp": now + timedelta(minutes=ACCESS_TTL_MIN),
     }
-    return jwt.encode(payload, SECRET_KEY, algorithm="HS256")
+    return jwt.encode(payload, jwt_key(), algorithm="HS256")
 
 
 def _decode(token: str) -> dict:
-    return jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+    return jwt.decode(token, jwt_key(), algorithms=["HS256"])
 
 
 # --------------------------------------------------------------------------- #
@@ -214,7 +214,7 @@ def create_mfa_challenge(user: models.User) -> str:
     return jwt.encode(
         {"sub": str(user.id), "type": "mfa_challenge", "iat": now,
          "exp": now + timedelta(minutes=5)},
-        SECRET_KEY, algorithm="HS256",
+        jwt_key(), algorithm="HS256",
     )
 
 
@@ -238,12 +238,22 @@ def _default_user(db: Session) -> models.User | None:
     ).scalar_one_or_none()
 
 
+def _bind_tenant(db: Session, org_id: int) -> None:
+    """Bind this request's connection to the caller's tenant for Postgres RLS.
+    A no-op off Postgres or when RLS is disabled (imported lazily to keep the
+    auth module free of a hard dependency)."""
+    from .rls import set_tenant
+
+    set_tenant(db, org_id)
+
+
 def get_current_user(
     creds: HTTPAuthorizationCredentials | None = Depends(_bearer),
     db: Session = Depends(get_db),
 ) -> models.User:
     if creds is None or not creds.credentials:
         if AUTH_OPTIONAL and (u := _default_user(db)):
+            _bind_tenant(db, u.org_id)
             return u
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "authentication required")
     try:
@@ -255,6 +265,7 @@ def get_current_user(
     user = db.get(models.User, int(payload.get("sub", 0)))
     if not user or not user.is_active:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "user not found or inactive")
+    _bind_tenant(db, user.org_id)
     return user
 
 
