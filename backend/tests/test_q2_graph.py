@@ -97,3 +97,10 @@ def test_editor_page_is_served():
         r = client.get("/editor.html")
         assert r.status_code == 200
         assert "text/html" in r.headers["content-type"]
+
+
+def test_progress_map_assets_served():
+    with TestClient(app) as client:
+        for path in ("/progressmap.js", "/progressmap.css"):
+            r = client.get(path)
+            assert r.status_code == 200, path
