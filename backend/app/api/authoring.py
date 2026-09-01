@@ -10,11 +10,11 @@ from fastapi import Response
 from fastapi import Request
 
 from .. import audit, models, scenario_io, schemas
-from ..authoring import assist, delivery, designer, generator
+from ..authoring import assist, ctep, delivery, designer, generator
 from ..authoring import attack_groups
 from ..authoring.catalog import INJECT_BANK, SCENARIO_TEMPLATES, THREAT_ACTORS
 from ..authoring.generator import _pick_asset
-from ..config import MAX_YAML_BYTES
+from ..config import MAX_INJECTS, MAX_YAML_BYTES
 from ..database import get_db
 from ..security import get_current_user, require_facilitator, scope_or_404
 
@@ -104,6 +104,46 @@ def random_attack_group(
     """Pick a random adversary to emulate — optionally biased to a sector.
     Powers the "Surprise me / Random" option in the guided build flow."""
     return _attack_group_out(attack_groups.random_group(sector))
+
+
+@router.get("/api/catalog/ctep-packs", response_model=list[schemas.CtepPackOut])
+def list_ctep_packs(user: models.User = Depends(get_current_user)):
+    """Bundled CISA-CTEP-derived packs the proctor can import as runnable exercises."""
+    return [
+        schemas.CtepPackOut(
+            key=k, title=p["title"], threat_actor=p["threat_actor"],
+            modules=len(p.get("modules", [])), objectives=len(p.get("objectives", [])),
+        )
+        for k, p in ctep.CTEP_PACKS.items()
+    ]
+
+
+@router.post("/api/scenarios/import-ctep", response_model=schemas.ScenarioOut, status_code=201)
+def import_ctep(
+    payload: schemas.CtepImportIn,
+    user: models.User = Depends(require_facilitator),
+    db: Session = Depends(get_db),
+):
+    """Import a CTEP pack (bundled by key, or an uploaded pack object) into a
+    runnable, adjudicated scenario bound to an environment."""
+    env = scope_or_404(db.get(models.Environment, payload.environment_id), user)
+    pack = payload.pack
+    if pack is None:
+        pack = ctep.CTEP_PACKS.get(payload.pack_key or "")
+        if pack is None:
+            raise HTTPException(400, f"unknown CTEP pack '{payload.pack_key}'")
+    if len(pack.get("modules") or []) > MAX_INJECTS:
+        raise HTTPException(413, "CTEP pack has too many modules")
+    try:
+        scenario = ctep.build_from_pack(env, pack, name=payload.name)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    scenario.org_id = user.org_id
+    db.add(scenario)
+    db.commit()
+    db.refresh(scenario)
+    scenario.injects.sort(key=lambda i: i.sequence)
+    return scenario
 
 
 @router.get("/api/catalog/templates", response_model=list[schemas.TemplateOut])
