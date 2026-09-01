@@ -54,6 +54,26 @@ class User(Base):
     organization: Mapped["Organization"] = relationship(back_populates="users")
 
 
+class AuditLog(Base):
+    """Security/administrative audit trail — who did what, from where.
+
+    Distinct from the exercise TimelineEvent: this records account and admin
+    actions (logins, user/role changes, evidence exports), the things an auditor
+    or incident responder asks about.
+    """
+
+    __tablename__ = "audit_logs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    org_id: Mapped[int | None] = mapped_column(ForeignKey("organizations.id"), nullable=True, index=True)
+    actor_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    actor_email: Mapped[str] = mapped_column(String(200), default="")
+    action: Mapped[str] = mapped_column(String(80), index=True)
+    detail: Mapped[dict] = mapped_column(JSON, default=dict)
+    ip: Mapped[str] = mapped_column(String(64), default="")
+    at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, index=True)
+
+
 class Environment(Base):
     """The system under test — everything the team chooses to feed in.
 

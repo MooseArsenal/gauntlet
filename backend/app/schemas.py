@@ -424,3 +424,14 @@ class TokenOut(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserOut
+
+
+class AuditLogOut(BaseModel):
+    model_config = _orm
+    id: int
+    actor_user_id: Optional[int] = None
+    actor_email: str
+    action: str
+    detail: dict
+    ip: str
+    at: datetime
