@@ -543,6 +543,44 @@ class ReminderOut(BaseModel):
     delivered: bool = False
 
 
+class ImprovementCreate(BaseModel):
+    title: str
+    description: str = ""
+    severity: str = "medium"
+    session_id: Optional[int] = None
+
+
+class ImprovementUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    severity: Optional[str] = None
+    status: Optional[str] = None
+
+
+class ImprovementOut(BaseModel):
+    model_config = _orm
+    id: int
+    session_id: Optional[int] = None
+    title: str
+    description: str
+    severity: str
+    status: str
+    source: str
+    external_system: str
+    external_ref: str
+    external_url: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class TrackerSyncOut(BaseModel):
+    id: int
+    external_system: str
+    external_ref: str
+    external_status: Optional[str] = None
+    status: str
+
+
 class AuditLogOut(BaseModel):
     model_config = _orm
     id: int
