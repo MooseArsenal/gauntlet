@@ -463,8 +463,17 @@ curl localhost:8000/api/catalog/attack-groups
 curl 'localhost:8000/api/catalog/attack-groups?sector=healthcare'
 curl localhost:8000/api/catalog/attack-groups/random
 
+# Design your own adversary — real or fictitious (A7) — or have one generated.
+curl -X POST localhost:8000/api/adversaries/random          # a coherent draft
+curl -X POST localhost:8000/api/adversaries \
+  -H 'content-type: application/json' \
+  -d '{"name":"Obsidian Kraken","motivation":"sabotage","is_fictitious":true,
+       "kill_chain":["exploit_public","c2_beacon","lateral_smb","ransomware_deploy"]}'
+curl localhost:8000/api/adversaries                          # your org's roster
+
 # Generate a scenario bound to an environment, then it's immediately runnable.
-# Provide a template_key, an actor_key (e.g. a real ATT&CK group), or both.
+# actor_key may be a built-in ATT&CK group OR a custom adversary's key; provide a
+# template_key, an actor_key, or both.
 curl -X POST localhost:8000/api/scenarios/generate \
   -H 'content-type: application/json' \
   -d '{"environment_id":1,"actor_key":"apt29","template_key":"network_pentest","name":"Q3 drill"}'
