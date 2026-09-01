@@ -839,6 +839,9 @@
     $("btnCompliance").addEventListener("click", previewCompliance);
     $("btnExportCsv").addEventListener("click", () => exportTimeline("csv"));
     $("btnExportJson").addEventListener("click", () => exportTimeline("json"));
+    $("btnAttackLayer").addEventListener("click", () => {
+      if (currentSid) downloadBlob(`/api/sessions/${currentSid}/attack-layer.json`, `attack-session-${currentSid}.json`);
+    });
     $("btnDelivery").addEventListener("click", previewDelivery);
     $("btnAdjudicate").addEventListener("click", adjudicate);
     $("btnObserve").addEventListener("click", observe);
