@@ -477,6 +477,13 @@ curl localhost:8000/api/adversaries                          # your org's roster
 curl -X POST localhost:8000/api/scenarios/generate \
   -H 'content-type: application/json' \
   -d '{"environment_id":1,"actor_key":"apt29","template_key":"network_pentest","name":"Q3 drill"}'
+
+# Import a CISA CTEP pack (D5) as a runnable, adjudicated exercise — offline,
+# never fetched from cisa.gov. Pick a bundled pack or POST your own pack object.
+curl localhost:8000/api/catalog/ctep-packs
+curl -X POST localhost:8000/api/scenarios/import-ctep \
+  -H 'content-type: application/json' \
+  -d '{"environment_id":1,"pack_key":"ransomware"}'
 ```
 
 The generator walks the chosen actor's kill-chain, picks real target assets from
