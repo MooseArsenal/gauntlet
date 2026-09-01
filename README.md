@@ -144,6 +144,25 @@ a "Compliance evidence & PDF" action; reports also export to PDF.
   a "Sign in with SSO" button. SSO **links to an existing account** by subject or
   email — it does not auto-provision, since org and role can't be inferred.
 
+## Scheduling & cadence (F3)
+
+Run Gauntlet as a **programme**, not a one-off:
+
+- **Recurring schedules.** `POST /api/schedules` plans a scenario on a cadence
+  (`once` / `daily` / `weekly` / `monthly` / `quarterly`) with an invitee list.
+  Month rollovers clamp safely (Jan 31 → Feb 28).
+- **Due materialisation.** `POST /api/schedules/run-due` instantiates a session
+  for every schedule that has come due and advances its next run (skipping any
+  missed windows so a backlog can't fire all at once); a `once` schedule retires
+  itself. Pull-based, so an operator button or an external cron drives it — no
+  always-on worker needed.
+- **Reminders.** `GET /api/schedules/reminders` lists schedules whose lead
+  window is open; `?send=true` delivers them and dedupes per run. Delivery is
+  pluggable: it always records to the audit log, and if `GAUNTLET_NOTIFY_WEBHOOK`
+  is set it also POSTs the reminder there (Slack/Teams/an email relay).
+
+All schedule endpoints are tenant-scoped; facilitators manage them.
+
 ## Exports & outputs (F1)
 
 Beyond the built-in Markdown + PDF, every session and report exports in the
@@ -248,6 +267,7 @@ gauntlet/
 | `GAUNTLET_RLS_ENABLED` | `0` | Enable Postgres row-level security (no-op on SQLite) |
 | `GAUNTLET_BRAND_NAME` | `Gauntlet` | Brand name in exported PDF header/footer |
 | `GAUNTLET_BRAND_ACCENT` | `37,99,235` | PDF accent colour, `R,G,B` |
+| `GAUNTLET_NOTIFY_WEBHOOK` | — | Optional URL that scheduled reminders are POSTed to |
 
 ---
 

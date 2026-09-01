@@ -298,3 +298,30 @@ class Report(Base):
     title: Mapped[str] = mapped_column(String(240))
     content: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+
+# Cadences an exercise programme can recur on.
+CADENCES = ("once", "daily", "weekly", "monthly", "quarterly")
+
+
+class ExerciseSchedule(Base):
+    """A recurring (or one-off) plan to run a scenario — the backbone of an
+    exercise *programme*. Materialises into a Session when it comes due, and
+    surfaces reminders ahead of each run (F3)."""
+
+    __tablename__ = "exercise_schedules"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id"), index=True)
+    scenario_id: Mapped[int] = mapped_column(ForeignKey("scenarios.id"))
+    name: Mapped[str] = mapped_column(String(200))
+    cadence: Mapped[str] = mapped_column(String(20), default="once")  # see CADENCES
+    next_run_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    last_run_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # How many hours before a run a reminder becomes due.
+    reminder_lead_hours: Mapped[int] = mapped_column(Integer, default=24)
+    # The run time we last emitted a reminder for (dedupes reminders per run).
+    reminded_for: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    invitees: Mapped[list] = mapped_column(JSON, default=list)  # emails / role labels
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
