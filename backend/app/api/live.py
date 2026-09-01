@@ -80,7 +80,12 @@ def live_inject(
     scenario = db.get(models.Scenario, s.scenario_id)
     env = db.get(models.Environment, scenario.environment_id)
 
-    result = range_adapter.get_adapter().execute(env, payload.technique, payload.target)
+    try:
+        result = range_adapter.get_adapter().execute(env, payload.technique, payload.target)
+    except range_adapter.RangeNotAllowed as exc:
+        raise HTTPException(403, str(exc))
+    except range_adapter.RangeError as exc:
+        raise HTTPException(502, str(exc))
 
     current = s.current_inject_code or ""
     event = append_event(db, s.id, kind="live_inject", ref=current, payload={
