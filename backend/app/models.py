@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .crypto import EncryptedJSON
@@ -231,6 +231,8 @@ class Session(Base):
     # branch `set` clauses, and read by branch `condition` guards.
     state: Mapped[dict] = mapped_column(JSON, default=dict)
     current_inject_code: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    # Short join code for large-group onboarding (D4); null until generated.
+    join_code: Mapped[str | None] = mapped_column(String(12), nullable=True, index=True)
 
     # Authorization for live/technical injects (M4). Empty until explicitly granted.
     auth_scope: Mapped[list] = mapped_column(JSON, default=list)  # allowed target codes/hosts, "*" = any
@@ -374,3 +376,19 @@ class CustomAdversary(Base):
     kill_chain: Mapped[list] = mapped_column(JSON, default=list)  # inject-bank scene keys
     objectives: Mapped[list] = mapped_column(JSON, default=list)  # [{title, success_criteria}]
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+
+class SessionJoin(Base):
+    """A participant who joined a session via its join code (D4). One row per
+    (session, user); the cell they picked drives their fog-of-war view."""
+
+    __tablename__ = "session_joins"
+    __table_args__ = (UniqueConstraint("session_id", "user_id", name="uq_session_user"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id"), index=True)
+    session_id: Mapped[int] = mapped_column(ForeignKey("sessions.id"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    display_name: Mapped[str] = mapped_column(String(160), default="")
+    cell: Mapped[str] = mapped_column(String(40), default="blue_cell")
+    joined_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
