@@ -144,6 +144,24 @@ a "Compliance evidence & PDF" action; reports also export to PDF.
   a "Sign in with SSO" button. SSO **links to an existing account** by subject or
   email — it does not auto-provision, since org and role can't be inferred.
 
+## Real range adapter (F7)
+
+Operational exercises can execute technical injects through a real range instead
+of the simulation:
+
+- **Adapters:** `simulation` (default, contacts nothing), `caldera` (MITRE
+  Caldera), `atomic` (Atomic Red Team via a runner). Select with
+  `GAUNTLET_RANGE_ADAPTER`; each real adapter uses only its one configured base
+  URL (`GAUNTLET_CALDERA_URL`/`_API_KEY`, `GAUNTLET_ATOMIC_URL`/`_TOKEN`).
+- **Two safety gates, both required.** A live inject already needs a valid,
+  in-scope, unexpired **authorization grant** (M4). F7 adds an **allow-list**:
+  a real adapter refuses any target whose host isn't on
+  `GAUNTLET_RANGE_ALLOWLIST` — and an **empty allow-list blocks everything**
+  (fail closed). So a live action runs only when it is both authorized *and*
+  allow-listed. Allow-list refusals return **403**; execution failures **502**.
+- The environment model still adjudicates detection; the adapter contributes the
+  real execution telemetry.
+
 ## Automated environment intake (F6)
 
 Hand-entering an environment is the biggest adoption friction — the data already
@@ -324,6 +342,10 @@ gauntlet/
 | `GAUNTLET_NOTIFY_WEBHOOK` | — | Optional URL that scheduled reminders are POSTed to |
 | `GAUNTLET_JIRA_URL` / `_USER` / `_TOKEN` / `_PROJECT` | — | Jira tracker for improvement-item push/sync |
 | `GAUNTLET_SERVICENOW_URL` / `_USER` / `_PASSWORD` | — | ServiceNow tracker for improvement-item push/sync |
+| `GAUNTLET_RANGE_ADAPTER` | `simulation` | Live-inject range: `simulation` / `caldera` / `atomic` |
+| `GAUNTLET_RANGE_ALLOWLIST` | — | Comma-separated hosts a real range may target (empty = block all) |
+| `GAUNTLET_CALDERA_URL` / `_API_KEY` | — | MITRE Caldera endpoint for live injects |
+| `GAUNTLET_ATOMIC_URL` / `_TOKEN` | — | Atomic Red Team runner endpoint for live injects |
 
 ---
 
