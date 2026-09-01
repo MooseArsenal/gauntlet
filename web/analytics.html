@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gauntlet — Maturity</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="bar">
+    <div class="brand"><span class="mark"><span>G</span></span><b>Gauntlet</b><small>Maturity</small></div>
+    <div class="bar-actions">
+      <a class="btn ghost" href="/">Console</a>
+      <button class="btn toggle" id="btnTheme" aria-label="Toggle theme">◑</button>
+    </div>
+  </header>
+
+  <main class="mat">
+    <p class="eyebrow">Readiness over time</p>
+    <h1 style="font-size:1.6rem;margin:.1rem 0 .3rem">Program maturity</h1>
+    <p class="muted" id="matLead">Loading…</p>
+
+    <div class="score-tiles mat-tiles" id="matTiles"></div>
+
+    <div class="panel mat-chart" id="chartPanel" hidden>
+      <p class="eyebrow">Detection rate over exercises</p>
+      <div id="chart"></div>
+    </div>
+
+    <div class="panel" id="tablePanel" hidden>
+      <p class="eyebrow">Per-exercise</p>
+      <div class="mat-table" id="matTable"></div>
+    </div>
+  </main>
+
+  <div class="toast" id="toast" hidden></div>
+  <script src="/analytics.js"></script>
+</body>
+</html>
