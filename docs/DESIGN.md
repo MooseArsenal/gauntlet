@@ -158,6 +158,10 @@ its own.
   timeline, CI with a migration-drift guard.
 - **M6 — Real-time** *(shipped)*: WebSocket live updates per session,
   auto-advance timeout timers, and a read-only participant console.
+- **M7 — Deep scenarios & compliance** *(shipped)*: state-driven branching
+  (guarded branches + state mutations), YAML import/export/validation, and a
+  compliance crosswalk (PCI-DSS, DORA, NIST CSF, CIS v8, ISO 27001, SOC 2) that
+  emits evidence for all frameworks at once, with PDF export.
 
 ## Guardrails realised in M4
 
