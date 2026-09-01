@@ -1,4 +1,9 @@
-"""Multi-cell & parallel (M3): fog-of-war views and cross-session roll-up."""
+"""Multi-cell & parallel (M3): fog-of-war views and cross-session roll-up.
+
+H1: the cell a caller may look through is decided on the server. Staff may
+view any cell; a participant is shown the cell on their join row, never a
+control cell, and never another cell's view.
+"""
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends
@@ -8,7 +13,8 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..database import get_db
 from ..engine import rollup, visibility
-from ..security import get_current_user, scope_or_404
+from ..membership import resolve_cell, resolve_cell_for_scenario
+from ..security import get_current_user, is_staff, require_staff, scope_or_404
 
 router = APIRouter(tags=["multicell"])
 
@@ -31,6 +37,7 @@ def cell_session_view(
     White Cell machinery (unless the cell is itself a control cell)."""
     s = scope_or_404(db.get(models.Session, session_id), user)
     scenario = db.get(models.Scenario, s.scenario_id)
+    cell_key = resolve_cell(db, s, scenario, user, cell_key)
 
     current = None
     if s.current_inject_code:
@@ -47,7 +54,7 @@ def cell_session_view(
     return schemas.CellSessionView(
         cell_key=cell_key,
         cell_name=_cell_name(scenario, cell_key),
-        can_see_all=visibility.is_control_cell(scenario, cell_key),
+        can_see_all=is_staff(user) and visibility.is_control_cell(scenario, cell_key),
         session=schemas.SessionSummary.model_validate(s),
         current_inject=schemas.InjectOut.model_validate(visible_current) if visible_current else None,
         timeline=[schemas.TimelineEventOut.model_validate(e) for e in visible_events],
@@ -68,12 +75,13 @@ def environment_cell_view(
     cell's control status."""
     env = scope_or_404(db.get(models.Environment, env_id), user)
     scenario = scope_or_404(db.get(models.Scenario, scenario_id), user)
+    cell_key = resolve_cell_for_scenario(db, scenario, user, cell_key)
     return visibility.filter_environment(env, scenario, cell_key)
 
 
 @router.get("/api/scenarios/{scenario_id}/rollup", response_model=schemas.RollupOut)
 def scenario_rollup(
-    scenario_id: int, user: models.User = Depends(get_current_user), db: Session = Depends(get_db)
+    scenario_id: int, user: models.User = Depends(require_staff), db: Session = Depends(get_db)
 ):
     """Compare every run of a scenario — the parallel / program view."""
     scenario = scope_or_404(db.get(models.Scenario, scenario_id), user)

@@ -17,7 +17,10 @@ from .. import models, schemas, scheduler, session_ops, ws
 from ..database import get_db
 from ..ws_ticket import tickets as ws_tickets
 from ..engine import adjudication, msel
-from ..security import get_current_user, require_evaluator, require_facilitator, scope_or_404
+from ..membership import require_member
+from ..security import (
+    get_current_user, require_evaluator, require_facilitator, require_staff, scope_or_404,
+)
 from ..timeline import append_event, verify_chain
 
 router = APIRouter(prefix="/api/sessions", tags=["sessions"])
@@ -41,7 +44,8 @@ def ws_ticket(
     Keeps the bearer token out of the ``ws://`` URL: the client authenticates
     this HTTPS call with its header, then connects with ``?ticket=<t>``.
     """
-    _get_session(db, session_id, user)  # 404 unless it's in the caller's org
+    s = _get_session(db, session_id, user)  # 404 unless it's in the caller's org
+    require_member(db, s, user)             # participants must have joined (H1)
     value, ttl = ws_tickets.issue(user.id, session_id)
     return schemas.WsTicketOut(ticket=value, expires_in=ttl)
 
@@ -110,7 +114,7 @@ def create_session(
 
 
 @router.get("", response_model=list[schemas.SessionSummary])
-def list_sessions(user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+def list_sessions(user: models.User = Depends(require_staff), db: Session = Depends(get_db)):
     return (
         db.execute(
             select(models.Session)
@@ -122,9 +126,26 @@ def list_sessions(user: models.User = Depends(get_current_user), db: Session = D
     )
 
 
+@router.get("/mine", response_model=list[schemas.JoinedSessionOut])
+def my_sessions(user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """The sessions this user has joined by code, with the cell they hold —
+    the only session list a participant can see (H1)."""
+    rows = db.execute(
+        select(models.SessionJoin, models.Session)
+        .join(models.Session, models.Session.id == models.SessionJoin.session_id)
+        .where(models.SessionJoin.user_id == user.id, models.Session.org_id == user.org_id)
+        .order_by(models.Session.id.desc())
+    ).all()
+    return [
+        schemas.JoinedSessionOut(session=schemas.SessionSummary.model_validate(s),
+                                 cell=j.cell, display_name=j.display_name)
+        for j, s in rows
+    ]
+
+
 @router.get("/{session_id}", response_model=schemas.SessionState)
 def get_session_state(
-    session_id: int, user: models.User = Depends(get_current_user), db: Session = Depends(get_db)
+    session_id: int, user: models.User = Depends(require_staff), db: Session = Depends(get_db)
 ):
     return _state(db, _get_session(db, session_id, user))
 
@@ -308,6 +329,7 @@ def complete_session(
     scheduler.cancel(s.id)
     s.status = "complete"
     s.completed_at = datetime.now(timezone.utc)
+    s.join_code = None  # a finished exercise cannot be joined (H1)
     append_event(db, s.id, kind="status", payload={"status": "complete"})
     db.commit()
     db.refresh(s)
@@ -317,7 +339,7 @@ def complete_session(
 
 @router.get("/{session_id}/verify")
 def verify_timeline(
-    session_id: int, user: models.User = Depends(get_current_user), db: Session = Depends(get_db)
+    session_id: int, user: models.User = Depends(require_staff), db: Session = Depends(get_db)
 ):
     s = _get_session(db, session_id, user)
     valid = verify_chain(list(s.events))

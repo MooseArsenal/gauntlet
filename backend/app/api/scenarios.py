@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..config import MAX_INJECTS
 from ..database import get_db
-from ..security import get_current_user, require_facilitator, scope_or_404
+from ..security import require_staff, require_facilitator, scope_or_404
 
 router = APIRouter(prefix="/api/scenarios", tags=["scenarios"])
 
@@ -51,7 +51,7 @@ def create_scenario(
 
 @router.get("", response_model=list[schemas.ScenarioSummary])
 def list_scenarios(
-    user: models.User = Depends(get_current_user), db: Session = Depends(get_db)
+    user: models.User = Depends(require_staff), db: Session = Depends(get_db)
 ):
     return (
         db.execute(
@@ -66,7 +66,7 @@ def list_scenarios(
 
 @router.get("/{scenario_id}", response_model=schemas.ScenarioOut)
 def get_scenario(
-    scenario_id: int, user: models.User = Depends(get_current_user), db: Session = Depends(get_db)
+    scenario_id: int, user: models.User = Depends(require_staff), db: Session = Depends(get_db)
 ):
     scenario = scope_or_404(db.get(models.Scenario, scenario_id), user)
     # Present injects in play order.

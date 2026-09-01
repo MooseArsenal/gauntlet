@@ -14,7 +14,7 @@ from .. import models, schemas
 from ..authoring import designer
 from ..authoring.catalog import THREAT_ACTORS
 from ..database import get_db
-from ..security import get_current_user, require_facilitator, scope_or_404
+from ..security import require_staff, require_facilitator, scope_or_404
 
 router = APIRouter(prefix="/api/adversaries", tags=["adversaries"])
 
@@ -39,7 +39,7 @@ def _out(a: models.CustomAdversary) -> schemas.CustomAdversaryOut:
 
 
 @router.get("", response_model=list[schemas.CustomAdversaryOut])
-def list_adversaries(user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+def list_adversaries(user: models.User = Depends(require_staff), db: Session = Depends(get_db)):
     rows = db.execute(
         select(models.CustomAdversary)
         .where(models.CustomAdversary.org_id == user.org_id)

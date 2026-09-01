@@ -16,7 +16,7 @@ from ..authoring.catalog import INJECT_BANK, SCENARIO_TEMPLATES, THREAT_ACTORS
 from ..authoring.generator import _pick_asset
 from ..config import MAX_INJECTS, MAX_YAML_BYTES
 from ..database import get_db
-from ..security import get_current_user, require_facilitator, scope_or_404
+from ..security import get_current_user, require_facilitator, require_staff, scope_or_404
 
 
 def _check_size(text: str) -> None:
@@ -266,7 +266,7 @@ def import_scenario_yaml(
 
 @router.get("/api/scenarios/{scenario_id}/export")
 def export_scenario_yaml(
-    scenario_id: int, user: models.User = Depends(get_current_user), db: Session = Depends(get_db)
+    scenario_id: int, user: models.User = Depends(require_staff), db: Session = Depends(get_db)
 ):
     scenario = scope_or_404(db.get(models.Scenario, scenario_id), user)
     text = scenario_io.dump_yaml(scenario_io.to_dict(scenario))
@@ -278,7 +278,7 @@ def export_scenario_yaml(
 # --------------------------------------------------------------------------- #
 @router.get("/api/injects/{inject_id}/delivery", response_model=schemas.DeliveryOut)
 def get_delivery(
-    inject_id: int, user: models.User = Depends(get_current_user), db: Session = Depends(get_db)
+    inject_id: int, user: models.User = Depends(require_staff), db: Session = Depends(get_db)
 ):
     return delivery.render(_inject_in_org(db, inject_id, user))
 
