@@ -38,19 +38,34 @@
   function setLive(on) { const p = $("livePill"); p.textContent = on ? "live" : "offline"; p.className = "pill " + (on ? "running" : "paused"); }
   function sid() { return Number($("sessionSel").value); }
 
+  const STAFF = ["admin", "facilitator", "evaluator"];
   async function loadSessions() {
-    sessions = await api("/api/sessions");
+    // H1: staff pick any session; a participant sees the sessions they joined
+    // as the red cell (the server enforces the same rule on every call).
+    const me = await api("/api/auth/me");
+    if (STAFF.includes(me.role)) {
+      sessions = await api("/api/sessions");
+    } else {
+      sessions = (await api("/api/sessions/mine")).filter((m) => m.cell === "red_cell").map((m) => m.session);
+    }
     $("sessionSel").innerHTML = sessions.length
-      ? sessions.map((s) => `<option value="${s.id}">${esc(s.name)} · ${s.status}</option>`).join("")
+      ? sessions.map((s) => `<option value="${s.id}">${esc(s.name)} · ${esc(s.status)}</option>`).join("")
       : '<option value="">no sessions</option>';
-    if (sessions.length) await onSession();
+    if (!sessions.length) {
+      $("rcScore").innerHTML = '<p class="hint" style="grid-column:1/-1">You are not in a red cell yet. Ask your facilitator for a join code, then pick <b>Red cell</b> on <a href="/join.html">Join by code</a>.</p>';
+      return;
+    }
+    const want = Number(new URLSearchParams(location.search).get("session")) || 0;
+    if (want && sessions.some((s) => s.id === want)) $("sessionSel").value = String(want);
+    await onSession();
   }
 
   async function onSession() {
     if (!sid()) return;
-    // Suggest the current scene's techniques + default target.
+    // Suggest the current scene's techniques + default target (through the red
+    // cell's own fog-of-war view — never the full session state).
     try {
-      const state = await api(`/api/sessions/${sid()}`);
+      const state = await api(`/api/sessions/${sid()}/cell/red_cell`);
       const inj = state.current_inject;
       const techs = (inj && inj.attack_techniques) || [];
       $("rcQuick").innerHTML = techs.length
@@ -158,7 +173,7 @@
     } catch (e) { setLive(false); }
   }
   async function onSuggest() { /* refresh scene technique suggestions quietly */
-    try { const state = await api(`/api/sessions/${sid()}`); const inj = state.current_inject;
+    try { const state = await api(`/api/sessions/${sid()}/cell/red_cell`); const inj = state.current_inject;
       const techs = (inj && inj.attack_techniques) || [];
       if (techs.length) {
         $("rcQuick").innerHTML = `<span class="rc-hint">This scene:</span>` + techs.map((t) => `<button class="rc-chip" data-t="${esc(t)}">${esc(t)}</button>`).join("");

@@ -288,6 +288,16 @@ def require_role(*roles: str):
 require_facilitator = require_role("admin", "facilitator")
 require_evaluator = require_role("admin", "facilitator", "evaluator")
 
+# Staff (H1): the people who design, run and evaluate exercises. Participants
+# are everyone else — they see only their own cell's view of a session they
+# have joined, resolved server-side (see membership.py), never a full object.
+STAFF_ROLES = ("admin", "facilitator", "evaluator")
+require_staff = require_role(*STAFF_ROLES)
+
+
+def is_staff(user: models.User) -> bool:
+    return user.role in STAFF_ROLES
+
 
 def scope_or_404(entity, user: models.User):
     """Return ``entity`` only if it belongs to the caller's organisation.

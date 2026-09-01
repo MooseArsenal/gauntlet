@@ -9,7 +9,7 @@ from sqlalchemy.orm.attributes import flag_modified
 from .. import audit, intake, models, schemas
 from ..config import MAX_IMPORT_BYTES
 from ..database import get_db
-from ..security import get_current_user, require_facilitator, scope_or_404
+from ..security import require_staff, require_facilitator, scope_or_404
 
 router = APIRouter(prefix="/api/environments", tags=["environments"])
 
@@ -68,7 +68,7 @@ def import_environment(
 
 @router.get("", response_model=list[schemas.EnvironmentSummary])
 def list_environments(
-    user: models.User = Depends(get_current_user), db: Session = Depends(get_db)
+    user: models.User = Depends(require_staff), db: Session = Depends(get_db)
 ):
     return (
         db.execute(
@@ -83,6 +83,6 @@ def list_environments(
 
 @router.get("/{env_id}", response_model=schemas.EnvironmentOut)
 def get_environment(
-    env_id: int, user: models.User = Depends(get_current_user), db: Session = Depends(get_db)
+    env_id: int, user: models.User = Depends(require_staff), db: Session = Depends(get_db)
 ):
     return scope_or_404(db.get(models.Environment, env_id), user)

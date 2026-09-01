@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from .. import audit, models, schemas, tracker
 from ..database import get_db
-from ..security import get_current_user, require_facilitator, scope_or_404
+from ..security import require_staff, require_facilitator, scope_or_404
 
 router = APIRouter(tags=["improvements"])
 
@@ -48,7 +48,7 @@ def create_item(payload: schemas.ImprovementCreate,
 
 
 @router.get("/api/improvements", response_model=list[schemas.ImprovementOut])
-def list_items(status: str | None = None, user: models.User = Depends(get_current_user),
+def list_items(status: str | None = None, user: models.User = Depends(require_staff),
                db: Session = Depends(get_db)):
     stmt = select(models.ImprovementItem).where(models.ImprovementItem.org_id == user.org_id)
     if status:
@@ -57,7 +57,7 @@ def list_items(status: str | None = None, user: models.User = Depends(get_curren
 
 
 @router.get("/api/sessions/{session_id}/improvements", response_model=list[schemas.ImprovementOut])
-def list_for_session(session_id: int, user: models.User = Depends(get_current_user),
+def list_for_session(session_id: int, user: models.User = Depends(require_staff),
                      db: Session = Depends(get_db)):
     scope_or_404(db.get(models.Session, session_id), user)
     return db.execute(
