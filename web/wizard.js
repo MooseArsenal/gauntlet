@@ -82,15 +82,92 @@
   }
 
   // ---- BUILD flow -------------------------------------------------------- //
+  // Step 1 is a three-mode "choose your adversary" picker: by scenario type
+  // (template_key), by real ATT&CK group (actor_key), or by industry (sector →
+  // the groups that target it → actor_key). Each mode offers a Random pick.
+  const PICK_MODES = [
+    { value: "type", label: "By scenario type" },
+    { value: "actor", label: "By threat actor" },
+    { value: "sector", label: "By industry" },
+  ];
+  function clearPick() { data.template_key = null; data.actor_key = null; data.actorName = null; }
+
+  function actorTile(g) {
+    return {
+      value: g.key, title: g.name,
+      meta: `${g.attack_id}${g.aliases && g.aliases.length ? " · " + g.aliases[0] : ""}`,
+      desc: g.description,
+    };
+  }
+
+  async function renderTypeMode(host) {
+    host.innerHTML = '<p class="hint">Loading library…</p>';
+    const tmpls = await api("/api/catalog/templates");
+    host.innerHTML = `<div class="wz-pickhead"><span></span><button class="btn ghost small" id="wzRand">🎲 Random</button></div><div id="wzGrid"></div>`;
+    tiles($("wzGrid"), tmpls.map((t) => ({ value: t.key, title: t.name, desc: t.narrative })), "template_key");
+    $("wzRand").addEventListener("click", () => {
+      const pick = tmpls[Math.floor(Math.random() * tmpls.length)];
+      clearPick(); data.template_key = pick.key; renderTypeMode(host);
+    });
+  }
+
+  async function renderActorMode(host, sector) {
+    host.innerHTML = '<p class="hint">Loading adversaries…</p>';
+    const groups = await api("/api/catalog/attack-groups" + (sector ? `?sector=${encodeURIComponent(sector)}` : ""));
+    if (!groups.length) { host.innerHTML = '<p class="hint">No adversaries match — try another industry.</p>'; return; }
+    host.innerHTML = `<div class="wz-pickhead"><span class="wz-count">${groups.length} real ATT&CK group${groups.length === 1 ? "" : "s"}</span><button class="btn ghost small" id="wzRand">🎲 Surprise me</button></div><div id="wzGrid"></div>`;
+    tiles($("wzGrid"), groups.map(actorTile), "actor_key");
+    // remember chosen group's display name for the summary
+    $("wzGrid").querySelectorAll(".wz-tile").forEach((t) => t.addEventListener("click", () => {
+      const g = groups.find((x) => x.key === t.getAttribute("data-v")); data.actorName = g ? g.name : null; data.template_key = null;
+    }));
+    $("wzRand").addEventListener("click", async () => {
+      const g = await api("/api/catalog/attack-groups/random" + (sector ? `?sector=${encodeURIComponent(sector)}` : ""));
+      clearPick(); data.actor_key = g.key; data.actorName = g.name;
+      renderActorMode(host, sector);
+    });
+  }
+
+  async function renderSectorMode(host) {
+    // Data-driven industry list: the union of sectors the catalog's groups target.
+    if (!data._sectors) {
+      const all = await api("/api/catalog/attack-groups");
+      data._sectors = [...new Set(all.flatMap((g) => g.sectors))].sort();
+    }
+    if (data.sector == null) data.sector = data._sectors[0];
+    host.innerHTML =
+      `<div class="wz-field"><label>Your industry / org type</label>
+         <select id="wzSector">${data._sectors.map((s) => `<option value="${esc(s)}" ${s === data.sector ? "selected" : ""}>${esc(s.replace(/-/g, " "))}</option>`).join("")}</select></div>
+       <p class="wz-lead" style="margin:.2rem 0 .8rem">Adversaries publicly reported to target this industry:</p>
+       <div id="wzSectorGroups"></div>`;
+    $("wzSector").addEventListener("change", (e) => { data.sector = e.target.value; clearPick(); renderSectorMode(host); });
+    renderActorMode($("wzSectorGroups"), data.sector);
+  }
+
   FLOWS.build = [
     {
-      title: "Pick a scenario type", lead: "Start from a proven template — you can tune everything afterwards.",
+      title: "Choose your adversary", lead: "Emulate a real ATT&CK group, start from a scenario type, or find who targets your industry — you can tune everything afterwards.",
       async render(el) {
-        el.innerHTML = '<p class="hint">Loading library…</p>';
-        const tmpls = await api("/api/catalog/templates");
-        tiles(el, tmpls.map((t) => ({ value: t.key, title: t.name, desc: t.narrative })), "template_key");
+        if (!data.pickMode) data.pickMode = "type";
+        el.innerHTML =
+          `<div class="wz-seg" id="wzSeg">${PICK_MODES.map((m) => `<button class="seg ${data.pickMode === m.value ? "on" : ""}" data-m="${m.value}">${m.label}</button>`).join("")}</div>
+           <div id="wzPick"></div>`;
+        const host = $("wzPick");
+        const renderMode = () => {
+          if (data.pickMode === "type") return renderTypeMode(host);
+          if (data.pickMode === "actor") return renderActorMode(host, null);
+          return renderSectorMode(host);
+        };
+        $("wzSeg").querySelectorAll(".seg").forEach((b) => b.addEventListener("click", () => {
+          data.pickMode = b.getAttribute("data-m"); clearPick();
+          $("wzSeg").querySelectorAll(".seg").forEach((x) => x.classList.remove("on")); b.classList.add("on");
+          renderMode();
+        }));
+        await renderMode();
       },
-      onNext() { if (!data.template_key) { toast("Pick a scenario type."); return false; } },
+      onNext() {
+        if (!data.template_key && !data.actor_key) { toast("Pick a scenario type or an adversary."); return false; }
+      },
     },
     {
       title: "Ground it in your environment", lead: "Scenes are filled with real assets from the environment you choose.",
@@ -98,7 +175,9 @@
         const envs = await api("/api/environments");
         if (!envs.length) { el.innerHTML = '<p class="hint">No environments yet — create one in the <a href="/index.html">console</a> first.</p>'; return; }
         if (data.environment_id == null) data.environment_id = envs[0].id;
+        const pick = data.actor_key ? `Emulating <b>${esc(data.actorName || data.actor_key)}</b>` : `Scenario type <b>${esc(data.template_key)}</b>`;
         el.innerHTML =
+          `<p class="wz-pickchip">${pick}${data.actor_key && data.template_key ? ` · framed as <b>${esc(data.template_key)}</b>` : ""}</p>` +
           `<div class="wz-field"><label>Environment</label><select id="wzEnv">${envs.map((e) => `<option value="${e.id}" ${e.id === data.environment_id ? "selected" : ""}>${esc(e.name)} · ${esc(e.sector || "")}</option>`).join("")}</select></div>` +
           `<div class="wz-field"><label>Name (optional)</label><input id="wzName" placeholder="e.g. Q3 phishing drill" value="${esc(data.name || "")}"></div>`;
         $("wzEnv").addEventListener("change", (e) => (data.environment_id = Number(e.target.value)));
@@ -107,7 +186,12 @@
       nextLabel: "Generate ✨",
       async onNext() {
         if (data.environment_id == null) { toast("Pick an environment."); return false; }
-        data.scenario = await api("/api/scenarios/generate", "POST", { environment_id: data.environment_id, template_key: data.template_key, name: data.name || null });
+        data.scenario = await api("/api/scenarios/generate", "POST", {
+          environment_id: data.environment_id,
+          actor_key: data.actor_key || null,
+          template_key: data.template_key || null,
+          name: data.name || null,
+        });
         toast(`Generated "${data.scenario.name}"`);
       },
     },
