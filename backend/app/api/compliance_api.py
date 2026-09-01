@@ -21,7 +21,10 @@ def _pdf_response(title: str, markdown: str, filename: str) -> Response:
 
 @router.get("/api/compliance/frameworks")
 def frameworks(user: models.User = Depends(get_current_user)):
-    return [{"key": k, "name": v} for k, v in compliance.FRAMEWORKS.items()]
+    return [
+        {"key": k, "name": v, "tier": compliance.FRAMEWORK_TIER.get(k, 1)}
+        for k, v in compliance.FRAMEWORKS.items()
+    ]
 
 
 def _evidence(db: Session, session_id: int, user: models.User, framework: str | None):
