@@ -13,7 +13,8 @@ import asyncio
 from . import __version__, ws
 from .api import (
     admin, adversaries, analytics_api, attack_api, audit_api, auth, authoring, compliance_api,
-    environments, exports_api, improvements, join_api, live, multicell, program, purple, reports,
+    environments, exports_api, improvements, join_api, live, members, multicell, program, purple,
+    reports,
     scenarios, schedules, sessions,
 )
 from .config import (
@@ -113,6 +114,7 @@ app.include_router(improvements.router)
 app.include_router(purple.router)
 app.include_router(audit_api.router)
 app.include_router(admin.router)
+app.include_router(members.router)
 app.include_router(ws.router)
 
 # Facilitator console (served last so it never shadows the API routes).

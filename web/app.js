@@ -99,6 +99,7 @@
     $("btnNew").hidden = true;
     $("btnGuided").hidden = true;
     $("btnEditor").hidden = true;
+    $("btnMembers").hidden = true;
     ["btnPause", "btnResume", "btnVerify"].forEach((id) => ($(id).hidden = true));
   }
 
@@ -209,6 +210,7 @@
     $("btnNew").hidden = false;
     $("btnGuided").hidden = false;
     $("btnEditor").hidden = false;
+    $("btnMembers").hidden = !(me && me.role === "admin");  // U-1: admins manage members
     ["btnPause", "btnResume", "btnVerify"].forEach((id) => ($(id).hidden = true));
 
     const [scenarios, sessions] = await Promise.all([

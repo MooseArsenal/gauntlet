@@ -351,4 +351,15 @@ table.grid tbody tr:hover{background:var(--surface-2)}
 .mat-row.mat-head{font-family:"IBM Plex Mono",monospace;font-size:.64rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:1px solid var(--line)}
 .mat-name{color:var(--ink)}
 
+/* Members (U-1) */
+.mem-add{display:grid;grid-template-columns:2fr 1.2fr 1fr 1.6fr auto;gap:.6rem;align-items:end}
+@media(max-width:760px){.mem-add{grid-template-columns:1fr 1fr}}
+.mem-add label{display:grid;gap:.25rem;font-size:.72rem;color:var(--muted)}
+.mem-table{display:flex;flex-direction:column;gap:.2rem;overflow-x:auto}
+.mem-row{display:grid;grid-template-columns:2.2fr 1fr .6fr .8fr 3fr;gap:.6rem;align-items:center;font-size:.84rem;padding:.45rem .2rem;border-bottom:1px solid var(--line-soft);min-width:760px}
+.mem-row.mem-head{font-family:"IBM Plex Mono",monospace;font-size:.64rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:1px solid var(--line)}
+.mem-row.mem-off{opacity:.6}
+.mem-who{display:grid;line-height:1.2} .mem-who small{color:var(--muted);font-size:.72rem}
+.mem-acts{display:flex;flex-wrap:wrap;gap:.3rem}
+
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}

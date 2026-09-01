@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gauntlet — Members</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="bar">
+    <div class="brand"><span class="mark"><span>G</span></span><b>Gauntlet</b><small>Members</small></div>
+    <div class="bar-actions">
+      <a class="btn ghost" href="/">Console</a>
+      <button class="btn toggle" id="btnTheme" aria-label="Toggle theme">◑</button>
+    </div>
+  </header>
+
+  <main class="mat">
+    <p class="eyebrow">Organisation</p>
+    <h1 style="font-size:1.6rem;margin:.1rem 0 .3rem">Members</h1>
+    <p class="muted" id="memLead">Loading…</p>
+
+    <div class="panel" id="addPanel" hidden>
+      <p class="eyebrow">Add a member</p>
+      <div class="mem-add">
+        <label>Email <input id="addEmail" type="email" autocomplete="off" placeholder="name@org.example"></label>
+        <label>Name <input id="addName" type="text" placeholder="optional"></label>
+        <label>Role
+          <select id="addRole">
+            <option value="participant">participant</option>
+            <option value="evaluator">evaluator</option>
+            <option value="facilitator" selected>facilitator</option>
+            <option value="admin">admin</option>
+          </select>
+        </label>
+        <label>Temporary password <input id="addPassword" type="text" autocomplete="off" placeholder="they change it on first sign-in"></label>
+        <button class="btn primary" id="btnAdd">Add member</button>
+      </div>
+      <p class="loginerr" id="addErr" hidden></p>
+    </div>
+
+    <div class="panel" id="listPanel" hidden>
+      <p class="eyebrow">Everyone in this organisation <span class="hint" id="memCount"></span></p>
+      <div class="mem-table" id="memTable"></div>
+    </div>
+  </main>
+
+  <div class="toast" id="toast" hidden></div>
+  <script src="/members.js"></script>
+</body>
+</html>

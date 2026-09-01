@@ -536,6 +536,34 @@ class UserOut(BaseModel):
     mfa_enabled: bool = False
 
 
+class MemberOut(BaseModel):
+    """An organisation member as the admin sees them (U-1)."""
+    id: int
+    email: str
+    name: str
+    role: str
+    is_active: bool
+    mfa_enabled: bool
+    sso_linked: bool
+    created_at: datetime
+
+    @classmethod
+    def from_user(cls, u) -> "MemberOut":
+        return cls(id=u.id, email=u.email, name=u.name or "", role=u.role, is_active=u.is_active,
+                   mfa_enabled=bool(u.mfa_enabled), sso_linked=bool(u.oidc_subject),
+                   created_at=u.created_at)
+
+
+class MemberUpdateIn(BaseModel):
+    role: Optional[str] = None
+    name: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class MemberPasswordIn(BaseModel):
+    password: str = Field(min_length=8)
+
+
 class RegisterIn(BaseModel):
     org_name: str
     email: str
