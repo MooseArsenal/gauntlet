@@ -16,15 +16,17 @@ from hashlib import sha256
 from sqlalchemy import select
 from sqlalchemy.orm import Session as DbSession
 
-from .config import TIMELINE_KEY
+from .keys import timeline_sign_key, timeline_verify_keys
 from .models import TimelineEvent
 
 
-def _hash(prev_hash: str, canonical: str) -> str:
+def _hash(prev_hash: str, canonical: str, key: bytes | None = None) -> str:
     # HMAC (not a bare hash) so recomputing a valid chain requires the server
     # key — the timeline stays tamper-evident even against someone with DB
-    # write access but not the key.
-    return hmac.new(TIMELINE_KEY, (prev_hash + canonical).encode("utf-8"), sha256).hexdigest()
+    # write access but not the key. The signing key is domain-separated from the
+    # JWT key (M10) so a leak of one does not compromise the other.
+    key = key if key is not None else timeline_sign_key()
+    return hmac.new(key, (prev_hash + canonical).encode("utf-8"), sha256).hexdigest()
 
 
 def append_event(
@@ -94,7 +96,11 @@ def verify_chain(events: list[TimelineEvent]) -> bool:
             sort_keys=True,
             separators=(",", ":"),
         )
-        if e.prev_hash != prev_hash or e.hash != _hash(prev_hash, canonical):
+        if e.prev_hash != prev_hash:
+            return False
+        # Accept any key in the ring so a chain survives a key rotation and the
+        # pre-M10 → domain-separated upgrade.
+        if not any(e.hash == _hash(prev_hash, canonical, k) for k in timeline_verify_keys()):
             return False
         prev_hash = e.hash
     return True

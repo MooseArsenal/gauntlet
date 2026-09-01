@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from .crypto import EncryptedJSON
 from .database import Base
 
 
@@ -115,15 +116,17 @@ class Environment(Base):
     description: Mapped[str] = mapped_column(Text, default="")
     box_type: Mapped[str] = mapped_column(String(20), default="grey")  # white|grey|black
 
-    assets: Mapped[list] = mapped_column(JSON, default=list)
-    controls: Mapped[list] = mapped_column(JSON, default=list)
-    detections: Mapped[list] = mapped_column(JSON, default=list)
-    playbooks: Mapped[list] = mapped_column(JSON, default=list)
-    policies: Mapped[list] = mapped_column(JSON, default=list)
-    personnel: Mapped[list] = mapped_column(JSON, default=list)
-    deception_assets: Mapped[list] = mapped_column(JSON, default=list)
-    crown_jewels: Mapped[list] = mapped_column(JSON, default=list)
-    visibility: Mapped[dict] = mapped_column(JSON, default=dict)
+    # Sensitive environment intelligence — encrypted at rest when a data key is
+    # configured (M10); ordinary JSON otherwise. See app/crypto.py.
+    assets: Mapped[list] = mapped_column(EncryptedJSON, default=list)
+    controls: Mapped[list] = mapped_column(EncryptedJSON, default=list)
+    detections: Mapped[list] = mapped_column(EncryptedJSON, default=list)
+    playbooks: Mapped[list] = mapped_column(EncryptedJSON, default=list)
+    policies: Mapped[list] = mapped_column(EncryptedJSON, default=list)
+    personnel: Mapped[list] = mapped_column(EncryptedJSON, default=list)
+    deception_assets: Mapped[list] = mapped_column(EncryptedJSON, default=list)
+    crown_jewels: Mapped[list] = mapped_column(EncryptedJSON, default=list)
+    visibility: Mapped[dict] = mapped_column(EncryptedJSON, default=dict)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
