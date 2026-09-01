@@ -11,7 +11,7 @@ import asyncio
 
 from . import __version__, ws
 from .api import (
-    audit_api, auth, authoring, compliance_api, environments, live, multicell, program,
+    admin, audit_api, auth, authoring, compliance_api, environments, live, multicell, program,
     reports, scenarios, sessions,
 )
 from .config import (
@@ -43,6 +43,12 @@ async def lifespan(_: FastAPI):
             seed_if_empty(db)
         finally:
             db.close()
+    # Install Postgres row-level-security policies (defence in depth). No-op on
+    # SQLite or when GAUNTLET_RLS_ENABLED is off.
+    from .database import engine
+    from .rls import install_policies
+
+    install_policies(engine)
     yield
 
 
@@ -78,6 +84,7 @@ app.include_router(live.router)
 app.include_router(program.router)
 app.include_router(compliance_api.router)
 app.include_router(audit_api.router)
+app.include_router(admin.router)
 app.include_router(ws.router)
 
 # Facilitator console (served last so it never shadows the API routes).
