@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from .. import audit, compliance, models, pdf
 from ..database import get_db
-from ..security import get_current_user, require_evaluator, scope_or_404
+from ..security import require_staff, require_evaluator, scope_or_404
 
 router = APIRouter(tags=["compliance"])
 
@@ -20,7 +20,7 @@ def _pdf_response(title: str, markdown: str, filename: str) -> Response:
 
 
 @router.get("/api/compliance/frameworks")
-def frameworks(user: models.User = Depends(get_current_user)):
+def frameworks(user: models.User = Depends(require_staff)):
     return [
         {"key": k, "name": v, "tier": compliance.FRAMEWORK_TIER.get(k, 1)}
         for k, v in compliance.FRAMEWORKS.items()

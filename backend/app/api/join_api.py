@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
+from ..membership import require_member, validate_join_cell
 from ..security import get_current_user, require_facilitator, scope_or_404
 
 router = APIRouter(tags=["join"])
@@ -49,8 +50,9 @@ def make_join_code(session_id: int,
 def lobby(session_id: int,
           user: models.User = Depends(get_current_user),
           db: Session = Depends(get_db)):
-    """Who has joined this session."""
+    """Who has joined this session (staff, or members of it)."""
     s = scope_or_404(db.get(models.Session, session_id), user)
+    require_member(db, s, user)
     rows = db.execute(
         select(models.SessionJoin)
         .where(models.SessionJoin.session_id == s.id)
@@ -73,6 +75,10 @@ def join(payload: schemas.JoinIn,
     ).scalars().first()
     if s is None:
         raise HTTPException(404, "no session with that join code")
+    if s.status == "complete":
+        raise HTTPException(409, "that exercise has already finished")
+    scenario = db.get(models.Scenario, s.scenario_id)
+    cell = validate_join_cell(scenario, user, (payload.cell or "").strip())
 
     existing = db.execute(
         select(models.SessionJoin).where(
@@ -82,10 +88,10 @@ def join(payload: schemas.JoinIn,
     ).scalars().first()
     name = (payload.display_name or "").strip() or user.email
     if existing:
-        existing.cell = payload.cell
+        existing.cell = cell
         existing.display_name = name
     else:
         db.add(models.SessionJoin(org_id=user.org_id, session_id=s.id, user_id=user.id,
-                                  display_name=name, cell=payload.cell))
+                                  display_name=name, cell=cell))
     db.commit()
-    return schemas.JoinOut(session_id=s.id, name=s.name, cell=payload.cell, status=s.status)
+    return schemas.JoinOut(session_id=s.id, name=s.name, cell=cell, status=s.status)

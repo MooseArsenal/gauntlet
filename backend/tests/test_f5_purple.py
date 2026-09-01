@@ -99,10 +99,15 @@ def test_participant_cannot_submit_red_actions():
         sid = client.post("/api/sessions", headers=_auth(admin),
                           json={"scenario_id": scn, "name": "r"}).json()["id"]
 
-        # A participant may not submit red actions (needs evaluator+).
+        # A participant who has not joined as the red cell may not submit red actions (H1).
         assert _submit(client, sid, ["T1003.001"], "x", headers=_auth(blue)).status_code == 403
-        # But may read the scoreboard.
+        # And may not even read the scoreboard until they have joined (H1) …
+        assert client.get(f"/api/sessions/{sid}/scoreboard", headers=_auth(blue)).status_code == 403
+        code = client.post(f"/api/sessions/{sid}/join-code", headers=_auth(admin)).json()["join_code"]
+        assert client.post("/api/join", headers=_auth(blue), json={"code": code, "cell": "blue_cell"}).status_code == 200
+        # … after which the blue cell sees the scoreboard but still cannot move as red.
         assert client.get(f"/api/sessions/{sid}/scoreboard", headers=_auth(blue)).status_code == 200
+        assert _submit(client, sid, ["T1003.001"], "x", headers=_auth(blue)).status_code == 403
 
 
 def test_red_actions_tenant_scoped():

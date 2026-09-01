@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from .. import attack_layer, audit, models
 from ..database import get_db
-from ..security import get_current_user, require_evaluator, scope_or_404
+from ..security import require_staff, require_evaluator, scope_or_404
 
 router = APIRouter(tags=["attack-navigator"])
 
@@ -25,7 +25,7 @@ def _json_attach(payload: dict, filename: str) -> Response:
 def scenario_attack_layer(
     scenario_id: int,
     request: Request,
-    user: models.User = Depends(get_current_user),
+    user: models.User = Depends(require_staff),
     db: Session = Depends(get_db),
 ):
     """The scenario's ATT&CK technique spread as a Navigator layer."""
