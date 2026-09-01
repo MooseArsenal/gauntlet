@@ -1,11 +1,12 @@
 """Environment intake — the 'feed it what you know' surface."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 
-from .. import models, schemas
+from .. import audit, intake, models, schemas
 from ..database import get_db
 from ..security import get_current_user, require_facilitator, scope_or_404
 
@@ -23,6 +24,43 @@ def create_environment(
     db.commit()
     db.refresh(env)
     return env
+
+
+@router.post("/import", response_model=schemas.EnvironmentImportOut, status_code=201)
+def import_environment(
+    payload: schemas.EnvironmentImportIn,
+    request: Request,
+    user: models.User = Depends(require_facilitator),
+    db: Session = Depends(get_db),
+):
+    """Map a CMDB / EDR / SIEM / ASM export into an environment — create a new
+    one, or merge (append) into an existing one."""
+    try:
+        mapped = intake.build_import(payload.source, payload.format, payload.data)
+    except intake.IntakeError as exc:
+        raise HTTPException(422, str(exc))
+
+    created = payload.environment_id is None
+    if created:
+        env = models.Environment(org_id=user.org_id,
+                                 name=payload.name or f"Imported ({payload.source})")
+        db.add(env)
+        db.flush()
+    else:
+        env = scope_or_404(db.get(models.Environment, payload.environment_id), user)
+
+    summary = {}
+    for field, items in mapped.items():
+        current = list(getattr(env, field) or [])
+        setattr(env, field, current + items)
+        flag_modified(env, field)
+        summary[field] = len(items)
+
+    audit.record(db, "environment.import", request=request, user=user,
+                 detail={"source": payload.source, "environment_id": env.id, **summary}, commit=False)
+    db.commit()
+    db.refresh(env)
+    return schemas.EnvironmentImportOut(environment=env, imported=summary, created=created)
 
 
 @router.get("", response_model=list[schemas.EnvironmentSummary])
