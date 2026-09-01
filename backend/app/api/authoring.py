@@ -4,7 +4,9 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from .. import models, schemas
+from fastapi import Response
+
+from .. import models, scenario_io, schemas
 from ..authoring import delivery, generator
 from ..authoring.catalog import INJECT_BANK, SCENARIO_TEMPLATES, THREAT_ACTORS
 from ..database import get_db
@@ -96,6 +98,52 @@ def generate_scenario(
     db.refresh(scenario)
     scenario.injects.sort(key=lambda i: i.sequence)
     return scenario
+
+
+# --------------------------------------------------------------------------- #
+# YAML import / export / validation (M7)
+# --------------------------------------------------------------------------- #
+@router.post("/api/scenarios/validate", response_model=schemas.ValidationOut)
+def validate_scenario_yaml(
+    payload: schemas.ValidateRequest, user: models.User = Depends(require_facilitator)
+):
+    try:
+        data = scenario_io.load_yaml(payload.yaml)
+    except scenario_io.ScenarioError as e:
+        return schemas.ValidationOut(errors=e.errors)
+    except Exception as e:  # malformed YAML
+        return schemas.ValidationOut(errors=[f"YAML parse error: {e}"])
+    return schemas.ValidationOut(**scenario_io.validate(data))
+
+
+@router.post("/api/scenarios/import", response_model=schemas.ScenarioOut, status_code=201)
+def import_scenario_yaml(
+    payload: schemas.ScenarioImport,
+    user: models.User = Depends(require_facilitator),
+    db: Session = Depends(get_db),
+):
+    scope_or_404(db.get(models.Environment, payload.environment_id), user)
+    try:
+        data = scenario_io.load_yaml(payload.yaml)
+        scenario = scenario_io.to_models(data, payload.environment_id, user.org_id)
+    except scenario_io.ScenarioError as e:
+        raise HTTPException(422, {"errors": e.errors})
+    except Exception as e:
+        raise HTTPException(422, f"YAML parse error: {e}")
+    db.add(scenario)
+    db.commit()
+    db.refresh(scenario)
+    scenario.injects.sort(key=lambda i: i.sequence)
+    return scenario
+
+
+@router.get("/api/scenarios/{scenario_id}/export")
+def export_scenario_yaml(
+    scenario_id: int, user: models.User = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    scenario = scope_or_404(db.get(models.Scenario, scenario_id), user)
+    text = scenario_io.dump_yaml(scenario_io.to_dict(scenario))
+    return Response(content=text, media_type="application/x-yaml")
 
 
 # --------------------------------------------------------------------------- #

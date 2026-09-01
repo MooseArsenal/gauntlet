@@ -61,14 +61,24 @@ def advance(db: Session, s: models.Session, current, when: str, trigger=None, go
     Raises ``LookupError`` if no branch matches, ``ValueError`` if the branch
     points at an unknown inject.
     """
-    branch = msel.resolve_branch(current, when=when, trigger=trigger, explicit_goto=goto)
+    branch = msel.resolve_branch(
+        current, when=when, trigger=trigger, explicit_goto=goto, state=s.state
+    )
     if not branch:
         raise LookupError("no branch matched this decision")
+
+    # Apply the branch's state mutations, so later guards see the new flags.
+    mutations = branch.get("set") or {}
+    if mutations:
+        new_state = dict(s.state or {})
+        new_state.update(mutations)
+        s.state = new_state
 
     append_event(
         db, s.id, kind="decision", ref=current.code, game_clock=current.clock,
         payload={"when": when, "trigger": trigger, "goto": branch.get("goto"),
-                 "label": branch.get("label", ""), "note": note},
+                 "label": branch.get("label", ""), "note": note,
+                 "set": mutations, "state": dict(s.state or {})},
     )
     nxt = db.execute(
         select(models.Inject).where(

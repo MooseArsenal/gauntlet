@@ -35,9 +35,22 @@ def get_start_inject(injects: Iterable):
     return min(injects, key=lambda i: i.sequence, default=None)
 
 
-def available_branches(inject) -> list[dict]:
-    """Branches a proctor can choose from, in a stable, display-friendly order."""
-    return list(inject.branches or [])
+def _passes(branch: dict, state: Optional[dict]) -> bool:
+    """A branch is eligible only if its optional guard condition holds."""
+    from .conditions import safe_eval
+
+    return safe_eval(branch.get("condition", ""), state or {})
+
+
+def available_branches(inject, state: Optional[dict] = None) -> list[dict]:
+    """Branches a proctor can choose from, in a stable, display-friendly order.
+
+    When ``state`` is given, branches whose guard condition is false are hidden.
+    """
+    branches = list(inject.branches or [])
+    if state is None:
+        return branches
+    return [b for b in branches if _passes(b, state)]
 
 
 def resolve_branch(
@@ -45,6 +58,7 @@ def resolve_branch(
     when: str,
     trigger: Optional[str] = None,
     explicit_goto: Optional[str] = None,
+    state: Optional[dict] = None,
 ) -> Optional[dict]:
     """Return the branch dict a decision selects, or ``None`` if nothing matches.
 
@@ -53,8 +67,11 @@ def resolve_branch(
     * ``when == timeout`` — the first ``timeout`` branch.
     * ``when == proctor_choice`` — the first ``proctor_choice`` branch, or, when a
       ``trigger`` names a branch label, that one.
+
+    Guard conditions (``condition``) gate every non-override match against
+    ``state``.
     """
-    branches = available_branches(inject)
+    branches = [b for b in (inject.branches or []) if _passes(b, state)]
 
     if explicit_goto:
         for b in branches:
