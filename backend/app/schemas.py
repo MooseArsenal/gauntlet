@@ -298,6 +298,13 @@ class InjectUpdate(BaseModel):
     is_start: Optional[bool] = None
 
 
+class ScenarioGraphIn(BaseModel):
+    """The full inject graph from the visual editor — replaces the scenario's
+    injects wholesale (positions ride along in each inject's ``meta.pos``)."""
+    injects: list[InjectIn] = Field(default_factory=list)
+    variables: Optional[dict] = None
+
+
 class ScenarioUpdate(BaseModel):
     name: Optional[str] = None
     threat_actor: Optional[str] = None

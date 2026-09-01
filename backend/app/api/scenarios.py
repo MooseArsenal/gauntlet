@@ -1,7 +1,7 @@
 """Scenario authoring — objectives, the narrative, and the MSEL of injects."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -61,5 +61,44 @@ def get_scenario(
 ):
     scenario = scope_or_404(db.get(models.Scenario, scenario_id), user)
     # Present injects in play order.
+    scenario.injects.sort(key=lambda i: i.sequence)
+    return scenario
+
+
+@router.put("/{scenario_id}/graph", response_model=schemas.ScenarioOut)
+def replace_graph(
+    scenario_id: int,
+    payload: schemas.ScenarioGraphIn,
+    user: models.User = Depends(require_facilitator),
+    db: Session = Depends(get_db),
+):
+    """Replace a scenario's whole inject graph — the visual editor's save.
+
+    Validates the graph is coherent (unique codes, exactly one start, every
+    branch ``goto`` resolves) before committing, then swaps the injects
+    atomically (delete-orphan handles the removals)."""
+    scenario = scope_or_404(db.get(models.Scenario, scenario_id), user)
+
+    codes = [i.code for i in payload.injects]
+    problems: list[str] = []
+    if len(codes) != len(set(codes)):
+        problems.append("inject codes must be unique")
+    starts = [i.code for i in payload.injects if i.is_start]
+    if payload.injects and len(starts) != 1:
+        problems.append(f"exactly one start inject is required (found {len(starts)})")
+    known = set(codes)
+    for inj in payload.injects:
+        for br in inj.branches or []:
+            goto = (br or {}).get("goto")
+            if goto and goto not in known:
+                problems.append(f"branch from '{inj.code}' points to unknown inject '{goto}'")
+    if problems:
+        raise HTTPException(422, {"graph": problems})
+
+    scenario.injects = [models.Inject(**i.model_dump()) for i in payload.injects]
+    if payload.variables is not None:
+        scenario.variables = payload.variables
+    db.commit()
+    db.refresh(scenario)
     scenario.injects.sort(key=lambda i: i.sequence)
     return scenario
