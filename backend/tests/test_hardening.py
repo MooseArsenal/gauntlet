@@ -13,7 +13,7 @@ def _email():
 
 def _reg(client, email):
     return client.post("/api/auth/register",
-                       json={"org_name": "H", "email": email, "password": "password123"}).json()
+                       json={"org_name": "H", "email": email, "password": "Str0ngPass!9"}).json()
 
 
 def _h(tok):
@@ -58,7 +58,7 @@ def test_login_lockout_after_repeated_failures():
         assert locked.status_code == 429
         # Even the correct password is refused while locked.
         assert client.post("/api/auth/login",
-                           json={"email": email, "password": "password123"}).status_code == 429
+                           json={"email": email, "password": "Str0ngPass!9"}).status_code == 429
 
 
 def test_audit_log_records_and_is_admin_only_and_tenant_scoped():
@@ -66,7 +66,7 @@ def test_audit_log_records_and_is_admin_only_and_tenant_scoped():
         a_email, b_email = _email(), _email()
         a = _reg(client, a_email)["access_token"]
         b = _reg(client, b_email)["access_token"]
-        client.post("/api/auth/login", json={"email": a_email, "password": "password123"})
+        client.post("/api/auth/login", json={"email": a_email, "password": "Str0ngPass!9"})
 
         entries = client.get("/api/audit", headers=_h(a)).json()
         actions = {e["action"] for e in entries}
@@ -79,7 +79,7 @@ def test_audit_log_records_and_is_admin_only_and_tenant_scoped():
 
         # Evaluators cannot read the audit log.
         client.post("/api/auth/users", headers=_h(a),
-                    json={"email": _email(), "password": "password123", "role": "evaluator"})
+                    json={"email": _email(), "password": "Str0ngPass!9", "role": "evaluator"})
 
 
 def test_audit_requires_admin_role():
@@ -88,9 +88,9 @@ def test_audit_requires_admin_role():
         admin = _reg(client, admin_email)["access_token"]
         ev_email = _email()
         client.post("/api/auth/users", headers=_h(admin),
-                    json={"email": ev_email, "password": "password123", "role": "evaluator"})
+                    json={"email": ev_email, "password": "Str0ngPass!9", "role": "evaluator"})
         ev = client.post("/api/auth/login",
-                         json={"email": ev_email, "password": "password123"}).json()["access_token"]
+                         json={"email": ev_email, "password": "Str0ngPass!9"}).json()["access_token"]
         assert client.get("/api/audit", headers=_h(ev)).status_code == 403
 
 

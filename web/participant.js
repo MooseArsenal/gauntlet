@@ -90,11 +90,24 @@
     }).join("") || '<li class="muted">No updates yet.</li>';
   }
 
-  function subscribe(sid) {
+  async function wsTicket(sid) {
+    const t = token();
+    const res = await fetch(`/api/sessions/${sid}/ws-ticket`, {
+      method: "POST", headers: t ? { Authorization: `Bearer ${t}` } : {},
+    });
+    if (!res.ok) throw new Error("ticket");
+    return (await res.json()).ticket;
+  }
+
+  async function subscribe(sid) {
     if (socket) { try { socket.onclose = null; socket.close(); } catch (e) { /* noop */ } }
+    let ticket;
+    try { ticket = await wsTicket(sid); }
+    catch (e) { setLive(false); return; }
+    if (Number($("sessionSel").value) !== sid) return;
     const scheme = location.protocol === "https:" ? "wss" : "ws";
     try {
-      socket = new WebSocket(`${scheme}://${location.host}/ws/sessions/${sid}?token=${encodeURIComponent(token())}`);
+      socket = new WebSocket(`${scheme}://${location.host}/ws/sessions/${sid}?ticket=${encodeURIComponent(ticket)}`);
       socket.onopen = () => setLive(true);
       socket.onmessage = (ev) => { try { if (JSON.parse(ev.data).type === "changed") loadView(); } catch (e) { /* noop */ } };
       socket.onclose = () => { setLive(false); if (Number($("sessionSel").value) === sid) setTimeout(() => subscribe(sid), 2000); };

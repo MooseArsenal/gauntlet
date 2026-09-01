@@ -114,6 +114,33 @@ a "Compliance evidence & PDF" action; reports also export to PDF.
   `GAUNTLET_TRUST_PROXY=1` only behind a trusted proxy so `X-Forwarded-For` is
   honoured for the client IP.
 
+## Identity & sessions (M9)
+
+- **Password policy**: registrations, admin-created users, and password changes
+  are checked for length (`GAUNTLET_PASSWORD_MIN_LEN`, default 10), all-digit
+  passwords, and a common-password list. Failures return 422.
+- **Short access tokens + rotating refresh tokens**: the access JWT is
+  short-lived (`GAUNTLET_ACCESS_TTL_MIN`, default 30) and carries a
+  `type: access` claim; login/refresh also return an **opaque refresh token**
+  (stored only as a hash). Presenting one **rotates** it — the old token is
+  burned and a new pair issued. Reusing a burned token is treated as theft and
+  **revokes the whole token family**. `POST /api/auth/refresh` rotates,
+  `POST /api/auth/logout` revokes, and changing a password revokes every
+  outstanding refresh token. The console refreshes silently on a 401.
+- **TOTP multi-factor (RFC 6238)**: enrol at `POST /api/auth/mfa/setup` →
+  `…/mfa/enable` (confirm with a code), manage under the console's **Security**
+  panel. When MFA is on, login returns an `mfa_required` challenge instead of
+  tokens; the second factor is exchanged at `POST /api/auth/login/mfa`.
+- **WebSocket connection tickets**: the bearer token no longer rides in the
+  `ws://` URL. Clients `POST /api/sessions/{id}/ws-ticket` (authenticated,
+  org-scoped) for a short-lived, single-use ticket bound to that one session,
+  then connect with `?ticket=`.
+- **OIDC SSO** (config-gated): set `GAUNTLET_OIDC_ISSUER` + `GAUNTLET_OIDC_CLIENT_ID`
+  (+ secret + redirect URI) to enable an authorization-code flow with discovery,
+  JWKS `id_token` verification (signature, issuer, audience, expiry, nonce), and
+  a "Sign in with SSO" button. SSO **links to an existing account** by subject or
+  email — it does not auto-provision, since org and role can't be inferred.
+
 ## Access control & real-time
 
 - **Auth & tenancy (M5):** JWT auth with organisations and roles
@@ -161,6 +188,12 @@ gauntlet/
 |---|---|---|
 | `GAUNTLET_DB_URL` | `sqlite:///…/gauntlet.db` | Database URL (SQLite or Postgres) |
 | `GAUNTLET_SEED` | `1` | Load the worked example on an empty database |
+| `GAUNTLET_ACCESS_TTL_MIN` | `30` | Access-token lifetime (minutes) |
+| `GAUNTLET_REFRESH_TTL_DAYS` | `30` | Refresh-token lifetime (days) |
+| `GAUNTLET_PASSWORD_MIN_LEN` | `10` | Minimum password length |
+| `GAUNTLET_WS_TICKET_TTL_SEC` | `30` | WebSocket connection-ticket lifetime (seconds) |
+| `GAUNTLET_MFA_ISSUER` | `Gauntlet` | Issuer label shown in authenticator apps |
+| `GAUNTLET_OIDC_ISSUER` / `_CLIENT_ID` / `_CLIENT_SECRET` / `_REDIRECT_URI` | — | OIDC SSO (enabled when issuer + client id are set) |
 
 ---
 
@@ -176,6 +209,8 @@ gauntlet/
 | **M6 — Real-time** | WebSocket live updates, auto-advance timeout timers, participant console | Shipped |
 | **M7 — Deep scenarios & compliance** | State-driven branching, YAML import/export/validation, compliance crosswalk (6 frameworks), evidence + PDF export | Shipped |
 | **M8 — Platform hardening** | Config fail-fast, security headers, login throttling + lockout, input caps, security audit log, CI security scanning | Shipped |
+| **M9 — Identity & sessions** | Password policy, short access + rotating refresh tokens (reuse detection), TOTP MFA, WebSocket connection tickets, OIDC SSO | Shipped |
+| **M10 — Data protection & isolation depth** | Key separation/rotation, encryption at rest, Postgres RLS + tenant-isolation fuzzing, retention/GDPR, threat model | Planned |
 
 ### Sandbox & program analytics (M4)
 

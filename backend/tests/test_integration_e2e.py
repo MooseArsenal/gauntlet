@@ -12,7 +12,7 @@ from app.database import SessionLocal
 from app.main import app
 
 
-def _reg(client, org, email, pw="password123"):
+def _reg(client, org, email, pw="Str0ngPass!9"):
     return client.post("/api/auth/register",
                        json={"org_name": org, "email": email, "password": pw}).json()["access_token"]
 
@@ -26,10 +26,10 @@ def test_end_to_end_across_all_milestones():
         # --- M5: two organisations -------------------------------------- #
         admin = _reg(client, "Integration Co", "int-admin@example.com")
         client.post("/api/auth/users", headers=_h(admin),
-                    json={"email": "int-eval@example.com", "password": "password123",
+                    json={"email": "int-eval@example.com", "password": "Str0ngPass!9",
                           "role": "evaluator"})
         evaluator = client.post("/api/auth/login",
-                                json={"email": "int-eval@example.com", "password": "password123"}
+                                json={"email": "int-eval@example.com", "password": "Str0ngPass!9"}
                                 ).json()["access_token"]
         other = _reg(client, "Rival Inc", "rival@example.com")
 
