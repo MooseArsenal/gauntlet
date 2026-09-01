@@ -24,6 +24,8 @@ import httpx
 import jwt
 from jwt import PyJWKSet
 
+from . import egress
+
 from .config import (
     OIDC_CLIENT_ID,
     OIDC_CLIENT_SECRET,
@@ -43,12 +45,14 @@ class OidcError(Exception):
 # network seams (monkeypatched in tests)
 # --------------------------------------------------------------------------- #
 def _get_json(url: str) -> dict:
+    egress.guard("OIDC discovery")
     resp = httpx.get(url, timeout=_HTTP_TIMEOUT)
     resp.raise_for_status()
     return resp.json()
 
 
 def _post_form(url: str, data: dict) -> dict:
+    egress.guard("OIDC token exchange")
     resp = httpx.post(url, data=data, timeout=_HTTP_TIMEOUT,
                       headers={"Accept": "application/json"})
     resp.raise_for_status()

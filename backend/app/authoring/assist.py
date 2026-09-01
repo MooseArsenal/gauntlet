@@ -21,6 +21,7 @@ from __future__ import annotations
 import json
 import os
 
+from .. import egress
 from .catalog import INJECT_BANK
 
 # Briefs that request operational offensive capability, not exercise content.
@@ -114,6 +115,7 @@ def _provider_inject(phase: str, technique: str, org: str, asset: dict, brief: s
     user = (f"Organization: {org}. Target asset: {asset.get('name', asset.get('code', 'a host'))}. "
             f"Kill-chain phase: {phase or 'any'}. ATT&CK technique: {technique or 'any'}. "
             f"Brief: {brief or 'a plausible next event for this phase'}.")
+    egress.guard("LLM authoring assist")
     try:
         r = httpx.post(
             f"{base}/v1/messages",
