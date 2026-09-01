@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gauntlet — Guided</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/wizard.css">
+</head>
+<body>
+  <header class="bar">
+    <div class="brand"><span class="mark"><span>G</span></span><b>Gauntlet</b><small>Guided</small></div>
+    <div class="bar-mid"><span class="wz-crumbs" id="crumbs"></span></div>
+    <div class="bar-actions">
+      <a class="btn ghost small" href="/index.html">Console</a>
+      <a class="btn ghost small" href="/editor.html">Editor</a>
+      <button class="btn ghost small" id="btnTheme" aria-label="Toggle theme">◑</button>
+    </div>
+  </header>
+
+  <main class="wz">
+    <!-- Launcher -->
+    <section class="wz-step" id="launcher">
+      <p class="eyebrow">What would you like to do?</p>
+      <div class="wz-cards">
+        <button class="wz-card" data-flow="build">
+          <span class="wz-ic">🛠️</span><h3>Build an exercise</h3>
+          <p>Pick a scenario type, ground it in your environment, and generate a ready-to-run drill.</p>
+        </button>
+        <button class="wz-card" data-flow="run">
+          <span class="wz-ic">▶️</span><h3>Run a session</h3>
+          <p>Take an existing scenario live — tabletop, functional, or real-time.</p>
+        </button>
+        <button class="wz-card" data-flow="report">
+          <span class="wz-ic">📄</span><h3>Report &amp; evidence</h3>
+          <p>Turn a finished exercise into audience reports and compliance evidence.</p>
+        </button>
+      </div>
+      <p class="hint">Prefer full control? Open the <a href="/editor.html">visual editor</a> or the <a href="/index.html">console</a> any time.</p>
+    </section>
+
+    <!-- Step host (built dynamically) -->
+    <section class="wz-step" id="stepHost" hidden>
+      <div class="wz-dots" id="dots"></div>
+      <div id="stepBody"></div>
+      <div class="wz-nav">
+        <button class="btn ghost" id="btnBack">Back</button>
+        <div class="wz-spacer"></div>
+        <a class="btn ghost small" id="advLink" hidden></a>
+        <button class="btn primary" id="btnNext">Next</button>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" hidden></div>
+  <script src="/progressmap.js"></script>
+  <script src="/wizard.js"></script>
+</body>
+</html>
