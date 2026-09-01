@@ -195,13 +195,21 @@ def create_user(
 @router.post("/mfa/setup", response_model=schemas.MfaSetupOut)
 def mfa_setup(
     request: Request,
+    payload: schemas.MfaSetupIn | None = None,
     user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Generate a TOTP secret (not yet enabled — confirm with /mfa/enable)."""
+    """Begin a TOTP enrolment. The new secret is *pending* until confirmed with
+    /mfa/enable — a live second factor is never touched by this call, and when
+    one is already enabled a current code is required to start over (H2)."""
+    if user.mfa_enabled and user.mfa_secret:
+        code = (payload.code if payload else None) or ""
+        if not security.totp_verify(user.mfa_secret, code):
+            audit.record(db, "auth.mfa.setup_refused", request=request, user=user)
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED,
+                                "two-factor is enabled; enter a current code to re-enrol")
     secret = security.new_totp_secret()
-    user.mfa_secret = secret
-    user.mfa_enabled = False
+    user.mfa_pending_secret = secret
     db.commit()
     return schemas.MfaSetupOut(secret=secret, uri=security.totp_uri(secret, user.email))
 
@@ -213,10 +221,13 @@ def mfa_enable(
     user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if not user.mfa_secret:
+    if not user.mfa_pending_secret:
         raise HTTPException(400, "start MFA setup first")
-    if not security.totp_verify(user.mfa_secret, payload.code):
+    if not security.totp_verify(user.mfa_pending_secret, payload.code):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid code")
+    # Promote the confirmed secret; the old one (if any) is retired only now.
+    user.mfa_secret = user.mfa_pending_secret
+    user.mfa_pending_secret = None
     user.mfa_enabled = True
     audit.record(db, "auth.mfa.enabled", request=request, user=user, commit=False)
     db.commit()
@@ -296,6 +307,7 @@ def mfa_disable(
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid code")
     user.mfa_enabled = False
     user.mfa_secret = None
+    user.mfa_pending_secret = None
     audit.record(db, "auth.mfa.disabled", request=request, user=user, commit=False)
     db.commit()
     db.refresh(user)

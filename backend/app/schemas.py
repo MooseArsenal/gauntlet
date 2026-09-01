@@ -4,7 +4,9 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from .engine import technique
 
 _orm = ConfigDict(from_attributes=True)
 
@@ -73,6 +75,11 @@ class InjectIn(BaseModel):
     visible_to: list = Field(default_factory=list)
     expected_actions: list = Field(default_factory=list)
     attack_techniques: list = Field(default_factory=list)
+
+    @field_validator("attack_techniques")
+    @classmethod
+    def _norm_techniques(cls, v):
+        return technique.normalize_list(v)
     target_asset: str = ""
     objective_code: str = ""
     branches: list = Field(default_factory=list)
@@ -231,6 +238,11 @@ class AdjudicateIn(BaseModel):
     techniques: list[str] = Field(default_factory=list)
     target_asset: str = ""
     description: str = ""
+
+    @field_validator("techniques")
+    @classmethod
+    def _techniques(cls, v):
+        return technique.validate_list(v)
 
 
 class NoteIn(BaseModel):
@@ -401,6 +413,11 @@ class InjectUpdate(BaseModel):
     visible_to: Optional[list] = None
     expected_actions: Optional[list] = None
     attack_techniques: Optional[list] = None
+
+    @field_validator("attack_techniques")
+    @classmethod
+    def _norm_techniques(cls, v):
+        return technique.normalize_list(v) if v is not None else None
     target_asset: Optional[str] = None
     objective_code: Optional[str] = None
     branches: Optional[list] = None
@@ -573,6 +590,12 @@ class ChangePasswordIn(BaseModel):
     new_password: str
 
 
+class MfaSetupIn(BaseModel):
+    # Required when MFA is already enabled: a current TOTP code proves the
+    # caller holds the second factor before a new enrolment may begin (H2).
+    code: Optional[str] = None
+
+
 class MfaSetupOut(BaseModel):
     secret: str
     uri: str
@@ -690,6 +713,11 @@ class RedActionIn(BaseModel):
     techniques: list[str] = Field(default_factory=list)
     target: str = ""
     action: str = ""  # free-text description of what the red cell did
+
+    @field_validator("techniques")
+    @classmethod
+    def _techniques(cls, v):
+        return technique.validate_list(v)
 
 
 class RedActionOut(BaseModel):
