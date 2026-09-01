@@ -497,6 +497,52 @@ class EraseOut(BaseModel):
     erased: dict
 
 
+class ScheduleCreate(BaseModel):
+    scenario_id: int
+    name: str
+    cadence: str = "once"  # once|daily|weekly|monthly|quarterly
+    next_run_at: datetime
+    reminder_lead_hours: int = 24
+    invitees: list = Field(default_factory=list)
+
+
+class ScheduleUpdate(BaseModel):
+    name: Optional[str] = None
+    cadence: Optional[str] = None
+    next_run_at: Optional[datetime] = None
+    reminder_lead_hours: Optional[int] = None
+    invitees: Optional[list] = None
+    enabled: Optional[bool] = None
+
+
+class ScheduleOut(BaseModel):
+    model_config = _orm
+    id: int
+    scenario_id: int
+    name: str
+    cadence: str
+    next_run_at: datetime
+    last_run_at: Optional[datetime] = None
+    reminder_lead_hours: int
+    invitees: list
+    enabled: bool
+    created_at: datetime
+
+
+class RunDueOut(BaseModel):
+    ran: int
+    sessions: list[SessionSummary] = Field(default_factory=list)
+
+
+class ReminderOut(BaseModel):
+    schedule_id: int
+    name: str
+    scenario_id: int
+    run_at: Optional[str] = None
+    invitees: list = Field(default_factory=list)
+    delivered: bool = False
+
+
 class AuditLogOut(BaseModel):
     model_config = _orm
     id: int
