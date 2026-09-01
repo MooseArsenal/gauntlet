@@ -47,11 +47,17 @@ def build_scenario(
     actor_key: str,
     name: str | None = None,
     template_key: str | None = None,
+    actor: dict | None = None,
 ) -> models.Scenario:
-    """Return an unsaved ``Scenario`` (with objectives and injects) for ``env``."""
-    if actor_key not in THREAT_ACTORS:
-        raise ValueError(f"unknown threat actor '{actor_key}'")
-    actor = THREAT_ACTORS[actor_key]
+    """Return an unsaved ``Scenario`` (with objectives and injects) for ``env``.
+
+    ``actor`` may be supplied directly (e.g. a custom, proctor-designed
+    adversary projected into the threat-actor shape); otherwise ``actor_key`` is
+    resolved against the built-in catalog."""
+    if actor is None:
+        if actor_key not in THREAT_ACTORS:
+            raise ValueError(f"unknown threat actor '{actor_key}'")
+        actor = THREAT_ACTORS[actor_key]
     tmpl = SCENARIO_TEMPLATES.get(template_key or "", {})
 
     phases = actor["kill_chain"]
