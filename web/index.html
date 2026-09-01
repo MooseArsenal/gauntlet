@@ -77,6 +77,11 @@
               <input id="genName" type="text" placeholder="Generated exercise">
             </label>
             <button class="btn" id="btnGenerate">Generate &amp; add to scenarios</button>
+            <div class="yaml-import">
+              <span class="hint">or import a deep branching scenario</span>
+              <input id="yamlFile" type="file" accept=".yaml,.yml">
+              <button class="btn ghost small" id="btnImportYaml">Import YAML</button>
+            </div>
           </div>
         </div>
 
@@ -184,6 +189,7 @@
             <button class="btn ghost" data-aud="grc">GRC</button>
             <button class="btn ghost" data-aud="training">Training</button>
           </div>
+          <button class="btn" id="btnCompliance" style="margin-top:.5rem;width:100%">Compliance evidence &amp; PDF</button>
         </div>
 
         <div class="panel timeline-panel">

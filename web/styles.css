@@ -3,6 +3,14 @@
 .userchip #userLabel{font-family:"IBM Plex Mono",monospace;font-size:.7rem}
 .rt-label{display:flex;align-items:center;gap:.5rem;font-size:.82rem;color:var(--ink-soft);cursor:pointer}
 .rt-label input{width:auto}
+.yaml-import{margin-top:.7rem;padding-top:.6rem;border-top:1px dashed var(--line);display:grid;gap:.4rem}
+.yaml-import input[type=file]{font-size:.75rem;color:var(--muted)}
+.modal-actions{display:flex;justify-content:flex-end;margin-bottom:1rem}
+.evid{font-family:"IBM Plex Mono",monospace;font-size:.66rem;letter-spacing:.03em;padding:.1rem .45rem;border-radius:5px;border:1px solid}
+.evid.demonstrated{color:var(--good);background:var(--good-wash);border-color:color-mix(in srgb,var(--good) 40%,transparent)}
+.evid.partial{color:var(--warn);background:var(--warn-wash);border-color:color-mix(in srgb,var(--warn) 40%,transparent)}
+.evid.gap{color:var(--crit);background:var(--crit-wash);border-color:color-mix(in srgb,var(--crit) 40%,transparent)}
+.evid.not_assessed{color:var(--muted);background:var(--surface-3);border-color:var(--line)}
 .loginerr{color:var(--crit);font-size:.82rem;background:var(--crit-wash);border:1px solid color-mix(in srgb,var(--crit) 35%,transparent);border-radius:8px;padding:.5rem .7rem;margin:0}
 #demoHint code{font-family:"IBM Plex Mono",monospace;font-size:.82em;background:var(--surface-3);border:1px solid var(--line-soft);border-radius:4px;padding:.05rem .3rem}
 :root{

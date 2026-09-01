@@ -11,7 +11,8 @@ import asyncio
 
 from . import __version__, ws
 from .api import (
-    auth, authoring, environments, live, multicell, program, reports, scenarios, sessions,
+    auth, authoring, compliance_api, environments, live, multicell, program, reports,
+    scenarios, sessions,
 )
 from .config import APP_TAGLINE, APP_TITLE, CORS_ORIGINS, SEED_ON_START, USE_ALEMBIC, WEB_DIR
 from .database import SessionLocal, create_all
@@ -69,6 +70,7 @@ app.include_router(authoring.router)
 app.include_router(multicell.router)
 app.include_router(live.router)
 app.include_router(program.router)
+app.include_router(compliance_api.router)
 app.include_router(ws.router)
 
 # Facilitator console (served last so it never shadows the API routes).
