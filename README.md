@@ -431,9 +431,17 @@ observation logging, and the fog-of-war view of what a chosen cell can see —
 and the **parallel roll-up** (`/rollup.html`) — per-run metrics and an ATT&CK
 coverage heatmap across every run of a scenario.
 
-### Authoring (M2)
+### Authoring (M2) & the built-in scenario library (Q3b)
 
-Generate a grounded, branching scenario instead of starting from a blank MSEL:
+Generate a grounded, branching scenario instead of starting from a blank MSEL.
+**Built-in scenario templates** cover the common exercise types out of the box —
+generate any of them in one call, then tune in the visual editor:
+
+- **Phishing simulation**, **network penetration test**, **social-engineering
+  attack**, **malware deployment**, **physical-security intrusion test**,
+  **insider threat**, **multi-stage / multi-vector attack**, **AI & application
+  security test**, **internal attacker modeling (assume breach)** — plus the
+  original ransomware / BEC / insider / targeted-intrusion packs.
 
 ```bash
 # List the catalog
