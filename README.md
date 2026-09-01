@@ -141,6 +141,33 @@ a "Compliance evidence & PDF" action; reports also export to PDF.
   a "Sign in with SSO" button. SSO **links to an existing account** by subject or
   email — it does not auto-provision, since org and role can't be inferred.
 
+## Data protection & isolation depth (M10)
+
+- **Key separation & rotation.** One master secret derives **purpose-separated**
+  keys via HKDF — the JWT signing key and the tamper-evident timeline key are
+  cryptographically unrelated, so a leak of one doesn't compromise the other.
+  Data-at-rest uses a **versioned keyring** (`GAUNTLET_DATA_KEYS="v2:…,v1:…"`):
+  new data seals under the primary key, older keys still open older data, so
+  rotation needs no flag-day. `POST /api/admin/reencrypt` rewrites a tenant's
+  environments under the new primary.
+- **Encryption at rest.** Sensitive environment fields (assets, control gaps,
+  crown jewels, deception, personnel, …) are sealed with **AES-256-GCM before
+  they reach the database** — a raw DB dump yields ciphertext, not a target map.
+  Opt-in (`GAUNTLET_ENCRYPT_AT_REST=1` or an explicit keyring); transparent and
+  backward-compatible with un-keyed rows; works identically on SQLite and Postgres.
+- **Tenant-isolation depth.** App-level `org_id` scoping (reads return 404, never
+  403, so existence is hidden) is now backed by a **cross-tenant fuzz test** that
+  probes every read/list/update/delete path across orgs, plus optional **Postgres
+  row-level security** (`GAUNTLET_RLS_ENABLED=1`) that enforces the boundary in
+  the database itself via a per-request tenant setting. RLS is a no-op on SQLite.
+- **Retention & GDPR.** `POST /api/admin/retention/purge` deletes a tenant's aged
+  completed sessions and audit entries (`GAUNTLET_RETENTION_DAYS`); `GET
+  /api/admin/export` is a full JSON snapshot (portability, secrets excluded);
+  `DELETE /api/admin/org` erases the tenant and all its data (right to be
+  forgotten), guarded by a slug confirmation and audited.
+- **Threat model.** [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) — STRIDE over
+  Gauntlet's assets, trust boundaries, and the M8–M10 mitigations.
+
 ## Access control & real-time
 
 - **Auth & tenancy (M5):** JWT auth with organisations and roles
@@ -194,6 +221,10 @@ gauntlet/
 | `GAUNTLET_WS_TICKET_TTL_SEC` | `30` | WebSocket connection-ticket lifetime (seconds) |
 | `GAUNTLET_MFA_ISSUER` | `Gauntlet` | Issuer label shown in authenticator apps |
 | `GAUNTLET_OIDC_ISSUER` / `_CLIENT_ID` / `_CLIENT_SECRET` / `_REDIRECT_URI` | — | OIDC SSO (enabled when issuer + client id are set) |
+| `GAUNTLET_ENCRYPT_AT_REST` | `0` | Encrypt sensitive environment fields at rest (derives a data key from the master) |
+| `GAUNTLET_DATA_KEYS` | — | Explicit rotatable data keyring, `v2:<b64>,v1:<b64>` (primary first) |
+| `GAUNTLET_RETENTION_DAYS` | `0` | Retention window for completed sessions + audit log (0 = off) |
+| `GAUNTLET_RLS_ENABLED` | `0` | Enable Postgres row-level security (no-op on SQLite) |
 
 ---
 
@@ -210,7 +241,7 @@ gauntlet/
 | **M7 — Deep scenarios & compliance** | State-driven branching, YAML import/export/validation, compliance crosswalk (6 frameworks), evidence + PDF export | Shipped |
 | **M8 — Platform hardening** | Config fail-fast, security headers, login throttling + lockout, input caps, security audit log, CI security scanning | Shipped |
 | **M9 — Identity & sessions** | Password policy, short access + rotating refresh tokens (reuse detection), TOTP MFA, WebSocket connection tickets, OIDC SSO | Shipped |
-| **M10 — Data protection & isolation depth** | Key separation/rotation, encryption at rest, Postgres RLS + tenant-isolation fuzzing, retention/GDPR, threat model | Planned |
+| **M10 — Data protection & isolation depth** | Key separation/rotation, encryption at rest, Postgres RLS + tenant-isolation fuzzing, retention/GDPR, threat model | Shipped |
 
 ### Sandbox & program analytics (M4)
 

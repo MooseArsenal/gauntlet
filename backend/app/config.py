@@ -92,6 +92,20 @@ LOGIN_LOCKOUT_SEC = int(os.environ.get("GAUNTLET_LOGIN_LOCKOUT_SEC", "900"))
 MAX_YAML_BYTES = int(os.environ.get("GAUNTLET_MAX_YAML_BYTES", str(256 * 1024)))
 MAX_INJECTS = int(os.environ.get("GAUNTLET_MAX_INJECTS", "1000"))
 
+# --- Data protection (M10) ------------------------------------------------- #
+# Encrypt sensitive environment fields at rest. Enabled by GAUNTLET_ENCRYPT_AT_REST
+# (derives a key from the master) or by supplying an explicit rotatable keyring in
+# GAUNTLET_DATA_KEYS ("v2:<b64>,v1:<b64>"). See app/keys.py and app/crypto.py.
+ENCRYPT_AT_REST = _flag("GAUNTLET_ENCRYPT_AT_REST", "0")
+
+# Retention window (days) for a tenant's completed sessions and audit log. 0
+# disables automatic purging. Exposed via the admin retention endpoint.
+RETENTION_DAYS = int(os.environ.get("GAUNTLET_RETENTION_DAYS", "0"))
+
+# Enable Postgres row-level security (defence in depth behind app-level scoping).
+# No-op on SQLite. See migrations and app/rls.py.
+RLS_ENABLED = _flag("GAUNTLET_RLS_ENABLED", "0")
+
 APP_TITLE = "Gauntlet"
 APP_TAGLINE = "Security exercise design & proctoring"
 

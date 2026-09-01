@@ -474,6 +474,29 @@ class WsTicketOut(BaseModel):
     expires_in: int
 
 
+class ReencryptOut(BaseModel):
+    encryption_enabled: bool
+    reencrypted: int
+
+
+class PurgeIn(BaseModel):
+    days: Optional[int] = None  # override the configured retention window
+
+
+class PurgeOut(BaseModel):
+    sessions: int
+    audit_logs: int
+    days: int
+
+
+class EraseIn(BaseModel):
+    confirm: str  # must equal the org slug, to prevent accidental erasure
+
+
+class EraseOut(BaseModel):
+    erased: dict
+
+
 class AuditLogOut(BaseModel):
     model_config = _orm
     id: int
