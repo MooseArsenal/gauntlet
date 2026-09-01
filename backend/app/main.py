@@ -12,9 +12,9 @@ import asyncio
 
 from . import __version__, ws
 from .api import (
-    admin, adversaries, attack_api, audit_api, auth, authoring, compliance_api, environments,
-    exports_api, improvements, join_api, live, multicell, program, purple, reports, scenarios,
-    schedules, sessions,
+    admin, adversaries, analytics_api, attack_api, audit_api, auth, authoring, compliance_api,
+    environments, exports_api, improvements, join_api, live, multicell, program, purple, reports,
+    scenarios, schedules, sessions,
 )
 from .config import (
     AIRGAPPED, APP_TAGLINE, APP_TITLE, CORS_ORIGINS, MAX_REQUEST_BYTES, SEED_ON_START,
@@ -101,6 +101,7 @@ app.include_router(reports.router)
 app.include_router(authoring.router)
 app.include_router(adversaries.router)
 app.include_router(attack_api.router)
+app.include_router(analytics_api.router)
 app.include_router(join_api.router)
 app.include_router(multicell.router)
 app.include_router(live.router)

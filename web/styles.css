@@ -336,4 +336,19 @@ table.grid tbody tr:hover{background:var(--surface-2)}
 .lb-red_cell{color:var(--crit);background:var(--crit-wash)}
 .lb-white_cell{color:var(--muted);background:var(--surface-3)}
 
+/* Maturity dashboard (D3) */
+.mat{max-width:820px;margin:0 auto;padding:1.6rem 1.2rem;width:100%}
+.mat-tiles{grid-template-columns:repeat(5,1fr);margin:1rem 0}
+@media(max-width:720px){.mat-tiles{grid-template-columns:repeat(2,1fr)}}
+.mat-delta{font-size:.7rem;vertical-align:middle}
+.mat-delta.d-good{color:var(--good)} .mat-delta.d-bad{color:var(--crit)}
+.mat-chart{margin-top:.4rem}
+.mat-svg{width:100%;height:auto;overflow:visible}
+.mat-grid{stroke:var(--line);stroke-dasharray:3 4}
+.mat-axis{display:flex;justify-content:space-between;font-size:.66rem;color:var(--muted);margin-top:.3rem}
+.mat-table{display:flex;flex-direction:column;gap:.2rem}
+.mat-row{display:grid;grid-template-columns:2fr repeat(4,1fr);gap:.5rem;font-size:.82rem;padding:.35rem .2rem;border-bottom:1px solid var(--line-soft)}
+.mat-row.mat-head{font-family:"IBM Plex Mono",monospace;font-size:.64rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);border-bottom:1px solid var(--line)}
+.mat-name{color:var(--ink)}
+
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
