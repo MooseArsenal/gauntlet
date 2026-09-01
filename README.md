@@ -62,6 +62,36 @@ migrations on startup. Point `GAUNTLET_DB_URL` at Postgres to scale out. **Set
 `GAUNTLET_SECRET_KEY` to a strong value in any real deployment** — it signs both
 auth tokens and the tamper-evident timeline.
 
+## Deep scenarios & compliance (M7)
+
+Scenarios are a **branching graph**, authored in YAML. Injects carry `condition`
+guards and `set` state mutations, so paths diverge on *accumulated* decisions
+(see `scenarios/ransomware-deep.yaml` — 11 injects, three divergent endings). A
+safe evaluator (no `eval`) gates branches; validation proves every `goto`
+resolves and an ending is reachable before a scenario runs.
+
+```bash
+curl -X POST localhost:8000/api/scenarios/validate -H 'content-type: application/json' \
+  -d "{\"yaml\": \"$(sed 's/"/\\"/g' scenarios/ransomware-deep.yaml | tr '\n' '~' )\"}"   # or just POST the raw YAML
+curl -X POST localhost:8000/api/scenarios/import   -d '{"environment_id":1,"yaml":"..."}'
+curl        localhost:8000/api/scenarios/1/export                                          # round-trips to YAML
+```
+
+**Compliance evidence**: every exercise objective maps to a canonical capability
+(detect/triage/contain/recover/communicate/govern) that cross-walks to the
+relevant controls in **PCI-DSS v4.0, DORA, NIST CSF 2.0, CIS Controls v8, ISO/IEC
+27001:2022, and SOC 2** — so one exercise emits evidence for all six at once.
+
+```bash
+curl localhost:8000/api/sessions/1/evidence                 # JSON, all frameworks
+curl localhost:8000/api/sessions/1/evidence?framework=nist_csf
+curl -OJ localhost:8000/api/sessions/1/evidence.pdf         # auditor-ready PDF
+```
+
+Mappings indicate control *relevance* for remediation and evidence — they are
+not a compliance assessment or attestation. The console exposes YAML import and
+a "Compliance evidence & PDF" action; reports also export to PDF.
+
 ## Access control & real-time
 
 - **Auth & tenancy (M5):** JWT auth with organisations and roles
@@ -122,6 +152,7 @@ gauntlet/
 | **M4 — Sandbox & program analytics** | Authorization-gated live/technical injects (pluggable range adapter), program-level coverage analytics | Shipped |
 | **M5 — Production-readiness** | Alembic migrations, auth + multi-tenancy + RBAC, HMAC-signed timeline, CI | Shipped |
 | **M6 — Real-time** | WebSocket live updates, auto-advance timeout timers, participant console | Shipped |
+| **M7 — Deep scenarios & compliance** | State-driven branching, YAML import/export/validation, compliance crosswalk (6 frameworks), evidence + PDF export | Shipped |
 
 ### Sandbox & program analytics (M4)
 

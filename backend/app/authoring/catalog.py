@@ -129,11 +129,16 @@ INJECT_BANK: dict[str, dict] = {
 }
 
 
+# Objectives are ordered along the response lifecycle; tag them with the
+# canonical capability so generated scenarios also emit compliance evidence.
+_CAPS = ["detect", "triage", "contain", "recover", "communicate", "govern"]
+
+
 def _objs(*items) -> list[dict]:
     out = []
     for i, (title, crit) in enumerate(items, start=1):
         out.append({"code": f"OBJ-{i}", "title": title, "success_criteria": crit,
-                    "description": title})
+                    "description": title, "meta": {"capability": _CAPS[min(i - 1, len(_CAPS) - 1)]}})
     return out
 
 

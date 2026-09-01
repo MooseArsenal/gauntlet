@@ -94,24 +94,28 @@ def _objectives() -> list[models.Objective]:
             success_criteria="Phishing / initial access identified and escalated within 30 game-minutes.",
             eeg=["Was the report triaged against the phishing playbook?",
                  "Was an incident opened with the right severity?"],
+            meta={"capability": "detect"},
         ),
         models.Objective(
             code="OBJ-2", title="Triage and scope the compromise",
             description="Work EDR alerts to understand what was touched.",
             success_criteria="Compromised host identified and its crown-jewel dependency recognised.",
             eeg=["Was the EDR alert triaged?", "Was FIN-APP-02 recognised as crown-jewel-adjacent?"],
+            meta={"capability": "triage"},
         ),
         models.Objective(
             code="OBJ-3", title="Contain lateral movement",
             description="Stop the adversary before domain compromise.",
             success_criteria="Host isolated before the domain controller is reached.",
             eeg=["Was containment authorised quickly?", "Did the team consider deception signals?"],
+            meta={"capability": "contain"},
         ),
         models.Objective(
             code="OBJ-4", title="Recover and communicate",
             description="Restore from backups and run stakeholder communications.",
             success_criteria="Recovery initiated from immutable backups; comms plan executed.",
             eeg=["Were immutable backups used?", "Was a comms lead engaged?"],
+            meta={"capability": "recover"},
         ),
     ]
 
