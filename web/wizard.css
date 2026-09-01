@@ -1,0 +1,50 @@
+/* Gauntlet guided wizards (Q3). Mouse-first, uses the shared design tokens. */
+.wz{max-width:900px;margin:0 auto;padding:2rem 1.2rem;width:100%}
+.wz-crumbs{font-family:"IBM Plex Mono",monospace;font-size:.72rem;color:var(--muted)}
+.wz-crumbs b{color:var(--accent-ink)}
+
+.wz-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:.6rem}
+@media(max-width:800px){.wz-cards{grid-template-columns:1fr}}
+.wz-card{text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:16px;
+  padding:1.4rem 1.2rem;box-shadow:var(--shadow);transition:.15s ease;display:grid;gap:.35rem}
+.wz-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.wz-card .wz-ic{font-size:1.6rem}
+.wz-card h3{font-family:"Archivo",sans-serif;font-size:1.1rem;margin:.2rem 0 0}
+.wz-card p{color:var(--muted);font-size:.82rem;margin:0}
+
+/* Step dots */
+.wz-dots{display:flex;gap:.5rem;align-items:center;margin-bottom:1.3rem}
+.wz-dots .d{width:9px;height:9px;border-radius:50%;background:var(--surface-3);border:1px solid var(--line)}
+.wz-dots .d.on{background:var(--accent);border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-wash)}
+.wz-dots .d.done{background:var(--good);border-color:var(--good)}
+
+.wz-step h2{font-family:"Archivo",sans-serif;font-size:1.5rem;margin:0 0 .3rem}
+.wz-lead{color:var(--ink-soft);margin:0 0 1.3rem}
+
+/* Pick-a-card tiles (scenario library, scenarios, sessions) */
+.wz-tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:.7rem}
+@media(max-width:640px){.wz-tiles{grid-template-columns:1fr}}
+.wz-tile{text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:.85rem 1rem;cursor:pointer;transition:.12s ease;display:grid;gap:.2rem}
+.wz-tile:hover{border-color:var(--accent)}
+.wz-tile.sel{border-color:var(--accent);background:var(--accent-wash);box-shadow:0 0 0 1px var(--accent) inset}
+.wz-tile .t{font-weight:600;font-size:.9rem}
+.wz-tile .d{color:var(--muted);font-size:.76rem;line-height:1.3}
+.wz-tile .m{font-family:"IBM Plex Mono",monospace;font-size:.64rem;color:var(--accent-ink);text-transform:uppercase;letter-spacing:.06em}
+
+.wz-field{display:grid;gap:.35rem;margin-bottom:1rem;max-width:520px}
+.wz-field label{font-size:.78rem;color:var(--muted)}
+.wz-field input,.wz-field select{background:var(--surface-2);border:1px solid var(--line);border-radius:8px;
+  padding:.6rem .7rem;font:inherit;font-size:.9rem;color:var(--ink)}
+.wz-choice{display:flex;gap:.5rem;flex-wrap:wrap}
+.wz-choice .opt{border:1px solid var(--line);background:var(--surface-2);border-radius:10px;padding:.6rem .9rem;cursor:pointer;font-size:.85rem}
+.wz-choice .opt.sel{border-color:var(--accent);background:var(--accent-wash);color:var(--accent-ink)}
+
+.wz-nav{display:flex;align-items:center;gap:.6rem;margin-top:1.6rem;padding-top:1rem;border-top:1px solid var(--line)}
+.wz-spacer{flex:1}
+
+/* Success */
+.wz-done{text-align:center;padding:1.5rem 0}
+.wz-done .big{font-size:2.4rem}
+.wz-done h2{margin:.4rem 0}
+.wz-done .row{display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap;margin-top:1rem}
