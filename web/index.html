@@ -107,6 +107,7 @@
         <ul class="sess-list" id="sessList"></ul>
 
         <nav class="nav-links">
+          <a href="/join.html">→ Join by code</a>
           <a href="/participant.html">→ Blue / participant view</a>
           <a href="/red.html">→ Red cell</a>
           <a href="/evaluator.html">→ Evaluator companion</a>
@@ -134,6 +135,12 @@
         <div class="panel">
           <p class="eyebrow">Environment</p>
           <div class="env" id="envSummary"></div>
+        </div>
+        <div class="panel" id="lobbyPanel">
+          <p class="eyebrow">Join lobby <span class="hint">— large-group onboarding</span></p>
+          <div class="joincode" id="joinCodeBox"><span class="muted">No code yet</span></div>
+          <button class="btn ghost small" id="btnJoinCode" style="margin-top:.5rem">Generate join code</button>
+          <ul class="lobby" id="lobbyList"></ul>
         </div>
       </aside>
 
