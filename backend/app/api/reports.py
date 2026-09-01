@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from .. import models, schemas
 from ..database import get_db
 from ..engine import reporting
-from ..security import get_current_user, require_facilitator, scope_or_404
+from ..security import require_evaluator, require_facilitator, scope_or_404
 
 router = APIRouter(prefix="/api/sessions", tags=["reports"])
 
@@ -38,7 +38,7 @@ def generate_report(
 
 @router.get("/{session_id}/reports", response_model=list[schemas.ReportOut])
 def list_reports(
-    session_id: int, user: models.User = Depends(get_current_user), db: Session = Depends(get_db)
+    session_id: int, user: models.User = Depends(require_evaluator), db: Session = Depends(get_db)
 ):
     scope_or_404(db.get(models.Session, session_id), user)
     return (
