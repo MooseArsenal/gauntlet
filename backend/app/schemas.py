@@ -543,6 +543,20 @@ class ReminderOut(BaseModel):
     delivered: bool = False
 
 
+class EnvironmentImportIn(BaseModel):
+    source: str  # cmdb | edr | siem | asm | generic
+    format: str = "json"  # json | csv
+    data: str
+    environment_id: Optional[int] = None  # merge into this env, else create new
+    name: Optional[str] = None  # name for a newly created env
+
+
+class EnvironmentImportOut(BaseModel):
+    environment: EnvironmentOut
+    imported: dict  # per-field counts added by this import
+    created: bool
+
+
 class RedActionIn(BaseModel):
     techniques: list[str] = Field(default_factory=list)
     target: str = ""
