@@ -6,6 +6,7 @@
   let currentSid = null;
   let currentInjectId = null;
   let selectedRating = "note";
+  let detectStreak = 0;   // consecutive detections — a little momentum
   let objectives = [];
 
   // ---- auth tokens ------------------------------------------------------- //
@@ -473,6 +474,9 @@
           `<span class="bar"><span class="fill" style="width:${pct}%"></span></span>` +
           `<span class="n">${r.detected}/${r.attempts}</span></div>`;
       }).join("");
+    if (detectStreak >= 2) {
+      $("scoreTech").innerHTML += `<p class="score-streak">🔥 ${detectStreak} detections in a row</p>`;
+    }
   }
 
   function renderObjectives(observations = []) {
@@ -530,6 +534,8 @@
     try {
       const out = await api(`/api/sessions/${currentSid}/adjudicate`, "POST", { techniques, target_asset });
       renderRuling(out.ruling);
+      if (out.ruling && out.ruling.detected) { detectStreak += 1; detectedMoment(detectStreak); }
+      else detectStreak = 0;
       await loadState();
     } catch (e) { toast(e.message); }
   }
@@ -686,6 +692,15 @@
     }
   }
 
+  // A brief, professional "Detected!" micro-moment — momentum for retention,
+  // never confetti spam. Reduced-motion is handled in CSS.
+  function detectedMoment(streak) {
+    const el = document.createElement("div");
+    el.className = "detected-pop";
+    el.textContent = streak >= 2 ? `Detected! ×${streak}` : "Detected!";
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1300);
+  }
   function truncate(s, n) { s = s || ""; return s.length > n ? s.slice(0, n) + "…" : s; }
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, (c) =>

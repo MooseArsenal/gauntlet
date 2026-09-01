@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gauntlet — Red Cell</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="bar">
+    <div class="brand">
+      <span class="mark"><span>G</span></span>
+      <b>Gauntlet</b><small>Red Cell</small>
+    </div>
+    <div class="bar-actions">
+      <span class="pill" id="livePill" title="Live connection">live</span>
+      <a class="btn ghost" href="/">Console</a>
+      <button class="btn toggle" id="btnTheme" aria-label="Toggle theme">◑</button>
+    </div>
+  </header>
+
+  <div class="subbar">
+    <label>Session <select id="sessionSel"></select></label>
+  </div>
+
+  <main class="companion" id="app">
+    <section class="stage">
+      <div class="panel">
+        <p class="eyebrow">Submit an adversary move</p>
+        <p class="hint">Pick techniques and a target, then see instantly whether the blue cell's controls catch you — the core learning loop.</p>
+        <label class="rc-lbl">ATT&amp;CK techniques</label>
+        <input id="rcTech" type="text" placeholder="e.g. T1003.001, T1021.002">
+        <div class="rc-quick" id="rcQuick"></div>
+        <label class="rc-lbl">Target asset</label>
+        <input id="rcTarget" type="text" placeholder="e.g. FIN-APP-02 (blank = current scene target)">
+        <button class="btn primary" id="rcSubmit" style="margin-top:.6rem">Run the move ▸</button>
+        <div class="rc-verdict" id="rcVerdict" hidden></div>
+      </div>
+
+      <div class="panel">
+        <p class="eyebrow">Your moves</p>
+        <ol class="timeline" id="rcLog"></ol>
+      </div>
+    </section>
+
+    <aside class="side">
+      <div class="panel scorepanel">
+        <p class="eyebrow">Red vs Blue <span class="hint">— your run</span></p>
+        <div class="score-tiles" id="rcScore"></div>
+        <div class="score-tech" id="rcScoreTech"></div>
+      </div>
+    </aside>
+  </main>
+
+  <div class="toast" id="toast" hidden></div>
+  <script src="/red.js"></script>
+</body>
+</html>
