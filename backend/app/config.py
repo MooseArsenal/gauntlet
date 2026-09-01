@@ -117,6 +117,18 @@ SERVICENOW_URL = os.environ.get("GAUNTLET_SERVICENOW_URL", "").rstrip("/")
 SERVICENOW_USER = os.environ.get("GAUNTLET_SERVICENOW_USER", "")
 SERVICENOW_PASSWORD = os.environ.get("GAUNTLET_SERVICENOW_PASSWORD", "")
 
+# --- Cyber-range adapter (F7) ---------------------------------------------- #
+# Which range executes live/technical injects: simulation (default, no network),
+# caldera, or atomic. Real adapters only touch their one configured base URL, and
+# only against a target whose host is on the allow-list.
+RANGE_ADAPTER = os.environ.get("GAUNTLET_RANGE_ADAPTER", "simulation").lower()
+RANGE_ALLOWLIST = [h.strip().lower() for h in
+                   os.environ.get("GAUNTLET_RANGE_ALLOWLIST", "").split(",") if h.strip()]
+CALDERA_URL = os.environ.get("GAUNTLET_CALDERA_URL", "").rstrip("/")
+CALDERA_API_KEY = os.environ.get("GAUNTLET_CALDERA_API_KEY", "")
+ATOMIC_URL = os.environ.get("GAUNTLET_ATOMIC_URL", "").rstrip("/")
+ATOMIC_TOKEN = os.environ.get("GAUNTLET_ATOMIC_TOKEN", "")
+
 APP_TITLE = "Gauntlet"
 APP_TAGLINE = "Security exercise design & proctoring"
 
