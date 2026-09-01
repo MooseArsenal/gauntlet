@@ -144,6 +144,22 @@ a "Compliance evidence & PDF" action; reports also export to PDF.
   a "Sign in with SSO" button. SSO **links to an existing account** by subject or
   email — it does not auto-provision, since org and role can't be inferred.
 
+## Purple-team interactive mode (F5)
+
+Run red and blue together in one live loop:
+
+- **Red cell submits actions.** `POST /api/sessions/{id}/red-actions` takes a set
+  of ATT&CK techniques against a target; Gauntlet **adjudicates it live** against
+  the environment's controls and deception (the same deterministic engine the
+  proctor uses), writes it to the tamper-evident timeline (`kind="red_action"`),
+  and pings every surface so the **blue cell** sees the move land in real time.
+  Requires the evaluator role or above (the red-cell operator); participants are
+  blue-side observers.
+- **Live scoreboard.** `GET /api/sessions/{id}/scoreboard` tallies the exchange:
+  red actions, how many were detected, the detection rate, mean time-to-detect,
+  deceptions tripped, and a per-technique attempt/detect breakdown — the feedback
+  that makes a purple-team engagement worthwhile.
+
 ## Improvement plan & tracker sync (F4)
 
 The value of an exercise is the follow-through. F4 captures corrective actions
