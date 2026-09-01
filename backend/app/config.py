@@ -106,6 +106,17 @@ RETENTION_DAYS = int(os.environ.get("GAUNTLET_RETENTION_DAYS", "0"))
 # No-op on SQLite. See migrations and app/rls.py.
 RLS_ENABLED = _flag("GAUNTLET_RLS_ENABLED", "0")
 
+# --- Issue-tracker sync (F4) ----------------------------------------------- #
+# Improvement-plan items push to Jira or ServiceNow when configured; otherwise a
+# built-in simulation adapter is used (records intent, no external calls).
+JIRA_URL = os.environ.get("GAUNTLET_JIRA_URL", "").rstrip("/")
+JIRA_USER = os.environ.get("GAUNTLET_JIRA_USER", "")
+JIRA_TOKEN = os.environ.get("GAUNTLET_JIRA_TOKEN", "")
+JIRA_PROJECT = os.environ.get("GAUNTLET_JIRA_PROJECT", "")
+SERVICENOW_URL = os.environ.get("GAUNTLET_SERVICENOW_URL", "").rstrip("/")
+SERVICENOW_USER = os.environ.get("GAUNTLET_SERVICENOW_USER", "")
+SERVICENOW_PASSWORD = os.environ.get("GAUNTLET_SERVICENOW_PASSWORD", "")
+
 APP_TITLE = "Gauntlet"
 APP_TAGLINE = "Security exercise design & proctoring"
 

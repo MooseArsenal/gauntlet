@@ -303,6 +303,33 @@ class Report(Base):
 # Cadences an exercise programme can recur on.
 CADENCES = ("once", "daily", "weekly", "monthly", "quarterly")
 
+# Improvement-plan item lifecycle and severity.
+IMPROVEMENT_STATUSES = ("open", "in_progress", "closed")
+IMPROVEMENT_SEVERITIES = ("low", "medium", "high", "critical")
+
+
+class ImprovementItem(Base):
+    """A follow-up action from an exercise — the corrective-action / improvement
+    plan. Can be pushed to an external tracker (Jira/ServiceNow) and its closure
+    verified back against that ticket (F4)."""
+
+    __tablename__ = "improvement_items"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id"), index=True)
+    session_id: Mapped[int | None] = mapped_column(ForeignKey("sessions.id"), nullable=True, index=True)
+    title: Mapped[str] = mapped_column(String(240))
+    description: Mapped[str] = mapped_column(Text, default="")
+    severity: Mapped[str] = mapped_column(String(20), default="medium")
+    status: Mapped[str] = mapped_column(String(20), default="open")
+    source: Mapped[str] = mapped_column(String(40), default="manual")  # manual|gap|observation
+    # External tracker linkage (empty until pushed).
+    external_system: Mapped[str] = mapped_column(String(40), default="")  # jira|servicenow|simulation
+    external_ref: Mapped[str] = mapped_column(String(80), default="")
+    external_url: Mapped[str] = mapped_column(String(400), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, onupdate=_utcnow)
+
 
 class ExerciseSchedule(Base):
     """A recurring (or one-off) plan to run a scenario — the backbone of an
