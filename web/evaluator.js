@@ -4,12 +4,26 @@
   const $ = (id) => document.getElementById(id);
   let sessions = [];
   let scenarioCache = {};
+  let socket = null;
 
+  function subscribe(sid) {
+    if (socket) { try { socket.onclose = null; socket.close(); } catch (e) { /* noop */ } }
+    const scheme = location.protocol === "https:" ? "wss" : "ws";
+    try {
+      socket = new WebSocket(`${scheme}://${location.host}/ws/sessions/${sid}?token=${encodeURIComponent(token())}`);
+      socket.onmessage = (ev) => { try { if (JSON.parse(ev.data).type === "changed") loadView(); } catch (e) { /* noop */ } };
+      socket.onclose = () => { if (Number($("sessionSel").value) === sid) setTimeout(() => subscribe(sid), 2000); };
+    } catch (e) { /* realtime best-effort */ }
+  }
+
+  function token() { try { return localStorage.getItem("gauntlet-token") || ""; } catch (e) { return ""; } }
   async function api(path, method = "GET", body) {
-    const res = await fetch(path, {
-      method, headers: body ? { "Content-Type": "application/json" } : undefined,
-      body: body ? JSON.stringify(body) : undefined,
-    });
+    const headers = {};
+    if (body) headers["Content-Type"] = "application/json";
+    const t = token();
+    if (t) headers["Authorization"] = `Bearer ${t}`;
+    const res = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : undefined });
+    if (res.status === 401) { location.href = "/"; throw new Error("Sign in via the console."); }
     if (!res.ok) {
       let d = res.statusText;
       try { d = (await res.json()).detail || d; } catch (e) { /* noop */ }
@@ -60,6 +74,7 @@
     // Default to observing the participant cell if present.
     const blue = cells.find((c) => c.kind === "participant");
     if (blue) $("cellSel").value = blue.key;
+    subscribe(sid);
     await loadView();
   }
 

@@ -1,22 +1,26 @@
 """Report generation — one timeline, an output for every audience."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
 from ..database import get_db
 from ..engine import reporting
+from ..security import get_current_user, require_facilitator, scope_or_404
 
 router = APIRouter(prefix="/api/sessions", tags=["reports"])
 
 
 @router.post("/{session_id}/reports", response_model=schemas.ReportOut, status_code=201)
-def generate_report(session_id: int, payload: schemas.ReportRequest, db: Session = Depends(get_db)):
-    s = db.get(models.Session, session_id)
-    if not s:
-        raise HTTPException(404, "session not found")
+def generate_report(
+    session_id: int,
+    payload: schemas.ReportRequest,
+    user: models.User = Depends(require_facilitator),
+    db: Session = Depends(get_db),
+):
+    s = scope_or_404(db.get(models.Session, session_id), user)
     scenario = db.get(models.Scenario, s.scenario_id)
     env = db.get(models.Environment, scenario.environment_id)
 
@@ -33,7 +37,10 @@ def generate_report(session_id: int, payload: schemas.ReportRequest, db: Session
 
 
 @router.get("/{session_id}/reports", response_model=list[schemas.ReportOut])
-def list_reports(session_id: int, db: Session = Depends(get_db)):
+def list_reports(
+    session_id: int, user: models.User = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    scope_or_404(db.get(models.Session, session_id), user)
     return (
         db.execute(
             select(models.Report)

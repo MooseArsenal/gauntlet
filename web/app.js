@@ -8,13 +8,25 @@
   let selectedRating = "note";
   let objectives = [];
 
+  // ---- auth token -------------------------------------------------------- //
+  const TOKEN_KEY = "gauntlet-token";
+  function getToken() { try { return localStorage.getItem(TOKEN_KEY) || ""; } catch (e) { return ""; } }
+  function setToken(t) { try { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); } catch (e) { /* noop */ } }
+
   // ---- api helper -------------------------------------------------------- //
   async function api(path, method = "GET", body) {
+    const headers = {};
+    if (body) headers["Content-Type"] = "application/json";
+    const token = getToken();
+    if (token) headers["Authorization"] = `Bearer ${token}`;
     const res = await fetch(path, {
-      method,
-      headers: body ? { "Content-Type": "application/json" } : undefined,
-      body: body ? JSON.stringify(body) : undefined,
+      method, headers, body: body ? JSON.stringify(body) : undefined,
     });
+    if (res.status === 401) {
+      setToken("");
+      showLogin();
+      throw new Error("Please sign in.");
+    }
     if (!res.ok) {
       let detail = res.statusText;
       try { detail = (await res.json()).detail || detail; } catch (e) { /* noop */ }
@@ -43,11 +55,60 @@
     });
   }
 
+  // ---- auth views -------------------------------------------------------- //
+  function showLogin() {
+    $("loginView").hidden = false;
+    $("emptyState").hidden = true;
+    $("console").hidden = true;
+    $("sessionMeta").hidden = true;
+    $("userChip").hidden = true;
+    $("btnNew").hidden = true;
+    ["btnPause", "btnResume", "btnVerify"].forEach((id) => ($(id).hidden = true));
+  }
+
+  async function login() {
+    const email = $("loginEmail").value.trim();
+    const password = $("loginPassword").value;
+    const err = $("loginErr");
+    err.hidden = true;
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || "Sign in failed");
+      const data = await res.json();
+      setToken(data.access_token);
+      $("userLabel").textContent = `${data.user.email} · ${data.user.role}`;
+      $("loginView").hidden = true;
+      await loadHome();
+    } catch (e) {
+      err.textContent = e.message;
+      err.hidden = false;
+    }
+  }
+
+  function logout() { setToken(""); showLogin(); }
+
+  async function ensureAuthed() {
+    if (!getToken()) { showLogin(); return false; }
+    try {
+      const me = await api("/api/auth/me");
+      $("userLabel").textContent = `${me.email} · ${me.role}`;
+      return true;
+    } catch (e) { showLogin(); return false; }
+  }
+
   // ---- empty / setup ----------------------------------------------------- //
   async function loadHome() {
+    currentSid = null;
+    closeSocket();
+    $("loginView").hidden = true;
     $("console").hidden = true;
     $("emptyState").hidden = false;
     $("sessionMeta").hidden = true;
+    $("userChip").hidden = false;
+    $("btnNew").hidden = false;
     ["btnPause", "btnResume", "btnVerify"].forEach((id) => ($(id).hidden = true));
 
     const [scenarios, sessions] = await Promise.all([
@@ -128,11 +189,32 @@
   async function startNew() {
     const scenarioId = Number($("scenarioSel").value);
     const name = $("sessInput").value.trim() || "Untitled exercise";
+    const realtime = $("rtToggle").checked;
     try {
-      const sess = await api("/api/sessions", "POST", { scenario_id: scenarioId, name });
+      const sess = await api("/api/sessions", "POST", {
+        scenario_id: scenarioId, name,
+        mode: realtime ? "real_time" : "tabletop", auto_advance: realtime,
+      });
       await api(`/api/sessions/${sess.id}/start`, "POST");
       openSession(sess.id);
     } catch (e) { toast("Could not start: " + e.message); }
+  }
+
+  // ---- realtime ---------------------------------------------------------- //
+  let socket = null;
+  function closeSocket() { if (socket) { try { socket.onclose = null; socket.close(); } catch (e) { /* noop */ } socket = null; } }
+  function subscribeSocket(sid) {
+    closeSocket();
+    const scheme = location.protocol === "https:" ? "wss" : "ws";
+    const url = `${scheme}://${location.host}/ws/sessions/${sid}?token=${encodeURIComponent(getToken())}`;
+    try {
+      socket = new WebSocket(url);
+      socket.onmessage = (ev) => {
+        try { if (JSON.parse(ev.data).type === "changed") loadState(); } catch (e) { /* noop */ }
+      };
+      // Reconnect if the socket drops while the same session is open.
+      socket.onclose = () => { if (currentSid === sid) setTimeout(() => { if (currentSid === sid) subscribeSocket(sid); }, 2000); };
+    } catch (e) { /* realtime is best-effort */ }
   }
 
   async function openSession(sid) {
@@ -140,6 +222,7 @@
     $("emptyState").hidden = true;
     $("console").hidden = false;
     $("sessionMeta").hidden = false;
+    subscribeSocket(sid);
     await loadState();
   }
 
@@ -451,7 +534,11 @@
     document.querySelectorAll(".report-btns .btn").forEach((b) =>
       b.addEventListener("click", () => generateReport(b.dataset.aud)));
 
-    loadHome();
+    $("btnLogin").addEventListener("click", login);
+    $("loginPassword").addEventListener("keydown", (e) => { if (e.key === "Enter") login(); });
+    $("btnLogout").addEventListener("click", logout);
+
+    ensureAuthed().then((ok) => { if (ok) loadHome(); });
   }
 
   document.addEventListener("DOMContentLoaded", init);

@@ -7,10 +7,13 @@ clean recovery or a domain-wide compromise depending on the proctor's calls.
 """
 from __future__ import annotations
 
+import os
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from . import models
+from .security import hash_password
 
 
 def _environment() -> models.Environment:
@@ -254,16 +257,34 @@ def _injects() -> list[models.Inject]:
 
 
 def seed_if_empty(db: Session) -> bool:
-    """Load the worked example if no environment exists yet. Returns True if seeded."""
-    existing = db.execute(select(models.Environment).limit(1)).scalar_one_or_none()
+    """Load the worked example if the database is empty. Returns True if seeded.
+
+    Also creates a demo organisation and admin user so the product is usable
+    immediately. Override the demo password with GAUNTLET_DEMO_PASSWORD.
+    """
+    existing = db.execute(select(models.Organization).limit(1)).scalar_one_or_none()
     if existing:
         return False
 
+    org = models.Organization(name="Demo Organization", slug="demo")
+    db.add(org)
+    db.flush()
+
+    db.add(models.User(
+        org_id=org.id,
+        email="admin@demo.gauntlet",
+        name="Demo Admin",
+        role="admin",
+        password_hash=hash_password(os.environ.get("GAUNTLET_DEMO_PASSWORD", "gauntlet-admin")),
+    ))
+
     env = _environment()
+    env.org_id = org.id
     db.add(env)
     db.flush()
 
     scenario = models.Scenario(
+        org_id=org.id,
         environment_id=env.id,
         name="Operation Frostbite — Ransomware Tabletop",
         threat_actor="Financially motivated ransomware affiliate (BEC → ransomware)",
