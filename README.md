@@ -107,9 +107,12 @@ a "Compliance evidence & PDF" action; reports also export to PDF.
 - **Security audit log**: logins (success/failure/lockout), registrations, user
   creation, and evidence/report exports are recorded with actor + IP; admins read
   their org's log at `GET /api/audit`.
-- **CI security scanning**: CodeQL (Python + JS), `pip-audit`, and gitleaks
-  secret scanning (report-only to start). Set `GAUNTLET_TRUST_PROXY=1` only
-  behind a trusted proxy so `X-Forwarded-For` is honoured for the client IP.
+- **CI security scanning**: `bandit` (Python SAST), `pip-audit` (dependency
+  advisories), and gitleaks (secret scanning) — report-only to start. (CodeQL is
+  not wired in because code scanning needs GitHub Advanced Security, which
+  private repos lack; enable it if the repo goes public or GHAS is on.) Set
+  `GAUNTLET_TRUST_PROXY=1` only behind a trusted proxy so `X-Forwarded-For` is
+  honoured for the client IP.
 
 ## Access control & real-time
 
