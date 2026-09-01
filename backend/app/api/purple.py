@@ -33,6 +33,13 @@ def _red_events(session: models.Session) -> list[models.TimelineEvent]:
     return [e for e in session.events if e.kind == "red_action"]
 
 
+# The scoreboard reflects every *adjudicated* red move, whichever surface ruled
+# it: an explicit red-cell submission (``red_action``) or the proctor's console
+# adjudication (``adjudication``). Both carry the same ruling payload shape.
+def _scored_actions(session: models.Session) -> list[models.TimelineEvent]:
+    return [e for e in session.events if e.kind in ("red_action", "adjudication")]
+
+
 @router.post("/{session_id}/red-actions", response_model=schemas.RedActionOut, status_code=201)
 def submit_red_action(session_id: int, payload: schemas.RedActionIn,
                       user: models.User = Depends(require_evaluator),
@@ -63,9 +70,9 @@ def list_red_actions(session_id: int, user: models.User = Depends(get_current_us
 @router.get("/{session_id}/scoreboard", response_model=schemas.Scoreboard)
 def scoreboard(session_id: int, user: models.User = Depends(get_current_user),
                db: Session = Depends(get_db)):
-    """Live purple-team tally over the session's red actions."""
+    """Live purple-team tally over the session's adjudicated red moves."""
     s = _session(db, session_id, user)
-    events = _red_events(s)
+    events = _scored_actions(s)
 
     detected = sum(1 for e in events if e.payload.get("detected"))
     missed = len(events) - detected
