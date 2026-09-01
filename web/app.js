@@ -381,6 +381,9 @@
     $("branchPanel").hidden = terminal || session.status === "complete";
     $("terminalNote").hidden = !terminal || session.status === "complete";
 
+    // kill-chain progress map (how far along the exercise is)
+    updateKillChain(scenario.id, current_inject, timeline);
+
     // objectives (rail) + observation selector
     objectives = scenario_objectives_cache[scenario.id] || [];
     if (!objectives.length) fetchObjectives(scenario.id);
@@ -401,7 +404,33 @@
   }
 
   const scenario_objectives_cache = {};
+  const scenario_injects_cache = {};
   const env_cache = {};
+  let injectBank = null;
+
+  async function ensureBank() {
+    if (injectBank) return injectBank;
+    try { injectBank = await api("/api/catalog/injects"); } catch (e) { injectBank = []; }
+    return injectBank;
+  }
+
+  // The kill-chain journey map: how far along a running exercise is.
+  async function updateKillChain(scenarioId, currentInject, timeline) {
+    const box = $("killChain");
+    if (!box || !window.KillChain) return;
+    try {
+      if (!scenario_injects_cache[scenarioId]) {
+        const scn = await api(`/api/scenarios/${scenarioId}`);
+        scenario_injects_cache[scenarioId] = scn.injects || [];
+      }
+      const fired = new Set((timeline || []).filter((e) => e.kind === "inject_fired").map((e) => e.ref));
+      if (currentInject) fired.add(currentInject.code);
+      window.KillChain.render(box, {
+        injects: scenario_injects_cache[scenarioId], bank: await ensureBank(),
+        mode: "live", currentCode: currentInject ? currentInject.code : null, firedCodes: fired,
+      });
+    } catch (e) { box.hidden = true; }
+  }
 
   async function fetchObjectives(scenarioId) {
     const scn = await api(`/api/scenarios/${scenarioId}`);

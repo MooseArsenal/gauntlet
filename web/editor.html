@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
   <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/progressmap.css">
   <link rel="stylesheet" href="/editor.css">
 </head>
 <body>
@@ -43,6 +44,7 @@
 
     <!-- Canvas -->
     <section class="ed-canvas-wrap" id="canvasWrap">
+      <div class="killchain ed-coverage" id="edCoverage" hidden aria-label="Kill-chain coverage"></div>
       <svg id="canvas" class="ed-canvas" tabindex="0" aria-label="Scenario graph">
         <defs>
           <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -79,6 +81,7 @@
   </main>
 
   <div class="toast" id="toast" hidden></div>
+  <script src="/progressmap.js"></script>
   <script src="/editor.js"></script>
 </body>
 </html>
