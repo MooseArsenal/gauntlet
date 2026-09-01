@@ -1,0 +1,202 @@
+scenario:
+  name: "Frostbite Deep — Ransomware, branching"
+  threat_actor: "Financially motivated ransomware affiliate"
+  narrative: >
+    A phishing-led intrusion that can end three very different ways — a clean
+    recovery, a major outage, or a regulatory-disclosure event — depending on how
+    quickly the team contains, whether they protect the backups, and whether the
+    domain is compromised along the way.
+  scope: "Discussion-based tabletop. No live systems are touched."
+  rules_of_engagement: "Facilitated exercise only. 'Pause' halts play at any time."
+  exercise_type: tabletop
+
+  # State flags branches read (condition) and write (set). Endings diverge on the
+  # ACCUMULATED state, not just the last decision.
+  variables:
+    contained: false
+    backups_intact: true
+    domain_compromised: false
+
+  cells:
+    - {key: white_cell, name: "White Cell / Control", kind: control}
+    - {key: blue_cell, name: "Blue Cell (SOC + IR)", kind: participant}
+    - {key: observers, name: "Observers", kind: observer}
+
+  objectives:
+    - code: OBJ-1
+      title: "Detect the initial intrusion"
+      success_criteria: "Initial access identified and escalated within 30 game-minutes."
+      meta: {capability: detect, compliance: {nist_csf: [DE.AE], cis_v8: ["17.7"], pci: ["12.10.2"]}}
+    - code: OBJ-2
+      title: "Triage and scope the compromise"
+      success_criteria: "Compromised host identified and its crown-jewel dependency recognised."
+      meta: {capability: triage, compliance: {nist_csf: [RS.AN], iso_27001: ["A.5.25"]}}
+    - code: OBJ-3
+      title: "Contain lateral movement"
+      success_criteria: "Host isolated before the domain controller is reached."
+      meta: {capability: contain, compliance: {nist_csf: [RS.MI], cis_v8: ["17.7"], soc2: [CC7.4]}}
+    - code: OBJ-4
+      title: "Recover and communicate"
+      success_criteria: "Recovery from immutable backups; stakeholder comms executed."
+      meta: {capability: recover, compliance: {nist_csf: [RC.RP, RC.CO], iso_27001: ["A.5.29"], dora: [ICT-RESP]}}
+
+  injects:
+    - code: INJ-01
+      act: "Initial Access"
+      is_start: true
+      title: "Phishing email reported by a finance clerk"
+      channel: email
+      clock: "T+00:00"
+      narrative: "A finance clerk forwards a suspicious invoice email linking to a look-alike SSO portal."
+      visible_to: [blue_cell, white_cell]
+      expected_actions: ["Triage against the phishing playbook", "Check who else received it"]
+      attack: [T1566.001]
+      target_asset: WKS-1
+      objective: OBJ-1
+      branches:
+        - {when: action_taken, trigger: investigate_and_block, label: "SOC investigates and blocks", goto: INJ-02}
+        - {when: timeout, after: PT15M, label: "No triage — a user submits credentials", goto: INJ-03}
+        - {when: proctor_choice, label: "Advance to credential theft", goto: INJ-03}
+
+    - code: INJ-02
+      act: "Initial Access"
+      title: "Credential-harvesting page confirmed"
+      channel: chat
+      clock: "T+00:12"
+      narrative: "The link is a credential-harvesting page; the sender is blocked, but one clerk already submitted."
+      visible_to: [blue_cell, white_cell]
+      expected_actions: ["Force a password reset", "Hunt for logins with the stolen credential"]
+      attack: [T1078]
+      objective: OBJ-1
+      branches:
+        - {when: proctor_choice, label: "Attacker uses the credential", goto: INJ-03}
+
+    - code: INJ-03
+      act: "Execution"
+      title: "EDR: scripted payload on WKS-1"
+      channel: edr_alert
+      clock: "T+00:22"
+      narrative: "Defender flags a macro-spawned PowerShell process beaconing to an unknown host."
+      visible_to: [blue_cell, white_cell]
+      expected_actions: ["Triage the alert", "Contain the endpoint if confirmed"]
+      attack: [T1204.002, T1059.001]
+      target_asset: WKS-1
+      objective: OBJ-2
+      branches:
+        - {when: action_taken, trigger: isolate_workstation, label: "Isolate the workstation", set: {contained: true}, goto: INJ-04}
+        - {when: timeout, after: PT10M, label: "No containment", goto: INJ-04}
+        - {when: proctor_choice, goto: INJ-04}
+
+    - code: INJ-04
+      act: "Credential Access"
+      title: "EDR flags LSASS access on FIN-APP-02"
+      channel: edr_alert
+      clock: "T+00:35"
+      narrative: "A non-standard process read LSASS memory on the finance application host."
+      visible_to: [blue_cell, white_cell]
+      expected_actions: ["Triage against the IR playbook", "Recognise the crown-jewel dependency"]
+      attack: [T1003.001]
+      target_asset: FIN-APP-02
+      objective: OBJ-3
+      branches:
+        - {when: action_taken, trigger: isolate_host, label: "Contain FIN-APP-02", set: {contained: true}, goto: INJ-05}
+        - {when: timeout, after: PT10M, label: "No containment — attacker pivots to the DC", goto: INJ-06}
+        - {when: proctor_choice, label: "Team contains the host", set: {contained: true}, goto: INJ-05}
+
+    - code: INJ-05
+      act: "Lateral Movement"
+      title: "Contained host — attacker probes the file server"
+      channel: siem_alert
+      clock: "T+00:48"
+      narrative: "With the host isolated, the attacker reuses the credential toward the file server."
+      visible_to: [blue_cell, white_cell]
+      expected_actions: ["Watch for lateral movement", "Act on any deception signal"]
+      attack: [T1021.002]
+      target_asset: FILE-SRV-01
+      objective: OBJ-3
+      branches:
+        - {when: action_taken, trigger: watch_deception, label: "Deception canary is tripped — early reveal", set: {contained: true}, goto: INJ-07}
+        - {when: proctor_choice, label: "Ransomware staging begins", goto: INJ-08}
+
+    - code: INJ-06
+      act: "Privilege Escalation"
+      title: "Domain controller compromised"
+      channel: siem_alert
+      clock: "T+00:55"
+      narrative: "No containment came. The attacker reaches DC-01 and mints a privileged account."
+      visible_to: [blue_cell, white_cell]
+      expected_actions: ["Escalate to full IR", "Consider a domain-wide credential reset"]
+      attack: [T1078, T1098]
+      target_asset: DC-01
+      objective: OBJ-3
+      branches:
+        - {when: proctor_choice, label: "Ransomware staging begins", set: {domain_compromised: true}, goto: INJ-08}
+
+    - code: INJ-07
+      act: "Lateral Movement"
+      title: "Canary tripped — adversary revealed early"
+      channel: edr_alert
+      clock: "T+00:52"
+      narrative: "A honey-credential fires the moment it is used; the blue cell gains a decisive advantage."
+      visible_to: [blue_cell, white_cell]
+      expected_actions: ["Exploit the early warning", "Pre-position recovery"]
+      attack: [T1021.002]
+      target_asset: FILE-SRV-01
+      objective: OBJ-3
+      branches:
+        - {when: proctor_choice, label: "Ransomware staging begins", goto: INJ-08}
+
+    - code: INJ-08
+      act: "Impact"
+      title: "Ransomware staging on the file shares"
+      channel: edr_alert
+      clock: "T+01:10"
+      narrative: "Encryption begins and the attacker tries to delete backup snapshots."
+      visible_to: [blue_cell, white_cell]
+      expected_actions: ["Invoke the ransomware IR playbook", "Protect and validate immutable backups", "Engage the comms lead"]
+      attack: [T1486, T1490]
+      target_asset: BACKUP-01
+      objective: OBJ-4
+      branches:
+        # Disclosure ending takes priority when the domain was compromised.
+        - {when: proctor_choice, condition: "domain_compromised == true", label: "Domain compromise — disclosure required", goto: INJ-11}
+        - {when: action_taken, trigger: isolate_and_recover, condition: "backups_intact == true", label: "Isolate and recover from immutable backups", goto: INJ-09}
+        - {when: action_taken, trigger: pay_or_delay, label: "Delay — backups are reached", set: {backups_intact: false}, goto: INJ-10}
+        - {when: timeout, after: PT20M, label: "Slow response — backups are reached", set: {backups_intact: false}, goto: INJ-10}
+        - {when: proctor_choice, condition: "backups_intact == true", label: "Team executes recovery", goto: INJ-09}
+        - {when: proctor_choice, label: "Widespread encryption", goto: INJ-10}
+
+    - code: INJ-09
+      act: "Resolution"
+      title: "Recovered from immutable backups (resolution)"
+      channel: briefing
+      clock: "T+01:40"
+      narrative: "The immutable vault survives; systems are restored and the comms plan runs. Limited impact."
+      visible_to: [blue_cell, white_cell]
+      expected_actions: ["Confirm restoration", "Run the hotwash"]
+      objective: OBJ-4
+      branches: []
+
+    - code: INJ-10
+      act: "Resolution"
+      title: "Widespread encryption and extended outage (resolution)"
+      channel: briefing
+      clock: "T+02:10"
+      narrative: "Encryption spread before containment and reachable backups were hit. A long outage follows."
+      visible_to: [blue_cell, white_cell]
+      expected_actions: ["Capture the decision timeline", "Run the hotwash"]
+      objective: OBJ-4
+      branches: []
+
+    - code: INJ-11
+      act: "Resolution"
+      title: "Regulatory disclosure event (resolution)"
+      channel: briefing
+      clock: "T+02:20"
+      narrative: >
+        The domain compromise and confirmed data exposure trigger breach-notification
+        obligations. Legal, comms, and executives run the disclosure process.
+      visible_to: [blue_cell, white_cell]
+      expected_actions: ["Engage legal and DPO", "Prepare regulator and customer notifications"]
+      objective: OBJ-4
+      branches: []

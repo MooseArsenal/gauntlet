@@ -59,10 +59,11 @@ def _state(db: Session, s: models.Session) -> schemas.SessionState:
         session=schemas.SessionSummary.model_validate(s),
         scenario=schemas.ScenarioSummary.model_validate(scenario),
         current_inject=schemas.InjectOut.model_validate(current) if current else None,
-        available_branches=msel.available_branches(current) if current else [],
+        available_branches=msel.available_branches(current, s.state) if current else [],
         timeline=[schemas.TimelineEventOut.model_validate(e) for e in s.events],
         observations=[schemas.ObservationOut.model_validate(o) for o in s.observations],
-        terminal=msel.is_terminal(current) if current else False,
+        state=dict(s.state or {}),
+        terminal=(not msel.available_branches(current, s.state)) if current else False,
     )
 
 
@@ -122,6 +123,8 @@ def start_session(
     start = msel.get_start_inject(injects)
     if not start:
         raise HTTPException(400, "scenario has no injects")
+    scenario = db.get(models.Scenario, s.scenario_id)
+    s.state = dict(scenario.variables or {})  # initialise live state from the scenario
     s.status = "running"
     s.started_at = datetime.now(timezone.utc)
     append_event(db, s.id, kind="status", payload={"status": "running"})

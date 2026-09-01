@@ -55,6 +55,7 @@ class ObjectiveIn(BaseModel):
     description: str = ""
     success_criteria: str = ""
     eeg: list = Field(default_factory=list)
+    meta: dict = Field(default_factory=dict)
 
 
 class ObjectiveOut(ObjectiveIn):
@@ -76,6 +77,8 @@ class InjectIn(BaseModel):
     objective_code: str = ""
     branches: list = Field(default_factory=list)
     is_start: bool = False
+    act: str = ""
+    meta: dict = Field(default_factory=dict)
 
 
 class InjectOut(InjectIn):
@@ -92,6 +95,7 @@ class ScenarioCreate(BaseModel):
     rules_of_engagement: str = ""
     cells: list = Field(default_factory=list)
     exercise_type: str = "tabletop"
+    variables: dict = Field(default_factory=dict)
     objectives: list[ObjectiveIn] = Field(default_factory=list)
     injects: list[InjectIn] = Field(default_factory=list)
 
@@ -116,6 +120,7 @@ class ScenarioOut(BaseModel):
     rules_of_engagement: str
     cells: list
     exercise_type: str
+    variables: dict = Field(default_factory=dict)
     created_at: datetime
     objectives: list[ObjectiveOut] = Field(default_factory=list)
     injects: list[InjectOut] = Field(default_factory=list)
@@ -176,6 +181,7 @@ class SessionState(BaseModel):
     available_branches: list[dict] = Field(default_factory=list)
     timeline: list[TimelineEventOut] = Field(default_factory=list)
     observations: list[ObservationOut] = Field(default_factory=list)
+    state: dict = Field(default_factory=dict)
     terminal: bool = False
 
 
@@ -252,6 +258,20 @@ class GenerateRequest(BaseModel):
     actor_key: Optional[str] = None
     template_key: Optional[str] = None
     name: Optional[str] = None
+
+
+class ScenarioImport(BaseModel):
+    environment_id: int
+    yaml: str
+
+
+class ValidateRequest(BaseModel):
+    yaml: str
+
+
+class ValidationOut(BaseModel):
+    errors: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
 
 
 class DeliveryOut(BaseModel):

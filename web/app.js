@@ -410,12 +410,61 @@
     toast(v.chain_valid ? "Timeline verified — hash-chain intact." : "Timeline verification FAILED.");
   }
 
+  async function downloadBlob(path, filename) {
+    try {
+      const token = getToken();
+      const res = await fetch(path, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+      if (!res.ok) throw new Error("Download failed");
+      const url = URL.createObjectURL(await res.blob());
+      const a = document.createElement("a");
+      a.href = url; a.download = filename; document.body.appendChild(a); a.click();
+      a.remove(); setTimeout(() => URL.revokeObjectURL(url), 4000);
+    } catch (e) { toast(e.message); }
+  }
+
+  function modalWithDownload(html, label, path, filename) {
+    $("modalBody").innerHTML =
+      `<div class="modal-actions"><button class="btn primary" id="btnDownload">${label}</button></div>` + html;
+    $("modal").hidden = false;
+    $("btnDownload").addEventListener("click", () => downloadBlob(path, filename));
+  }
+
   async function generateReport(audience) {
     try {
       const rep = await api(`/api/sessions/${currentSid}/reports`, "POST", { audience });
-      $("modalBody").innerHTML = renderMarkdown(rep.content);
-      $("modal").hidden = false;
+      modalWithDownload(renderMarkdown(rep.content), "Download PDF",
+        `/api/sessions/${currentSid}/reports/${rep.id}.pdf`, `report-${audience}.pdf`);
     } catch (e) { toast(e.message); }
+  }
+
+  async function previewCompliance() {
+    try {
+      const ev = await api(`/api/sessions/${currentSid}/evidence`);
+      const blocks = ev.frameworks.map((f) => {
+        const rows = f.controls.map((c) =>
+          `<tr><td><code>${escapeHtml(c.id)}</code></td><td>${escapeHtml(c.title)}</td>` +
+          `<td><span class="evid ${c.status}">${c.status.replace("_", " ")}</span></td></tr>`).join("");
+        return `<h2>${escapeHtml(f.name)}</h2>` +
+          `<p class="hint">${f.summary.demonstrated} demonstrated · ${f.summary.gaps} gap(s) · ${f.summary.controls} control(s)</p>` +
+          `<table class="dfields"><tbody>${rows || '<tr><td colspan="3" class="muted">No mapped controls.</td></tr>'}</tbody></table>`;
+      }).join("");
+      modalWithDownload(
+        `<h1>Compliance evidence</h1><blockquote>${escapeHtml(ev.disclaimer)}</blockquote>${blocks}`,
+        "Download evidence PDF", `/api/sessions/${currentSid}/evidence.pdf`, "compliance-evidence.pdf");
+    } catch (e) { toast(e.message); }
+  }
+
+  async function importYaml() {
+    const file = $("yamlFile").files[0];
+    if (!file) return toast("Choose a YAML file first.");
+    const envId = Number($("genEnv").value);
+    try {
+      const yaml = await file.text();
+      const scn = await api("/api/scenarios/import", "POST", { environment_id: envId, yaml });
+      toast(`Imported "${scn.name}" — ${scn.injects.length} injects.`);
+      await loadHome();
+      $("scenarioSel").value = String(scn.id);
+    } catch (e) { toast("Import failed: " + e.message); }
   }
 
   async function previewDelivery() {
@@ -510,6 +559,8 @@
     $("btnNew").addEventListener("click", loadHome);
     $("btnStart").addEventListener("click", startNew);
     $("btnGenerate").addEventListener("click", generateScenario);
+    $("btnImportYaml").addEventListener("click", importYaml);
+    $("btnCompliance").addEventListener("click", previewCompliance);
     $("btnDelivery").addEventListener("click", previewDelivery);
     $("btnAdjudicate").addEventListener("click", adjudicate);
     $("btnObserve").addEventListener("click", observe);
