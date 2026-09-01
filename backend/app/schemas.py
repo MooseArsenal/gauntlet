@@ -137,6 +137,31 @@ class SessionCreate(BaseModel):
     auto_advance: bool = False
 
 
+# --- join-code lobby (D4) --- #
+class JoinCodeOut(BaseModel):
+    join_code: str
+
+
+class JoinIn(BaseModel):
+    code: str
+    cell: str = "blue_cell"      # which fog-of-war view the joiner takes
+    display_name: Optional[str] = None
+
+
+class JoinOut(BaseModel):
+    session_id: int
+    name: str
+    cell: str
+    status: str
+
+
+class LobbyMember(BaseModel):
+    model_config = _orm
+    display_name: str
+    cell: str
+    joined_at: datetime
+
+
 class SessionSummary(BaseModel):
     model_config = _orm
     id: int
