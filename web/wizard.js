@@ -89,7 +89,9 @@
     { value: "type", label: "By scenario type" },
     { value: "actor", label: "By threat actor" },
     { value: "sector", label: "By industry" },
+    { value: "design", label: "Design your own" },
   ];
+  const MOTIVES = ["financial", "espionage", "hacktivist", "sabotage", "extortion", "insider"];
   function clearPick() { data.template_key = null; data.actor_key = null; data.actorName = null; }
 
   function actorTile(g) {
@@ -144,9 +146,67 @@
     renderActorMode($("wzSectorGroups"), data.sector);
   }
 
+  // Design-your-own: a form + a click-to-build kill chain over the scene bank,
+  // plus "generate a random adversary". Saving persists it and advances the flow.
+  async function renderDesignMode(host) {
+    if (!data.design) data.design = { name: "", motivation: "financial", is_fictitious: true, kill_chain: [] };
+    if (!data._bank) data._bank = await api("/api/catalog/injects");
+    const d = data.design;
+    const bank = data._bank;
+    const sceneLabel = (k) => { const s = bank.find((x) => x.key === k); return s ? `${s.phase} · ${s.title}` : k; };
+    host.innerHTML =
+      `<div class="wz-pickhead"><span class="wz-count">Design an adversary</span>
+         <button class="btn ghost small" id="wzGenRand">🎲 Generate random</button></div>
+       <div class="wz-field"><label>Name</label><input id="dName" placeholder="e.g. Obsidian Kraken" value="${esc(d.name)}"></div>
+       <div class="wz-row2">
+         <div class="wz-field"><label>Motivation</label><select id="dMot">${MOTIVES.map((m) => `<option value="${m}" ${m === d.motivation ? "selected" : ""}>${m}</option>`).join("")}</select></div>
+         <label class="wz-check"><input type="checkbox" id="dFic" ${d.is_fictitious ? "checked" : ""}> Fictitious</label>
+       </div>
+       <div class="wz-field"><label>Kill chain <span class="hint">— add scenes in order</span></label>
+         <div class="wz-addrow"><select id="dScene">${bank.map((s) => `<option value="${esc(s.key)}">${esc(s.phase)} · ${esc(s.title)}</option>`).join("")}</select>
+           <button class="btn ghost small" id="dAdd">Add ＋</button></div>
+       </div>
+       <div class="wz-chain" id="dChain"></div>
+       <div class="wz-designnav"><button class="btn primary" id="dSave">Save &amp; use this adversary →</button></div>`;
+    const drawChain = () => {
+      $("dChain").innerHTML = !d.kill_chain.length
+        ? '<p class="hint">No scenes yet — add a few, starting with an initial-access scene.</p>'
+        : d.kill_chain.map((k, i) => `<span class="chip"><b>${i + 1}</b> ${esc(sceneLabel(k))}<button data-i="${i}" class="x">✕</button></span>`).join("");
+      $("dChain").querySelectorAll(".x").forEach((b) => b.addEventListener("click", () => {
+        d.kill_chain.splice(Number(b.getAttribute("data-i")), 1); drawChain();
+      }));
+    };
+    drawChain();
+    $("dName").addEventListener("input", (e) => (d.name = e.target.value));
+    $("dMot").addEventListener("change", (e) => (d.motivation = e.target.value));
+    $("dFic").addEventListener("change", (e) => (d.is_fictitious = e.target.checked));
+    $("dAdd").addEventListener("click", () => { d.kill_chain.push($("dScene").value); drawChain(); });
+    $("wzGenRand").addEventListener("click", async () => {
+      try {
+        const draft = await api("/api/adversaries/random", "POST");
+        data.design = { name: draft.name, motivation: draft.motivation, is_fictitious: draft.is_fictitious,
+          kill_chain: draft.kill_chain, sectors: draft.sectors, description: draft.description };
+        renderDesignMode(host);
+        toast(`Generated "${draft.name}"`);
+      } catch (e) { toast(e.message); }
+    });
+    $("dSave").addEventListener("click", async () => {
+      if (!d.name.trim()) { toast("Name your adversary."); return; }
+      if (!d.kill_chain.length) { toast("Add at least one scene to the kill chain."); return; }
+      try {
+        const saved = await api("/api/adversaries", "POST", {
+          name: d.name, motivation: d.motivation, is_fictitious: d.is_fictitious,
+          sectors: d.sectors || [], kill_chain: d.kill_chain, description: d.description || "",
+        });
+        clearPick(); data.actor_key = saved.key; data.actorName = saved.name;
+        toast(`Saved "${saved.name}"`); next();
+      } catch (e) { toast(e.message); }
+    });
+  }
+
   FLOWS.build = [
     {
-      title: "Choose your adversary", lead: "Emulate a real ATT&CK group, start from a scenario type, or find who targets your industry — you can tune everything afterwards.",
+      title: "Choose your adversary", lead: "Emulate a real ATT&CK group, start from a scenario type, find who targets your industry, or design your own — you can tune everything afterwards.",
       async render(el) {
         if (!data.pickMode) data.pickMode = "type";
         el.innerHTML =
@@ -156,6 +216,7 @@
         const renderMode = () => {
           if (data.pickMode === "type") return renderTypeMode(host);
           if (data.pickMode === "actor") return renderActorMode(host, null);
+          if (data.pickMode === "design") return renderDesignMode(host);
           return renderSectorMode(host);
         };
         $("wzSeg").querySelectorAll(".seg").forEach((b) => b.addEventListener("click", () => {
