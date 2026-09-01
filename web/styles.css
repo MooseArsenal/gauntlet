@@ -14,25 +14,32 @@
 .loginerr{color:var(--crit);font-size:.82rem;background:var(--crit-wash);border:1px solid color-mix(in srgb,var(--crit) 35%,transparent);border-radius:8px;padding:.5rem .7rem;margin:0}
 #demoHint code{font-family:"IBM Plex Mono",monospace;font-size:.82em;background:var(--surface-3);border:1px solid var(--line-soft);border-radius:4px;padding:.05rem .3rem}
 :root{
-  --bg:#0D1013; --surface:#14181E; --surface-2:#1A1F26; --surface-3:#212832;
-  --ink:#E6EAF0; --ink-soft:#B0B8C4; --muted:#7E8794; --line:#2A313B; --line-soft:#222932;
-  --accent:#D6A24A; --accent-ink:#E7BE76; --accent-wash:rgba(214,162,74,.13);
-  --good:#4bbd88; --good-wash:rgba(75,189,136,.14);
-  --warn:#e0b25a; --warn-wash:rgba(224,178,90,.15);
-  --crit:#e5766a; --crit-wash:rgba(229,118,106,.14);
-  --info:#6ba8cf; --info-wash:rgba(107,168,207,.14);
-  --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 30px -16px rgba(0,0,0,.6);
+  /* Lifted, slightly blue charcoal — less flat-black, more vibrant. */
+  --bg:#1A1F2B; --surface:#222836; --surface-2:#2A3143; --surface-3:#333B50;
+  --ink:#EEF2F8; --ink-soft:#BAC3D4; --muted:#8B95A9; --line:#3A4257; --line-soft:#2F3648;
+  /* Vivid azure primary + warm amber highlight give the UI its pop. */
+  --accent:#5C8DF6; --accent-ink:#8FB2FF; --accent-wash:rgba(92,141,246,.16);
+  --accent2:#F0B429; --accent2-ink:#FFCB4D;
+  --grad-accent:linear-gradient(135deg,#5C8DF6,#7C6BF0);
+  --good:#37d39a; --good-wash:rgba(55,211,154,.16);
+  --warn:#f5b544; --warn-wash:rgba(245,181,68,.16);
+  --crit:#ff6b6b; --crit-wash:rgba(255,107,107,.15);
+  --info:#4cc9f0; --info-wash:rgba(76,201,240,.15);
+  --shadow:0 1px 2px rgba(0,0,0,.25),0 14px 34px -18px rgba(0,0,0,.55);
   color-scheme:dark;
 }
 :root[data-theme="light"]{
-  --bg:#EAEDF1; --surface:#FBFCFD; --surface-2:#F1F4F8; --surface-3:#E7ECF2;
-  --ink:#161A21; --ink-soft:#414a57; --muted:#69727f; --line:#D4DAE3; --line-soft:#E2E7EE;
-  --accent:#9C6B1E; --accent-ink:#7c5314; --accent-wash:rgba(156,107,30,.10);
-  --good:#1f7a52; --good-wash:rgba(31,122,82,.12);
-  --warn:#9a6a12; --warn-wash:rgba(184,131,26,.16);
-  --crit:#b03325; --crit-wash:rgba(176,51,37,.10);
-  --info:#2c6489; --info-wash:rgba(44,100,137,.10);
-  --shadow:0 1px 2px rgba(16,20,28,.05),0 6px 20px -10px rgba(16,20,28,.18);
+  /* Crisp, airy, and a touch more saturated. */
+  --bg:#EEF2F8; --surface:#FFFFFF; --surface-2:#F4F7FC; --surface-3:#E9EFF7;
+  --ink:#141A26; --ink-soft:#3C4658; --muted:#63708A; --line:#DCE3EF; --line-soft:#E8EEF7;
+  --accent:#2f6bef; --accent-ink:#1f52c9; --accent-wash:rgba(47,107,239,.10);
+  --accent2:#c9820f; --accent2-ink:#a9690a;
+  --grad-accent:linear-gradient(135deg,#3b74f2,#6a53e6);
+  --good:#12996a; --good-wash:rgba(18,153,106,.12);
+  --warn:#b5820f; --warn-wash:rgba(181,130,15,.14);
+  --crit:#e0413a; --crit-wash:rgba(224,65,58,.10);
+  --info:#1493c4; --info-wash:rgba(20,147,196,.10);
+  --shadow:0 1px 2px rgba(16,20,28,.05),0 8px 24px -12px rgba(16,20,28,.16);
   color-scheme:light;
 }
 
@@ -65,7 +72,7 @@ input,select,textarea{font:inherit;color:inherit}
   position:sticky;top:0;z-index:30;
 }
 .brand{display:flex;align-items:center;gap:.55rem;font-family:"Archivo",sans-serif;font-weight:800}
-.brand .mark{width:24px;height:24px;flex:none;display:grid;place-items:center;border:1.5px solid var(--accent);color:var(--accent);border-radius:5px;transform:rotate(45deg);font-size:.8rem}
+.brand .mark{width:24px;height:24px;flex:none;display:grid;place-items:center;border:1.5px solid var(--accent2);color:var(--accent2-ink);border-radius:5px;transform:rotate(45deg);font-size:.8rem}
 .brand .mark span{transform:rotate(-45deg)}
 .brand small{font-family:"IBM Plex Mono",monospace;font-weight:400;color:var(--muted);font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;margin-left:.15rem}
 .bar-mid{display:flex;align-items:center;gap:.7rem;flex:1;justify-content:center}
@@ -84,7 +91,9 @@ input,select,textarea{font:inherit;color:inherit}
 }
 .btn:hover{border-color:var(--accent);color:var(--accent-ink)}
 .btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.btn.primary,.btn.primary:hover{background:var(--accent);border-color:var(--accent);color:#161014;font-weight:600}
+.btn.primary,.btn.primary:hover{background:var(--grad-accent);border-color:transparent;color:#fff;font-weight:600;
+  box-shadow:0 2px 10px -2px color-mix(in srgb,var(--accent) 55%,transparent)}
+.btn.primary:hover{filter:brightness(1.06)}
 .btn.ghost{background:transparent}
 .btn.toggle{width:34px;padding:.42rem 0;text-align:center}
 .report-btns{display:grid;grid-template-columns:1fr 1fr;gap:.4rem}
