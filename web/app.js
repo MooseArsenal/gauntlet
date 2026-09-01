@@ -96,6 +96,7 @@
     $("sessionMeta").hidden = true;
     $("userChip").hidden = true;
     $("btnNew").hidden = true;
+    $("btnGuided").hidden = true;
     $("btnEditor").hidden = true;
     ["btnPause", "btnResume", "btnVerify"].forEach((id) => ($(id).hidden = true));
   }
@@ -205,6 +206,7 @@
     $("sessionMeta").hidden = true;
     $("userChip").hidden = false;
     $("btnNew").hidden = false;
+    $("btnGuided").hidden = false;
     $("btnEditor").hidden = false;
     ["btnPause", "btnResume", "btnVerify"].forEach((id) => ($(id).hidden = true));
 
