@@ -352,3 +352,25 @@ class ExerciseSchedule(Base):
     invitees: Mapped[list] = mapped_column(JSON, default=list)  # emails / role labels
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+
+class CustomAdversary(Base):
+    """A proctor-designed adversary (real or fictitious), org-scoped. Stores the
+    fields needed to build the same threat-actor dict the generator consumes, so
+    a custom adversary produces scenarios exactly like a built-in one (A7)."""
+
+    __tablename__ = "custom_adversaries"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id"), index=True)
+    key: Mapped[str] = mapped_column(String(60), index=True)  # slug, unique per org
+    name: Mapped[str] = mapped_column(String(120))
+    label: Mapped[str] = mapped_column(String(240), default="")
+    description: Mapped[str] = mapped_column(Text, default="")
+    motivation: Mapped[str] = mapped_column(String(60), default="")
+    is_fictitious: Mapped[bool] = mapped_column(Boolean, default=True)
+    sectors: Mapped[list] = mapped_column(JSON, default=list)
+    techniques: Mapped[list] = mapped_column(JSON, default=list)
+    kill_chain: Mapped[list] = mapped_column(JSON, default=list)  # inject-bank scene keys
+    objectives: Mapped[list] = mapped_column(JSON, default=list)  # [{title, success_criteria}]
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
