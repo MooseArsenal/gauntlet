@@ -20,13 +20,15 @@ from __future__ import annotations
 
 from typing import Iterable
 
+from . import technique
+
 DETECT_THRESHOLD = 0.5
 
 
 def _applies(control: dict, techniques: Iterable[str], asset: str) -> bool:
     covers = control.get("covers") or []
     assets = control.get("assets") or ["*"]
-    technique_match = "*" in covers or any(t in covers for t in techniques)
+    technique_match = any(technique.covers(c, t) for c in covers for t in techniques)
     asset_match = "*" in assets or (asset and asset in assets)
     # A control counts if it covers the technique on an in-scope asset. When a
     # control lists no techniques it is treated as asset-scoped monitoring.
@@ -46,7 +48,7 @@ def _combined_probability(controls: list[dict]) -> float:
 
 def adjudicate(environment, techniques: list[str], target_asset: str) -> dict:
     """Return a ruling for an action described by ATT&CK techniques on an asset."""
-    techniques = [t for t in (techniques or []) if t]
+    techniques = [technique.normalize(t) for t in (techniques or []) if technique.normalize(t)]
     controls = list(environment.controls or []) + list(environment.detections or [])
     deception = list(environment.deception_assets or [])
 
