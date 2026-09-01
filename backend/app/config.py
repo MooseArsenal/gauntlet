@@ -109,6 +109,12 @@ RLS_ENABLED = _flag("GAUNTLET_RLS_ENABLED", "0")
 APP_TITLE = "Gauntlet"
 APP_TAGLINE = "Security exercise design & proctoring"
 
+# --- Branding (F1) --------------------------------------------------------- #
+# Shown in exported PDF headers/footers. Override for white-labelled output.
+BRAND_NAME = os.environ.get("GAUNTLET_BRAND_NAME", "Gauntlet")
+# Accent colour for the header rule, as "R,G,B" (0-255). Default is a slate blue.
+BRAND_ACCENT = os.environ.get("GAUNTLET_BRAND_ACCENT", "37,99,235")
+
 
 def startup_problems() -> list[str]:
     """Insecure configuration that must be fixed before a production start."""
