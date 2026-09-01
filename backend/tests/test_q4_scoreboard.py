@@ -61,3 +61,11 @@ def test_scoreboard_counts_both_red_actions_and_adjudications():
                     json={"action": "dump creds", "techniques": ["T1003.001"], "target": "FIN-APP-02"})
         sb = client.get(f"/api/sessions/{sid}/scoreboard").json()
         assert sb["red_actions"] == 2  # one console adjudication + one red-cell submission
+
+
+def test_red_cell_page_and_assets_served():
+    with TestClient(app) as client:
+        r = client.get("/red.html")
+        assert r.status_code == 200
+        assert "text/html" in r.headers["content-type"]
+        assert client.get("/red.js").status_code == 200
