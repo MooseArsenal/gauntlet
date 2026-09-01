@@ -144,6 +144,27 @@ a "Compliance evidence & PDF" action; reports also export to PDF.
   a "Sign in with SSO" button. SSO **links to an existing account** by subject or
   email — it does not auto-provision, since org and role can't be inferred.
 
+## Improvement plan & tracker sync (F4)
+
+The value of an exercise is the follow-through. F4 captures corrective actions
+and closes the loop against the team's real tracker:
+
+- **Improvement items.** `POST /api/improvements` (or auto-generate from a
+  session's gaps: `POST /api/sessions/{id}/improvements/from-gaps`, which mints a
+  high/medium item for each missed/partial observation). Items carry severity,
+  status (`open`/`in_progress`/`closed`), and source.
+- **Push to a tracker.** `POST /api/improvements/{id}/push` creates a ticket via
+  a pluggable adapter and stores its reference + URL. Configure **Jira**
+  (`GAUNTLET_JIRA_URL/_USER/_TOKEN/_PROJECT`) or **ServiceNow**
+  (`GAUNTLET_SERVICENOW_URL/_USER/_PASSWORD`); with neither set, a built-in
+  **simulation** adapter records intent and makes no network call (same pattern
+  as M4's range adapter). Real adapters only ever call their one configured base
+  URL — no request-supplied host, so no SSRF surface.
+- **Closure verification.** `POST /api/improvements/{id}/sync` pulls the external
+  ticket's status and, when it's resolved/closed, closes the local item to match.
+
+Tenant-scoped; facilitators manage items and drive the sync.
+
 ## Scheduling & cadence (F3)
 
 Run Gauntlet as a **programme**, not a one-off:
@@ -268,6 +289,8 @@ gauntlet/
 | `GAUNTLET_BRAND_NAME` | `Gauntlet` | Brand name in exported PDF header/footer |
 | `GAUNTLET_BRAND_ACCENT` | `37,99,235` | PDF accent colour, `R,G,B` |
 | `GAUNTLET_NOTIFY_WEBHOOK` | — | Optional URL that scheduled reminders are POSTed to |
+| `GAUNTLET_JIRA_URL` / `_USER` / `_TOKEN` / `_PROJECT` | — | Jira tracker for improvement-item push/sync |
+| `GAUNTLET_SERVICENOW_URL` / `_USER` / `_PASSWORD` | — | ServiceNow tracker for improvement-item push/sync |
 
 ---
 
