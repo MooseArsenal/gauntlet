@@ -92,6 +92,25 @@ Mappings indicate control *relevance* for remediation and evidence — they are
 not a compliance assessment or attestation. The console exposes YAML import and
 a "Compliance evidence & PDF" action; reports also export to PDF.
 
+## Platform security (M8)
+
+- **Fail-fast config**: set `GAUNTLET_ENV=prod` and the app refuses to start if
+  `GAUNTLET_SECRET_KEY` is the default or too short, `GAUNTLET_CORS_ORIGINS` is
+  `*`, or the `AUTH_OPTIONAL` dev bypass is on.
+- **Security headers** on every response (strict CSP, `X-Frame-Options: DENY`,
+  `nosniff`, `Referrer-Policy`, `Permissions-Policy`; HSTS in prod) — with a
+  relaxed CSP only for the Swagger/ReDoc docs.
+- **Login throttling & lockout**: per-IP+email attempts are capped
+  (`GAUNTLET_LOGIN_MAX_ATTEMPTS`/`_WINDOW_SEC`/`_LOCKOUT_SEC`); excess returns 429.
+- **Input caps**: scenario YAML size (`GAUNTLET_MAX_YAML_BYTES`) and inject count
+  (`GAUNTLET_MAX_INJECTS`) are bounded so a huge import can't DoS validation.
+- **Security audit log**: logins (success/failure/lockout), registrations, user
+  creation, and evidence/report exports are recorded with actor + IP; admins read
+  their org's log at `GET /api/audit`.
+- **CI security scanning**: CodeQL (Python + JS), `pip-audit`, and gitleaks
+  secret scanning (report-only to start). Set `GAUNTLET_TRUST_PROXY=1` only
+  behind a trusted proxy so `X-Forwarded-For` is honoured for the client IP.
+
 ## Access control & real-time
 
 - **Auth & tenancy (M5):** JWT auth with organisations and roles
@@ -153,6 +172,7 @@ gauntlet/
 | **M5 — Production-readiness** | Alembic migrations, auth + multi-tenancy + RBAC, HMAC-signed timeline, CI | Shipped |
 | **M6 — Real-time** | WebSocket live updates, auto-advance timeout timers, participant console | Shipped |
 | **M7 — Deep scenarios & compliance** | State-driven branching, YAML import/export/validation, compliance crosswalk (6 frameworks), evidence + PDF export | Shipped |
+| **M8 — Platform hardening** | Config fail-fast, security headers, login throttling + lockout, input caps, security audit log, CI security scanning | Shipped |
 
 ### Sandbox & program analytics (M4)
 

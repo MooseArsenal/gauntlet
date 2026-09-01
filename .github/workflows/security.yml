@@ -1,0 +1,37 @@
+# Supply-chain and secret scanning. Report-only for now (continue-on-error) so
+# advisories surface without blocking; flip to blocking once the baseline is clean.
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  dependency-audit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pip-audit
+        run: pip install pip-audit
+      - name: Audit dependencies (report-only)
+        continue-on-error: true
+        run: pip-audit -r requirements.txt --desc
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: gitleaks (report-only)
+        continue-on-error: true
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

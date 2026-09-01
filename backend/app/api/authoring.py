@@ -9,8 +9,14 @@ from fastapi import Response
 from .. import models, scenario_io, schemas
 from ..authoring import delivery, generator
 from ..authoring.catalog import INJECT_BANK, SCENARIO_TEMPLATES, THREAT_ACTORS
+from ..config import MAX_YAML_BYTES
 from ..database import get_db
 from ..security import get_current_user, require_facilitator, scope_or_404
+
+
+def _check_size(text: str) -> None:
+    if len(text.encode("utf-8")) > MAX_YAML_BYTES:
+        raise HTTPException(413, f"scenario YAML exceeds the {MAX_YAML_BYTES}-byte limit")
 
 router = APIRouter(tags=["authoring"])
 
@@ -107,6 +113,7 @@ def generate_scenario(
 def validate_scenario_yaml(
     payload: schemas.ValidateRequest, user: models.User = Depends(require_facilitator)
 ):
+    _check_size(payload.yaml)
     try:
         data = scenario_io.load_yaml(payload.yaml)
     except scenario_io.ScenarioError as e:
@@ -123,6 +130,7 @@ def import_scenario_yaml(
     db: Session = Depends(get_db),
 ):
     scope_or_404(db.get(models.Environment, payload.environment_id), user)
+    _check_size(payload.yaml)
     try:
         data = scenario_io.load_yaml(payload.yaml)
         scenario = scenario_io.to_models(data, payload.environment_id, user.org_id)
