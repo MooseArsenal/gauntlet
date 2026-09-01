@@ -62,3 +62,17 @@
 .wz-done .big{font-size:2.4rem}
 .wz-done h2{margin:.4rem 0}
 .wz-done .row{display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap;margin-top:1rem}
+
+/* Design-your-own adversary (A7) */
+.wz-row2{display:flex;gap:1rem;align-items:flex-end;flex-wrap:wrap}
+.wz-check{display:flex;align-items:center;gap:.4rem;font-size:.85rem;color:var(--ink-soft);margin-bottom:1rem}
+.wz-addrow{display:flex;gap:.5rem}
+.wz-addrow select{flex:1}
+.wz-chain{display:flex;flex-direction:column;gap:.35rem;margin:.2rem 0 1rem}
+.wz-chain .chip{display:flex;align-items:center;gap:.5rem;background:var(--surface-2);border:1px solid var(--line);
+  border-radius:8px;padding:.4rem .6rem;font-size:.82rem}
+.wz-chain .chip b{font-family:"IBM Plex Mono",monospace;font-size:.7rem;color:var(--accent-ink);
+  background:var(--accent-wash);border-radius:5px;padding:.05rem .35rem}
+.wz-chain .chip .x{margin-left:auto;background:none;border:0;color:var(--muted);cursor:pointer;font-size:.85rem}
+.wz-chain .chip .x:hover{color:var(--crit)}
+.wz-designnav{margin-top:.4rem}
