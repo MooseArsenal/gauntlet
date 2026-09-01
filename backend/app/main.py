@@ -11,15 +11,20 @@ import asyncio
 
 from . import __version__, ws
 from .api import (
-    auth, authoring, compliance_api, environments, live, multicell, program, reports,
-    scenarios, sessions,
+    audit_api, auth, authoring, compliance_api, environments, live, multicell, program,
+    reports, scenarios, sessions,
 )
-from .config import APP_TAGLINE, APP_TITLE, CORS_ORIGINS, SEED_ON_START, USE_ALEMBIC, WEB_DIR
+from .config import (
+    APP_TAGLINE, APP_TITLE, CORS_ORIGINS, SEED_ON_START, USE_ALEMBIC, WEB_DIR, validate_config,
+)
 from .database import SessionLocal, create_all
+from .security_headers import SecurityHeadersMiddleware
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    # Fail fast on insecure production configuration.
+    validate_config()
     # Bind the running loop so sync handlers / timer threads can push WS updates.
     ws.manager.bind_loop(asyncio.get_running_loop())
     # Alembic migrations are the schema authority in real deployments; tests set
@@ -48,6 +53,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
@@ -71,6 +77,7 @@ app.include_router(multicell.router)
 app.include_router(live.router)
 app.include_router(program.router)
 app.include_router(compliance_api.router)
+app.include_router(audit_api.router)
 app.include_router(ws.router)
 
 # Facilitator console (served last so it never shadows the API routes).

@@ -13,6 +13,7 @@ from collections import deque
 import yaml
 
 from . import models
+from .config import MAX_INJECTS
 from .engine import msel
 from .engine.conditions import referenced_names, safe_eval
 
@@ -54,6 +55,9 @@ def validate(data: dict) -> dict:
     injects = data.get("injects") or []
     if not injects:
         errors.append("scenario has no injects")
+        return {"errors": errors, "warnings": warnings}
+    if len(injects) > MAX_INJECTS:
+        errors.append(f"too many injects ({len(injects)} > {MAX_INJECTS})")
         return {"errors": errors, "warnings": warnings}
 
     codes = [i.get("code") for i in injects]

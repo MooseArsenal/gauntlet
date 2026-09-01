@@ -1,10 +1,10 @@
 """Compliance evidence + PDF export (M7 phase 2)."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 
-from .. import compliance, models, pdf
+from .. import audit, compliance, models, pdf
 from ..database import get_db
 from ..security import get_current_user, scope_or_404
 
@@ -44,12 +44,15 @@ def evidence(
 @router.get("/api/sessions/{session_id}/evidence.pdf")
 def evidence_pdf(
     session_id: int,
+    request: Request,
     framework: str | None = None,
     user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     s, ev = _evidence(db, session_id, user, framework)
     md = compliance.render_markdown(ev)
+    audit.record(db, "evidence.export", request=request, user=user,
+                 detail={"session_id": s.id, "framework": framework or "all"})
     return _pdf_response(f"Compliance Evidence — {ev['exercise']['scenario']}",
                          md, f"evidence-session-{s.id}.pdf")
 
@@ -58,6 +61,7 @@ def evidence_pdf(
 def report_pdf(
     session_id: int,
     report_id: int,
+    request: Request,
     user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -65,4 +69,6 @@ def report_pdf(
     report = db.get(models.Report, report_id)
     if not report or report.session_id != s.id:
         raise HTTPException(404, "report not found")
+    audit.record(db, "report.export", request=request, user=user,
+                 detail={"session_id": s.id, "report_id": report.id, "audience": report.audience})
     return _pdf_response(report.title, report.content, f"report-{report.id}.pdf")

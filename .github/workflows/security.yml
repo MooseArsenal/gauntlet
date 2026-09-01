@@ -1,0 +1,59 @@
+# SAST, supply-chain, and secret scanning. Report-only for now
+# (continue-on-error) so findings surface without blocking; flip to blocking
+# once the baseline is clean.
+#
+# Note: GitHub CodeQL is intentionally NOT used here — code scanning requires
+# GitHub Advanced Security, which private repositories don't have. Bandit gives
+# Python SAST that runs anywhere. Enable CodeQL if this repo goes public or GHAS
+# is turned on.
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  sast:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install bandit
+        run: pip install "bandit>=1.7"
+      - name: Bandit SAST (report-only)
+        continue-on-error: true
+        run: bandit -r app -ll
+
+  dependency-audit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pip-audit
+        run: pip install pip-audit
+      - name: Audit dependencies (report-only)
+        continue-on-error: true
+        run: pip-audit -r requirements.txt --desc
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: gitleaks (report-only)
+        continue-on-error: true
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
