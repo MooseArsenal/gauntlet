@@ -521,19 +521,32 @@
     } catch (e) { toast(e.message); }
   }
 
-  function modalWithDownload(html, label, path, filename) {
-    $("modalBody").innerHTML =
-      `<div class="modal-actions"><button class="btn primary" id="btnDownload">${label}</button></div>` + html;
+  // actions: [{label, path, filename}] — each becomes a download button.
+  function modalWithDownloads(html, actions) {
+    const btns = actions.map((a, i) =>
+      `<button class="btn ${i === 0 ? "primary" : "ghost"}" data-dl="${i}">${a.label}</button>`).join("");
+    $("modalBody").innerHTML = `<div class="modal-actions">${btns}</div>` + html;
     $("modal").hidden = false;
-    $("btnDownload").addEventListener("click", () => downloadBlob(path, filename));
+    $("modalBody").querySelectorAll("[data-dl]").forEach((b) => {
+      const a = actions[Number(b.dataset.dl)];
+      b.addEventListener("click", () => downloadBlob(a.path, a.filename));
+    });
   }
 
   async function generateReport(audience) {
     try {
       const rep = await api(`/api/sessions/${currentSid}/reports`, "POST", { audience });
-      modalWithDownload(renderMarkdown(rep.content), "Download PDF",
-        `/api/sessions/${currentSid}/reports/${rep.id}.pdf`, `report-${audience}.pdf`);
+      const base = `/api/sessions/${currentSid}/reports/${rep.id}`;
+      modalWithDownloads(renderMarkdown(rep.content), [
+        { label: "Download PDF", path: `${base}.pdf`, filename: `report-${audience}.pdf` },
+        { label: "Download DOCX", path: `${base}.docx`, filename: `report-${audience}.docx` },
+      ]);
     } catch (e) { toast(e.message); }
+  }
+
+  function exportTimeline(fmt) {
+    if (!currentSid) return;
+    downloadBlob(`/api/sessions/${currentSid}/timeline.${fmt}`, `timeline-${currentSid}.${fmt}`);
   }
 
   async function previewCompliance() {
@@ -547,9 +560,11 @@
           `<p class="hint">${f.summary.demonstrated} demonstrated · ${f.summary.gaps} gap(s) · ${f.summary.controls} control(s)</p>` +
           `<table class="dfields"><tbody>${rows || '<tr><td colspan="3" class="muted">No mapped controls.</td></tr>'}</tbody></table>`;
       }).join("");
-      modalWithDownload(
-        `<h1>Compliance evidence</h1><blockquote>${escapeHtml(ev.disclaimer)}</blockquote>${blocks}`,
-        "Download evidence PDF", `/api/sessions/${currentSid}/evidence.pdf`, "compliance-evidence.pdf");
+      modalWithDownloads(
+        `<h1>Compliance evidence</h1><blockquote>${escapeHtml(ev.disclaimer)}</blockquote>${blocks}`, [
+          { label: "Download evidence PDF", path: `/api/sessions/${currentSid}/evidence.pdf`, filename: "compliance-evidence.pdf" },
+          { label: "Download DOCX", path: `/api/sessions/${currentSid}/evidence.docx`, filename: "compliance-evidence.docx" },
+        ]);
     } catch (e) { toast(e.message); }
   }
 
@@ -741,6 +756,8 @@
     $("btnGenerate").addEventListener("click", generateScenario);
     $("btnImportYaml").addEventListener("click", importYaml);
     $("btnCompliance").addEventListener("click", previewCompliance);
+    $("btnExportCsv").addEventListener("click", () => exportTimeline("csv"));
+    $("btnExportJson").addEventListener("click", () => exportTimeline("json"));
     $("btnDelivery").addEventListener("click", previewDelivery);
     $("btnAdjudicate").addEventListener("click", adjudicate);
     $("btnObserve").addEventListener("click", observe);
