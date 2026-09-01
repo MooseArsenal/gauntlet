@@ -7,17 +7,28 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from . import __version__
+import asyncio
+
+from . import __version__, ws
 from .api import (
-    authoring, environments, live, multicell, program, reports, scenarios, sessions,
+    auth, authoring, environments, live, multicell, program, reports, scenarios, sessions,
 )
-from .config import APP_TAGLINE, APP_TITLE, SEED_ON_START, WEB_DIR
+from .config import APP_TAGLINE, APP_TITLE, CORS_ORIGINS, SEED_ON_START, USE_ALEMBIC, WEB_DIR
 from .database import SessionLocal, create_all
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    create_all()
+    # Bind the running loop so sync handlers / timer threads can push WS updates.
+    ws.manager.bind_loop(asyncio.get_running_loop())
+    # Alembic migrations are the schema authority in real deployments; tests set
+    # GAUNTLET_USE_ALEMBIC=0 to use the fast create_all path.
+    if USE_ALEMBIC:
+        from .migrate import run_migrations
+
+        run_migrations()
+    else:
+        create_all()
     if SEED_ON_START:
         db = SessionLocal()
         try:
@@ -38,7 +49,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=CORS_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -49,6 +60,7 @@ def health():
     return {"status": "ok", "app": APP_TITLE, "version": __version__}
 
 
+app.include_router(auth.router)
 app.include_router(environments.router)
 app.include_router(scenarios.router)
 app.include_router(sessions.router)
@@ -57,6 +69,7 @@ app.include_router(authoring.router)
 app.include_router(multicell.router)
 app.include_router(live.router)
 app.include_router(program.router)
+app.include_router(ws.router)
 
 # Facilitator console (served last so it never shadows the API routes).
 if WEB_DIR.exists():

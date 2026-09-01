@@ -150,9 +150,14 @@ its own.
   generation, inject bank, multi-channel delivery.
 - **M3 — Multi-cell & parallel** *(shipped)*: fog-of-war per cell, evaluator
   companion, parallel/functional roll-up.
-- **M4 — Sandbox & real-time** *(shipped)*: authorization-gated live/technical
-  injects through a pluggable range adapter (safe simulation adapter by
-  default), program-level coverage analytics.
+- **M4 — Sandbox & program analytics** *(shipped)*: authorization-gated
+  live/technical injects through a pluggable range adapter (safe simulation
+  adapter by default), program-level coverage analytics.
+- **M5 — Production-readiness** *(shipped)*: Alembic migrations, JWT auth with
+  organisations + roles (multi-tenant isolation on every endpoint), HMAC-signed
+  timeline, CI with a migration-drift guard.
+- **M6 — Real-time** *(shipped)*: WebSocket live updates per session,
+  auto-advance timeout timers, and a read-only participant console.
 
 ## Guardrails realised in M4
 

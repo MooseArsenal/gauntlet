@@ -129,6 +129,7 @@ class SessionCreate(BaseModel):
     name: str
     clock_mode: str = "compressed"
     mode: str = "tabletop"  # tabletop | sandbox | real_time
+    auto_advance: bool = False
 
 
 class SessionSummary(BaseModel):
@@ -359,3 +360,47 @@ class LiveInjectOut(BaseModel):
     telemetry: list = Field(default_factory=list)
     ruling: dict
     event: TimelineEventOut
+
+
+# --------------------------------------------------------------------------- #
+# Auth & organisations (M5)
+# --------------------------------------------------------------------------- #
+class OrgOut(BaseModel):
+    model_config = _orm
+    id: int
+    name: str
+    slug: str
+
+
+class UserOut(BaseModel):
+    model_config = _orm
+    id: int
+    org_id: int
+    email: str
+    name: str
+    role: str
+
+
+class RegisterIn(BaseModel):
+    org_name: str
+    email: str
+    password: str = Field(min_length=8)
+    name: str = ""
+
+
+class LoginIn(BaseModel):
+    email: str
+    password: str
+
+
+class CreateUserIn(BaseModel):
+    email: str
+    password: str = Field(min_length=8)
+    name: str = ""
+    role: str = "facilitator"
+
+
+class TokenOut(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserOut
