@@ -266,6 +266,12 @@
       const aOpts = actors.map((a) =>
         `<option value="act:${a.key}">Actor · ${escapeHtml(a.name)} (${a.kill_chain.length} phases)</option>`).join("");
       $("genActor").innerHTML = tOpts + aOpts;
+
+      try {
+        const packs = await api("/api/catalog/ctep-packs");
+        if ($("ctepSel")) $("ctepSel").innerHTML = packs.map((p) =>
+          `<option value="${escapeHtml(p.key)}">${escapeHtml(p.title)} (${p.modules} modules)</option>`).join("");
+      } catch (e) { /* noop */ }
     } catch (e) { /* generator is optional */ }
   }
 
@@ -284,6 +290,19 @@
       $("scenarioSel").value = String(scn.id);
       $("sessInput").focus();
     } catch (e) { toast("Generate failed: " + e.message); }
+  }
+
+  async function importCtep() {
+    const envId = Number($("genEnv").value);
+    const pack_key = $("ctepSel") ? $("ctepSel").value : "";
+    if (!envId || !pack_key) { toast("Pick an environment and a CTEP pack."); return; }
+    try {
+      const scn = await api("/api/scenarios/import-ctep", "POST", { environment_id: envId, pack_key });
+      toast(`Imported "${scn.name}" — ${scn.injects.length} injects.`);
+      await loadHome();
+      $("scenarioSel").value = String(scn.id);
+      $("sessInput").focus();
+    } catch (e) { toast("CTEP import failed: " + e.message); }
   }
 
   async function startNew() {
@@ -871,6 +890,7 @@
     $("btnStart").addEventListener("click", startNew);
     $("btnGenerate").addEventListener("click", generateScenario);
     $("btnImportYaml").addEventListener("click", importYaml);
+    { const b = $("btnImportCtep"); if (b) b.addEventListener("click", importCtep); }
     $("btnCompliance").addEventListener("click", previewCompliance);
     $("btnExportCsv").addEventListener("click", () => exportTimeline("csv"));
     $("btnExportJson").addEventListener("click", () => exportTimeline("json"));

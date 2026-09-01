@@ -324,6 +324,23 @@ class AdversaryDraft(BaseModel):
     objectives: list[AdversaryObjective] = Field(default_factory=list)
 
 
+class CtepPackOut(BaseModel):
+    """A bundled CISA-CTEP-derived pack the proctor can import (D5)."""
+    key: str
+    title: str
+    threat_actor: str
+    modules: int
+    objectives: int
+
+
+class CtepImportIn(BaseModel):
+    """Import a CTEP pack: a bundled ``pack_key`` or an uploaded ``pack`` object."""
+    environment_id: int
+    pack_key: Optional[str] = None
+    pack: Optional[dict] = None
+    name: Optional[str] = None
+
+
 class TemplateOut(BaseModel):
     key: str
     name: str
