@@ -543,6 +543,18 @@ class ReminderOut(BaseModel):
     delivered: bool = False
 
 
+class AssistInjectIn(BaseModel):
+    phase: str = ""       # kill-chain phase hint (e.g. initial-access)
+    technique: str = ""   # ATT&CK technique hint (e.g. T1566.001)
+    environment_id: Optional[int] = None  # pick a real target asset from this env
+    brief: str = ""       # free-text steer for the LLM path
+
+
+class AssistInjectOut(BaseModel):
+    inject: dict          # a draft inject (title/channel/narrative/expected_actions/…)
+    generator: str        # "template" or the provider name
+
+
 class EnvironmentImportIn(BaseModel):
     source: str  # cmdb | edr | siem | asm | generic
     format: str = "json"  # json | csv
