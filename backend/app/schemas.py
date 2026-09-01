@@ -543,6 +543,34 @@ class ReminderOut(BaseModel):
     delivered: bool = False
 
 
+class RedActionIn(BaseModel):
+    techniques: list[str] = Field(default_factory=list)
+    target: str = ""
+    action: str = ""  # free-text description of what the red cell did
+
+
+class RedActionOut(BaseModel):
+    ruling: dict
+    event: TimelineEventOut
+
+
+class TechniqueScore(BaseModel):
+    technique: str
+    attempts: int
+    detected: int
+
+
+class Scoreboard(BaseModel):
+    session_id: int
+    red_actions: int
+    detected: int
+    missed: int
+    detection_rate: Optional[float] = None
+    mean_time_to_detect_min: Optional[float] = None
+    deceptions_tripped: int = 0
+    by_technique: list[TechniqueScore] = Field(default_factory=list)
+
+
 class ImprovementCreate(BaseModel):
     title: str
     description: str = ""
