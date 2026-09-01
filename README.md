@@ -144,6 +144,23 @@ a "Compliance evidence & PDF" action; reports also export to PDF.
   a "Sign in with SSO" button. SSO **links to an existing account** by subject or
   email — it does not auto-provision, since org and role can't be inferred.
 
+## Automated environment intake (F6)
+
+Hand-entering an environment is the biggest adoption friction — the data already
+lives in the team's tools. `POST /api/environments/import` maps an export into
+the Environment model, so intake becomes an upload:
+
+- **Sources:** `cmdb` (config items → assets + owners as personnel), `edr`
+  (endpoint coverage → controls), `siem` (detection rules → detections), `asm`
+  (attack-surface findings → internet-facing assets), and `generic` (Gauntlet-
+  native rows). **Formats:** JSON (a list, or an object wrapping one under
+  `result`/`records`/…) or CSV.
+- **Create or merge.** Omit `environment_id` to create a new environment;
+  supply one to append the import into an existing environment (tenant-scoped).
+- Tolerant field mapping (a range of common vendor field names, sensible
+  fallbacks) and no network calls — you upload the export text. Imported
+  controls/detections immediately drive adjudication.
+
 ## Purple-team interactive mode (F5)
 
 Run red and blue together in one live loop:
