@@ -151,6 +151,7 @@
     $("validity").className = "ed-validity " + (v.ok ? "ok" : "bad");
     $("validity").title = v.ok ? "Valid" : v.issues.join(" ");
     $("edEmpty").hidden = nodes.length > 0;
+    renderCoverage();
     applyViewBox();
 
     const edgesG = $("edges"), nodesG = $("nodes");
@@ -188,6 +189,17 @@
       if (v.bad.has(n.code)) { const iv = el("circle", { class: "invalid", cx: NODE_W - 9, cy: NODE_H - 9, r: 4 }, g); iv.setAttribute("title", "Validation issue"); }
       // out handle for connecting
       el("circle", { class: "handle", cx: NODE_W, cy: NODE_H / 2, r: 6, "data-handle": n.code }, g);
+    });
+  }
+
+  // Kill-chain coverage strip: which phases the scenario spans (design-time).
+  function renderCoverage() {
+    const box = $("edCoverage");
+    if (!box || !window.KillChain) return;
+    if (!nodes.length) { box.hidden = true; return; }
+    window.KillChain.render(box, {
+      injects: nodes.map((n) => ({ code: n.code, act: n.act, attack_techniques: n.techniques })),
+      bank, mode: "coverage",
     });
   }
 
