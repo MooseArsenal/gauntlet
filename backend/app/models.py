@@ -101,6 +101,9 @@ class Scenario(Base):
     rules_of_engagement: Mapped[str] = mapped_column(Text, default="")
     cells: Mapped[list] = mapped_column(JSON, default=list)  # roles & fog-of-war
     exercise_type: Mapped[str] = mapped_column(String(40), default="tabletop")
+    # Initial state variables (flags) branches can read/mutate — the mechanism
+    # that lets paths diverge on accumulated decisions, not just the last one.
+    variables: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
     environment: Mapped["Environment"] = relationship(back_populates="scenarios")
@@ -124,6 +127,9 @@ class Objective(Base):
     description: Mapped[str] = mapped_column(Text, default="")
     success_criteria: Mapped[str] = mapped_column(Text, default="")
     eeg: Mapped[list] = mapped_column(JSON, default=list)  # evaluation-guide items
+    # Free-form tags: canonical capability (detect/contain/...) and compliance
+    # crosswalk hints the reporting layer consumes.
+    meta: Mapped[dict] = mapped_column(JSON, default=dict)
 
     scenario: Mapped["Scenario"] = relationship(back_populates="objectives")
 
@@ -153,6 +159,8 @@ class Inject(Base):
     objective_code: Mapped[str] = mapped_column(String(40), default="")
     branches: Mapped[list] = mapped_column(JSON, default=list)
     is_start: Mapped[bool] = mapped_column(default=False)
+    act: Mapped[str] = mapped_column(String(120), default="")  # phase/act grouping
+    meta: Mapped[dict] = mapped_column(JSON, default=dict)
 
     scenario: Mapped["Scenario"] = relationship(back_populates="injects")
 
@@ -172,6 +180,9 @@ class Session(Base):
     # When true, a running inject with a timeout branch auto-advances after its
     # (clock-scaled) duration — for functional/real-time exercises.
     auto_advance: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Live exercise state: initialised from the scenario's variables, mutated by
+    # branch `set` clauses, and read by branch `condition` guards.
+    state: Mapped[dict] = mapped_column(JSON, default=dict)
     current_inject_code: Mapped[str | None] = mapped_column(String(40), nullable=True)
 
     # Authorization for live/technical injects (M4). Empty until explicitly granted.
