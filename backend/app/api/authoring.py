@@ -10,6 +10,7 @@ from fastapi import Request
 
 from .. import audit, models, scenario_io, schemas
 from ..authoring import assist, delivery, generator
+from ..authoring import attack_groups
 from ..authoring.catalog import INJECT_BANK, SCENARIO_TEMPLATES, THREAT_ACTORS
 from ..authoring.generator import _pick_asset
 from ..config import MAX_YAML_BYTES
@@ -74,6 +75,36 @@ def list_actors(user: models.User = Depends(get_current_user)):
     ]
 
 
+def _attack_group_out(key: str) -> schemas.AttackGroupOut:
+    a = THREAT_ACTORS[key]
+    return schemas.AttackGroupOut(
+        key=key, attack_id=a["attack_id"], name=a["name"], aliases=a["aliases"],
+        description=a["description"], sectors=a["sectors"], techniques=a["techniques"],
+        kill_chain=a["kill_chain"], objective_count=len(a["objectives"]),
+    )
+
+
+@router.get("/api/catalog/attack-groups", response_model=list[schemas.AttackGroupOut])
+def list_attack_groups(
+    sector: str | None = None,
+    user: models.User = Depends(get_current_user),
+):
+    """Curated real ATT&CK groups the proctor can emulate. With ``?sector=`` the
+    list is narrowed and ranked to the adversaries that target that industry —
+    the "what hits an org like mine?" table."""
+    return [_attack_group_out(k) for k in attack_groups.recommend(sector)]
+
+
+@router.get("/api/catalog/attack-groups/random", response_model=schemas.AttackGroupOut)
+def random_attack_group(
+    sector: str | None = None,
+    user: models.User = Depends(get_current_user),
+):
+    """Pick a random adversary to emulate — optionally biased to a sector.
+    Powers the "Surprise me / Random" option in the guided build flow."""
+    return _attack_group_out(attack_groups.random_group(sector))
+
+
 @router.get("/api/catalog/templates", response_model=list[schemas.TemplateOut])
 def list_templates(user: models.User = Depends(get_current_user)):
     return [
@@ -117,7 +148,10 @@ def generate_scenario(
         tmpl = SCENARIO_TEMPLATES.get(payload.template_key)
         if not tmpl:
             raise HTTPException(400, f"unknown template '{payload.template_key}'")
-        actor_key = tmpl["actor"]
+        # An explicit actor_key wins — this is the mix-and-match the proctor
+        # chose (emulate *this* adversary through *this* attack-type's framing).
+        # Only fall back to the template's default actor when none was given.
+        actor_key = actor_key or tmpl["actor"]
     if not actor_key:
         raise HTTPException(400, "provide either actor_key or template_key")
 

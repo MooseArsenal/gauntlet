@@ -520,3 +520,12 @@ SCENARIO_TEMPLATES.update({
         "roe": "Facilitated exercise only. All actions are simulated.",
     },
 })
+
+
+# --------------------------------------------------------------------------- #
+# Adversary emulation — real MITRE ATT&CK groups (curated, offline). Merged in as
+# first-class threat actors so the proctor can emulate a named group directly.
+# --------------------------------------------------------------------------- #
+from .attack_groups import as_threat_actors  # noqa: E402  (avoids an import cycle)
+
+THREAT_ACTORS.update(as_threat_actors(_objs))

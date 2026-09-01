@@ -443,18 +443,34 @@ generate any of them in one call, then tune in the visual editor:
   security test**, **internal attacker modeling (assume breach)** — plus the
   original ransomware / BEC / insider / targeted-intrusion packs.
 
+**Adversary emulation (A5)** — instead of a generic actor, emulate a **real,
+named MITRE ATT&CK group**. A curated, offline set (APT29, APT28, FIN7, Lazarus,
+Sandworm, APT41, Scattered Spider, LAPSUS$, Wizard Spider, TA505, Volt Typhoon,
+APT33) carries each group's G-ID, aliases, targeted sectors, signature technique
+IDs, and a kill chain built from the scene bank. Filter by the sectors a group
+targets to answer *"what hits an org like mine?"*, or let the proctor
+**mix-and-match** — emulate a chosen group *through* a chosen attack-type
+template (the group drives the kill chain; the template frames narrative, scope
+and rules of engagement).
+
 ```bash
 # List the catalog
 curl localhost:8000/api/catalog/actors
 curl localhost:8000/api/catalog/templates
 
-# Generate a scenario bound to an environment, then it's immediately runnable
+# Real ATT&CK groups the proctor can emulate — filter to a sector, or pick at random
+curl localhost:8000/api/catalog/attack-groups
+curl 'localhost:8000/api/catalog/attack-groups?sector=healthcare'
+curl localhost:8000/api/catalog/attack-groups/random
+
+# Generate a scenario bound to an environment, then it's immediately runnable.
+# Provide a template_key, an actor_key (e.g. a real ATT&CK group), or both.
 curl -X POST localhost:8000/api/scenarios/generate \
   -H 'content-type: application/json' \
-  -d '{"environment_id":1,"template_key":"ransomware_finance","name":"Q3 drill"}'
+  -d '{"environment_id":1,"actor_key":"apt29","template_key":"network_pentest","name":"Q3 drill"}'
 ```
 
-The generator walks a threat actor's kill-chain, picks real target assets from
+The generator walks the chosen actor's kill-chain, picks real target assets from
 the environment for each phase, and wires valid branches to good/bad
 resolutions. Refine the draft with `PATCH /api/scenarios/{id}` and
 `PATCH /api/injects/{id}`, and preview any inject in its channel with

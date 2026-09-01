@@ -238,6 +238,19 @@ class ActorOut(BaseModel):
     objective_count: int
 
 
+class AttackGroupOut(BaseModel):
+    """A real, curated MITRE ATT&CK group the proctor can emulate directly."""
+    key: str
+    attack_id: str
+    name: str
+    aliases: list[str] = Field(default_factory=list)
+    description: str
+    sectors: list[str] = Field(default_factory=list)
+    techniques: list[str] = Field(default_factory=list)
+    kill_chain: list[str] = Field(default_factory=list)
+    objective_count: int = 0
+
+
 class TemplateOut(BaseModel):
     key: str
     name: str
