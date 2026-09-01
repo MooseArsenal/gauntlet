@@ -141,6 +141,24 @@ a "Compliance evidence & PDF" action; reports also export to PDF.
   a "Sign in with SSO" button. SSO **links to an existing account** by subject or
   email — it does not auto-provision, since org and role can't be inferred.
 
+## Exports & outputs (F1)
+
+Beyond the built-in Markdown + PDF, every session and report exports in the
+formats stakeholders ask for downstream:
+
+- **CSV / JSON timeline** — `GET /api/sessions/{id}/timeline.csv` and
+  `…/timeline.json`. CSV drops straight into a spreadsheet or SIEM import; JSON
+  is a structured, machine-readable session export (with the hash-chain fields)
+  for integrations or archival. Both are in the console under **Export timeline**.
+- **DOCX reports & evidence** — `…/reports/{id}.docx` and `…/evidence.docx`
+  render the same content into an editable Word document, so a GRC lead can adapt
+  it. The report and compliance modals now offer **Download DOCX** alongside PDF.
+- **Branded PDF template** — exported PDFs carry a header rule, a footer with
+  page numbers, an export timestamp, and a brand name. Set `GAUNTLET_BRAND_NAME`
+  and `GAUNTLET_BRAND_ACCENT` (an `R,G,B` accent) for white-labelled output.
+
+All exports are tenant-scoped and audited.
+
 ## Data protection & isolation depth (M10)
 
 - **Key separation & rotation.** One master secret derives **purpose-separated**
@@ -225,6 +243,8 @@ gauntlet/
 | `GAUNTLET_DATA_KEYS` | — | Explicit rotatable data keyring, `v2:<b64>,v1:<b64>` (primary first) |
 | `GAUNTLET_RETENTION_DAYS` | `0` | Retention window for completed sessions + audit log (0 = off) |
 | `GAUNTLET_RLS_ENABLED` | `0` | Enable Postgres row-level security (no-op on SQLite) |
+| `GAUNTLET_BRAND_NAME` | `Gauntlet` | Brand name in exported PDF header/footer |
+| `GAUNTLET_BRAND_ACCENT` | `37,99,235` | PDF accent colour, `R,G,B` |
 
 ---
 

@@ -6,9 +6,12 @@ OS level. Text is sanitised to the Latin-1 range the core fonts support.
 from __future__ import annotations
 
 import re
+from datetime import datetime, timezone
 
 from fpdf import FPDF
 from fpdf.enums import XPos, YPos
+
+from .config import BRAND_ACCENT, BRAND_NAME
 
 _REPLACE = {
     "—": "-", "–": "-", "•": "-", "→": "->", "←": "<-", "“": '"', "”": '"',
@@ -35,10 +38,49 @@ def _table_block(lines: list[str], start: int) -> tuple[list[list[str]], int]:
     return rows, i
 
 
-def render(title: str, markdown: str) -> bytes:
-    pdf = FPDF(format="A4")
+def _accent_rgb() -> tuple[int, int, int]:
+    try:
+        r, g, b = (int(x) for x in BRAND_ACCENT.split(",")[:3])
+        return r, g, b
+    except (ValueError, TypeError):
+        return 37, 99, 235
+
+
+class _BrandedPDF(FPDF):
+    """A4 report with a branded header rule and a footer carrying the brand
+    name, an export timestamp, and page numbers — a consistent, white-labelable
+    template for every exported document."""
+
+    def __init__(self, brand: str) -> None:
+        super().__init__(format="A4")
+        self._brand = brand
+        self._stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+
+    def header(self) -> None:
+        r, g, b = _accent_rgb()
+        self.set_font("Helvetica", "B", 8)
+        self.set_text_color(r, g, b)
+        self.cell(0, 5, _san(self._brand), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        self.set_draw_color(r, g, b)
+        self.set_line_width(0.5)
+        self.line(self.l_margin, self.get_y(), self.w - self.r_margin, self.get_y())
+        self.set_text_color(0)
+        self.ln(3)
+
+    def footer(self) -> None:
+        self.set_y(-12)
+        self.set_font("Helvetica", "I", 7)
+        self.set_text_color(120)
+        self.cell(0, 5, _san(f"{self._brand} · generated {self._stamp}"), align="L")
+        self.cell(0, 5, f"Page {self.page_no()}/{{nb}}", align="R")
+        self.set_text_color(0)
+
+
+def render(title: str, markdown: str, brand: str | None = None) -> bytes:
+    pdf = _BrandedPDF(brand or BRAND_NAME)
     pdf.set_title(title[:120])
-    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.alias_nb_pages()
+    pdf.set_auto_page_break(auto=True, margin=18)
     pdf.add_page()
 
     lines = markdown.split("\n")
