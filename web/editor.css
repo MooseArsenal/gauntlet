@@ -1,0 +1,97 @@
+/* Gauntlet visual scenario editor (Q2). Builds on the shared tokens in styles.css. */
+
+/* Kill-chain phase palette — one ordered accent set, reused on nodes + legend. */
+:root{
+  --ph-initial-access:#6ea8fe; --ph-execution:#b892ff; --ph-persistence:#f7a072;
+  --ph-command-and-control:#ffd166; --ph-lateral-movement:#4bbd88;
+  --ph-collection:#e8759b; --ph-exfiltration:#ef6f6c; --ph-impact:#e5484d;
+  --ph-default:#7E8794;
+  --team-blue:#4f8cff; --team-red:#e5545b;
+}
+
+.bar-mid{display:flex;align-items:center;gap:.6rem;flex:1;justify-content:center}
+.bar-actions{display:flex;align-items:center;gap:.4rem}
+.sel{background:var(--surface-2);color:var(--ink);border:1px solid var(--line);border-radius:7px;
+  padding:.34rem .6rem;font-size:.78rem;font-family:inherit;max-width:340px}
+.sel:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.btn.small{padding:.32rem .6rem;font-size:.74rem}
+.btn.ghost[aria-pressed="true"]{border-color:var(--accent);color:var(--accent-ink);background:var(--accent-wash)}
+
+.ed-validity{width:9px;height:9px;border-radius:50%;background:var(--muted);flex:none}
+.ed-validity.ok{background:var(--good)}
+.ed-validity.bad{background:var(--bad,#e5484d)}
+
+/* Layout: palette | canvas | properties */
+.ed-main{display:grid;grid-template-columns:210px 1fr 300px;height:calc(100vh - 52px);overflow:hidden}
+.ed-palette,.ed-props{background:var(--surface);border-color:var(--line);overflow-y:auto;padding:.8rem}
+.ed-palette{border-right:1px solid var(--line)}
+.ed-props{border-left:1px solid var(--line)}
+.ed-blank{width:100%;margin-top:.6rem}
+
+.pal-item{display:flex;gap:.5rem;align-items:center;padding:.42rem .5rem;margin-bottom:.35rem;
+  background:var(--surface-2);border:1px solid var(--line);border-left:3px solid var(--phase,var(--ph-default));
+  border-radius:7px;cursor:grab;font-size:.76rem;user-select:none}
+.pal-item:hover{border-color:var(--accent)}
+.pal-item .pal-ch{font-family:"IBM Plex Mono",monospace;font-size:.58rem;color:var(--muted);text-transform:uppercase}
+.pal-item .pal-t{color:var(--ink-soft);line-height:1.2}
+
+/* Canvas */
+.ed-canvas-wrap{position:relative;overflow:hidden;background:
+  radial-gradient(circle at 1px 1px, var(--line-soft) 1px, transparent 0) 0 0/22px 22px, var(--bg)}
+.ed-canvas{width:100%;height:100%;display:block;cursor:default;touch-action:none}
+.ed-canvas:focus-visible{outline:none}
+.ed-empty{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:.85rem;pointer-events:none}
+
+/* Nodes */
+.node{cursor:grab}
+.node .box{fill:var(--surface-2);stroke:var(--line);stroke-width:1.5;rx:10}
+.node.sel .box{stroke:var(--accent);stroke-width:2}
+.node.start .box{stroke:color-mix(in srgb,var(--good) 60%,transparent)}
+.node .phase{stroke-width:0}
+.node .title{fill:var(--ink);font:600 12px "IBM Plex Sans",sans-serif}
+.node .code{fill:var(--muted);font:11px "IBM Plex Mono",monospace}
+.node .chan{fill:var(--accent-ink);font:10px "IBM Plex Mono",monospace;text-transform:uppercase}
+.node .startbadge{fill:var(--good);font:9px "IBM Plex Mono",monospace}
+.node .invalid{fill:var(--bad,#e5484d)}
+.node .handle{fill:var(--accent);opacity:0;cursor:crosshair}
+.node:hover .handle{opacity:.85}
+
+/* Edges */
+.edge{fill:none;stroke:var(--muted);stroke-width:1.6;marker-end:url(#arrow)}
+.edge.timeout{stroke-dasharray:5 4}
+.edge.sel{stroke:var(--accent)}
+.edge-hit{fill:none;stroke:transparent;stroke-width:14;cursor:pointer}
+.edge-label{fill:var(--muted);font:9px "IBM Plex Mono",monospace}
+.edge-label rect{fill:var(--surface);stroke:var(--line)}
+.link-preview{fill:none;stroke:var(--accent);stroke-width:1.6;stroke-dasharray:4 4;pointer-events:none}
+
+/* Properties form */
+.ed-props-empty .hint{margin-bottom:1rem}
+.pf-group{display:grid;gap:.3rem;margin-bottom:.7rem;font-size:.74rem;color:var(--muted)}
+.pf-group input,.pf-group textarea,.pf-group select{background:var(--surface-2);color:var(--ink);
+  border:1px solid var(--line);border-radius:6px;padding:.4rem .5rem;font:inherit;font-size:.78rem;width:100%}
+.pf-group textarea{min-height:70px;resize:vertical;line-height:1.35}
+.pf-adv{margin:.4rem 0;border:0;border-top:1px solid var(--line);padding-top:.6rem}
+.pf-adv>summary{cursor:pointer;color:var(--accent-ink);font-size:.72rem;list-style:none;
+  text-transform:uppercase;letter-spacing:.08em}
+.pf-branch{background:var(--surface-2);border:1px solid var(--line);border-radius:7px;padding:.5rem;margin-bottom:.5rem}
+.pf-branch .row{display:flex;gap:.4rem}
+.pf-danger{color:var(--bad,#e5484d);border-color:color-mix(in srgb,#e5484d 45%,transparent)}
+.pf-issues{margin:.2rem 0 .7rem;padding:.45rem .55rem;border-radius:7px;font-size:.72rem;
+  background:color-mix(in srgb,#e5484d 12%,transparent);border:1px solid color-mix(in srgb,#e5484d 35%,transparent);color:var(--ink-soft)}
+.pf-issues ul{margin:.2rem 0 0;padding-left:1rem}
+
+/* Legend */
+.ed-legend{list-style:none;margin:.6rem 0 0;padding:0;display:grid;gap:.3rem}
+.ed-legend li{display:flex;align-items:center;gap:.5rem;font-size:.7rem;color:var(--muted)}
+.ed-legend .sw{width:11px;height:11px;border-radius:3px;flex:none}
+
+/* YAML view replaces the canvas+props columns */
+.ed-yaml{grid-column:2 / 4;display:flex;flex-direction:column;background:var(--surface);border-left:1px solid var(--line)}
+.ed-yaml-actions{display:flex;align-items:center;gap:.5rem;padding:.6rem .8rem;border-bottom:1px solid var(--line)}
+.ed-yaml textarea{flex:1;background:var(--bg);color:var(--ink);border:0;padding:1rem;resize:none;
+  font-family:"IBM Plex Mono",monospace;font-size:.78rem;line-height:1.5;outline:none}
+
+@media (prefers-reduced-motion: no-preference){
+  .node,.branch{transition:transform .12s ease}
+}

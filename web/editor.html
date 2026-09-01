@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gauntlet — Scenario Editor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/editor.css">
+</head>
+<body>
+  <header class="bar">
+    <div class="brand">
+      <span class="mark"><span>G</span></span>
+      <b>Gauntlet</b><small>Scenario Editor</small>
+    </div>
+    <div class="bar-mid">
+      <select id="scenarioSel" class="sel" aria-label="Scenario"></select>
+      <span class="ed-validity" id="validity" title="Validation"></span>
+    </div>
+    <div class="bar-actions">
+      <button class="btn ghost small" id="tabDesign" aria-pressed="true">Design</button>
+      <button class="btn ghost small" id="tabYaml" aria-pressed="false">YAML</button>
+      <button class="btn ghost small" id="btnTidy" title="Auto-layout">Tidy</button>
+      <button class="btn ghost small" id="btnUndo" title="Undo (Ctrl+Z)">⟲</button>
+      <button class="btn ghost small" id="btnRedo" title="Redo (Ctrl+Y)">⟳</button>
+      <button class="btn primary small" id="btnSave">Save</button>
+      <a class="btn ghost small" href="/index.html" title="Advanced console">Console</a>
+      <button class="btn ghost small" id="btnTheme" aria-label="Toggle theme">◑</button>
+    </div>
+  </header>
+
+  <main class="ed-main">
+    <!-- Palette -->
+    <aside class="ed-palette" id="palette" aria-label="Inject bank">
+      <p class="eyebrow">Inject bank</p>
+      <p class="hint">Drag a scene onto the canvas, or click to add.</p>
+      <div id="paletteList"></div>
+      <button class="btn ghost small ed-blank" id="btnBlank">+ Blank inject</button>
+    </aside>
+
+    <!-- Canvas -->
+    <section class="ed-canvas-wrap" id="canvasWrap">
+      <svg id="canvas" class="ed-canvas" tabindex="0" aria-label="Scenario graph">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"></path>
+          </marker>
+        </defs>
+        <g id="edges"></g>
+        <g id="nodes"></g>
+      </svg>
+      <div class="ed-empty" id="edEmpty" hidden>
+        <p>Pick a scenario above, or drag an inject from the bank to start.</p>
+      </div>
+    </section>
+
+    <!-- Properties -->
+    <aside class="ed-props" id="props" aria-label="Properties">
+      <div id="propsEmpty" class="ed-props-empty">
+        <p class="eyebrow">Properties</p>
+        <p class="hint">Select a node or a branch to edit it.</p>
+        <ul class="ed-legend" id="legend"></ul>
+      </div>
+      <div id="propsForm" hidden></div>
+    </aside>
+
+    <!-- YAML view -->
+    <section class="ed-yaml" id="yamlView" hidden>
+      <div class="ed-yaml-actions">
+        <button class="btn ghost small" id="btnYamlValidate">Validate</button>
+        <button class="btn ghost small" id="btnYamlCopy">Copy</button>
+        <span class="hint" id="yamlMsg">The saved scenario as portable YAML — the granular escape hatch.</span>
+      </div>
+      <textarea id="yamlText" spellcheck="false" aria-label="Scenario YAML"></textarea>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" hidden></div>
+  <script src="/editor.js"></script>
+</body>
+</html>
