@@ -74,7 +74,7 @@
     const cells = scn.cells && scn.cells.length ? scn.cells
       : [{ key: "white_cell", name: "White Cell" }, { key: "blue_cell", name: "Blue Cell" }];
     $("cellSel").innerHTML = cells
-      .map((c) => `<option value="${c.key}">${esc(c.name)}</option>`).join("");
+      .map((c) => `<option value="${esc(c.key)}">${esc(c.name)}</option>`).join("");
     // Default to observing the participant cell if present.
     const blue = cells.find((c) => c.kind === "participant");
     if (blue) $("cellSel").value = blue.key;

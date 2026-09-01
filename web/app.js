@@ -362,8 +362,8 @@
       $("injNarrative").textContent = current_inject.narrative;
       $("injActions").innerHTML = (current_inject.expected_actions || [])
         .map((a) => `<li>${escapeHtml(a)}</li>`).join("");
-      const maps = (current_inject.attack_techniques || []).map((t) => `<span class="tag">${t}</span>`).join("");
-      const obj = current_inject.objective_code ? `<span class="tag obj">${current_inject.objective_code}</span>` : "";
+      const maps = (current_inject.attack_techniques || []).map((t) => `<span class="tag">${escapeHtml(t)}</span>`).join("");
+      const obj = current_inject.objective_code ? `<span class="tag obj">${escapeHtml(current_inject.objective_code)}</span>` : "";
       $("injMaps").innerHTML = maps + obj || '<span class="hint">—</span>';
     }
 
@@ -374,9 +374,9 @@
       const el = document.createElement("button");
       el.className = "branch";
       el.innerHTML =
-        `<span class="when ${b.when}">${(b.when || "").replace("_", " ")}</span>` +
+        `<span class="when ${escapeHtml(b.when)}">${escapeHtml((b.when || "").replace("_", " "))}</span>` +
         `<span class="lab">${escapeHtml(b.label || b.goto)}</span>` +
-        `<span class="goto">${b.goto} →</span>`;
+        `<span class="goto">${escapeHtml(b.goto)} →</span>`;
       el.onclick = () => advance(b.when, b.trigger || null, null);
       branchWrap.appendChild(el);
     });
@@ -400,7 +400,7 @@
     (timeline || []).slice().reverse().forEach((e) => {
       const li = document.createElement("li");
       li.className = "k-" + e.kind;
-      li.innerHTML = `<span class="tclock">${e.game_clock || "--:--"}</span>${describeEvent(e)}`;
+      li.innerHTML = `<span class="tclock">${escapeHtml(e.game_clock || "--:--")}</span>${describeEvent(e)}`;
       tl.appendChild(li);
     });
   }
@@ -452,13 +452,13 @@
     });
     $("objList").innerHTML = objectives.map((o) => {
       const r = ratingByObj[o.code];
-      const badge = r && r !== "note" ? ` <span class="tag">${r}</span>` : "";
-      return `<li><b>${o.code}</b>${escapeHtml(o.title)}${badge}</li>`;
+      const badge = r && r !== "note" ? ` <span class="tag">${escapeHtml(r)}</span>` : "";
+      return `<li><b>${escapeHtml(o.code)}</b>${escapeHtml(o.title)}${badge}</li>`;
     }).join("");
 
     const sel = $("obsObj");
     sel.innerHTML = '<option value="">— general —</option>' +
-      objectives.map((o) => `<option value="${o.code}">${o.code} · ${escapeHtml(o.title)}</option>`).join("");
+      objectives.map((o) => `<option value="${escapeHtml(o.code)}">${escapeHtml(o.code)} · ${escapeHtml(o.title)}</option>`).join("");
   }
 
   async function fetchEnvOnce(scenarioId) {
@@ -480,7 +480,7 @@
     ];
     $("envSummary").innerHTML =
       rows.map(([k, v]) => `<div class="row"><span>${k}</span><span>${escapeHtml(String(v))}</span></div>`).join("") +
-      `<div class="cj">Crown jewels: ${(env.crown_jewels || []).join(", ")}</div>`;
+      `<div class="cj">Crown jewels: ${escapeHtml((env.crown_jewels || []).join(", "))}</div>`;
   }
 
   // ---- proctor actions --------------------------------------------------- //
@@ -643,12 +643,12 @@
   function describeEvent(e) {
     const p = e.payload || {};
     switch (e.kind) {
-      case "inject_fired": return `<b>${e.ref}</b> ${escapeHtml(p.title || "")}`;
+      case "inject_fired": return `<b>${escapeHtml(e.ref)}</b> ${escapeHtml(p.title || "")}`;
       case "decision": return `Decision → ${escapeHtml(p.label || p.goto || "")}`;
       case "adjudication": return `Adjudication [<b>${p.detected ? "detected" : "missed"}</b>] ${escapeHtml(truncate(p.rationale, 90))}`;
-      case "observation": return `Observation [${p.rating}] ${escapeHtml(truncate(p.note, 80))}`;
+      case "observation": return `Observation [${escapeHtml(p.rating)}] ${escapeHtml(truncate(p.note, 80))}`;
       case "note": return `Note — ${escapeHtml(truncate(p.text, 90))}`;
-      case "status": return `Status → ${p.status}`;
+      case "status": return `Status → ${escapeHtml(p.status)}`;
       default: return e.kind;
     }
   }

@@ -30,6 +30,16 @@ def _iso(value):
 # timeline exports
 # --------------------------------------------------------------------------- #
 _CSV_COLUMNS = ("seq", "at", "game_clock", "kind", "ref", "payload", "hash")
+# Cells opening with these are treated as formulas by Excel/Sheets/LibreOffice.
+_CSV_FORMULA_LEAD = ("=", "+", "-", "@", "\t", "\r")
+
+
+def _csv_safe(value) -> str:
+    """Neutralise CSV formula injection: a leading =/+/-/@ (or tab/CR) is what a
+    spreadsheet treats as a formula, so prefix such values with a single quote.
+    ``ref`` (an authored inject/objective code) is attacker-influenced free text."""
+    s = "" if value is None else str(value)
+    return "'" + s if s.startswith(_CSV_FORMULA_LEAD) else s
 
 
 def timeline_csv(events: list[models.TimelineEvent]) -> str:
@@ -40,9 +50,9 @@ def timeline_csv(events: list[models.TimelineEvent]) -> str:
         writer.writerow([
             e.seq,
             _iso(e.at),
-            e.game_clock or "",
-            e.kind,
-            e.ref or "",
+            _csv_safe(e.game_clock or ""),
+            _csv_safe(e.kind),
+            _csv_safe(e.ref or ""),
             json.dumps(e.payload, separators=(",", ":"), sort_keys=True),
             e.hash,
         ])

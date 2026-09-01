@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from .. import audit, compliance, models, pdf
 from ..database import get_db
-from ..security import get_current_user, scope_or_404
+from ..security import get_current_user, require_evaluator, scope_or_404
 
 router = APIRouter(tags=["compliance"])
 
@@ -37,7 +37,7 @@ def _evidence(db: Session, session_id: int, user: models.User, framework: str | 
 def evidence(
     session_id: int,
     framework: str | None = None,
-    user: models.User = Depends(get_current_user),
+    user: models.User = Depends(require_evaluator),
     db: Session = Depends(get_db),
 ):
     _, ev = _evidence(db, session_id, user, framework)
@@ -49,7 +49,7 @@ def evidence_pdf(
     session_id: int,
     request: Request,
     framework: str | None = None,
-    user: models.User = Depends(get_current_user),
+    user: models.User = Depends(require_evaluator),
     db: Session = Depends(get_db),
 ):
     s, ev = _evidence(db, session_id, user, framework)
@@ -65,7 +65,7 @@ def report_pdf(
     session_id: int,
     report_id: int,
     request: Request,
-    user: models.User = Depends(get_current_user),
+    user: models.User = Depends(require_evaluator),
     db: Session = Depends(get_db),
 ):
     s = scope_or_404(db.get(models.Session, session_id), user)
