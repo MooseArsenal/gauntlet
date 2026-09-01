@@ -6,9 +6,12 @@ from sqlalchemy.orm import Session
 
 from fastapi import Response
 
-from .. import models, scenario_io, schemas
-from ..authoring import delivery, generator
+from fastapi import Request
+
+from .. import audit, models, scenario_io, schemas
+from ..authoring import assist, delivery, generator
 from ..authoring.catalog import INJECT_BANK, SCENARIO_TEMPLATES, THREAT_ACTORS
+from ..authoring.generator import _pick_asset
 from ..config import MAX_YAML_BYTES
 from ..database import get_db
 from ..security import get_current_user, require_facilitator, scope_or_404
@@ -28,6 +31,33 @@ def _inject_in_org(db: Session, inject_id: int, user: models.User) -> models.Inj
     if inject is None:
         raise HTTPException(404, "inject not found")
     return inject
+
+
+@router.post("/api/authoring/assist/inject", response_model=schemas.AssistInjectOut)
+def assist_inject(
+    payload: schemas.AssistInjectIn,
+    request: Request,
+    user: models.User = Depends(require_facilitator),
+    db: Session = Depends(get_db),
+):
+    """Draft one inject from a brief (deterministic template by default; a
+    guardrailed LLM when configured). Returns a draft only — it is not saved."""
+    org = user.organization.name if user.organization else "the organization"
+    asset = {"code": "", "name": "an in-scope host"}
+    if payload.environment_id is not None:
+        env = scope_or_404(db.get(models.Environment, payload.environment_id), user)
+        asset = _pick_asset(env, "user")
+    try:
+        result = assist.generate_inject(
+            phase=payload.phase, technique=payload.technique, org=org,
+            asset=asset, brief=payload.brief,
+        )
+    except assist.GuardrailError as exc:
+        raise HTTPException(422, str(exc))
+    audit.record(db, "authoring.assist", request=request, user=user,
+                 detail={"generator": result["generator"], "phase": payload.phase,
+                         "technique": payload.technique})
+    return schemas.AssistInjectOut(**result)
 
 
 # --------------------------------------------------------------------------- #
