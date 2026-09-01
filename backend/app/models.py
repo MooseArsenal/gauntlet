@@ -49,9 +49,33 @@ class User(Base):
     name: Mapped[str] = mapped_column(String(160), default="")
     role: Mapped[str] = mapped_column(String(20), default="facilitator")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # TOTP multi-factor auth (M9).
+    mfa_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    mfa_secret: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # Set when the account is linked to an external OIDC identity provider (M9).
+    oidc_subject: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
     organization: Mapped["Organization"] = relationship(back_populates="users")
+
+
+class RefreshToken(Base):
+    """A rotating refresh token (stored only as a hash).
+
+    On use, the presented token is revoked and a new one issued (rotation).
+    Presenting an already-revoked token is treated as compromise and revokes the
+    whole family.
+    """
+
+    __tablename__ = "refresh_tokens"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    family_id: Mapped[str] = mapped_column(String(64), index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    revoked: Mapped[bool] = mapped_column(Boolean, default=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
 
 class AuditLog(Base):

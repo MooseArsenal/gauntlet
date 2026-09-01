@@ -8,13 +8,43 @@
   let selectedRating = "note";
   let objectives = [];
 
-  // ---- auth token -------------------------------------------------------- //
+  // ---- auth tokens ------------------------------------------------------- //
+  // Access token is short-lived; a rotating refresh token (M9) buys a new one
+  // silently on 401 so the session survives past the access TTL.
   const TOKEN_KEY = "gauntlet-token";
+  const REFRESH_KEY = "gauntlet-refresh";
   function getToken() { try { return localStorage.getItem(TOKEN_KEY) || ""; } catch (e) { return ""; } }
   function setToken(t) { try { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); } catch (e) { /* noop */ } }
+  function getRefresh() { try { return localStorage.getItem(REFRESH_KEY) || ""; } catch (e) { return ""; } }
+  function setRefresh(t) { try { t ? localStorage.setItem(REFRESH_KEY, t) : localStorage.removeItem(REFRESH_KEY); } catch (e) { /* noop */ } }
+  function setTokens(access, refresh) { setToken(access || ""); if (refresh !== undefined) setRefresh(refresh || ""); }
+  function clearTokens() { setToken(""); setRefresh(""); }
+
+  // Serialise refresh attempts so a burst of 401s triggers only one rotation.
+  let refreshInflight = null;
+  async function tryRefresh() {
+    const rt = getRefresh();
+    if (!rt) return false;
+    if (!refreshInflight) {
+      refreshInflight = (async () => {
+        try {
+          const res = await fetch("/api/auth/refresh", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ refresh_token: rt }),
+          });
+          if (!res.ok) return false;
+          const data = await res.json();
+          setTokens(data.access_token, data.refresh_token);
+          return true;
+        } catch (e) { return false; }
+        finally { refreshInflight = null; }
+      })();
+    }
+    return refreshInflight;
+  }
 
   // ---- api helper -------------------------------------------------------- //
-  async function api(path, method = "GET", body) {
+  async function api(path, method = "GET", body, _retried) {
     const headers = {};
     if (body) headers["Content-Type"] = "application/json";
     const token = getToken();
@@ -23,7 +53,8 @@
       method, headers, body: body ? JSON.stringify(body) : undefined,
     });
     if (res.status === 401) {
-      setToken("");
+      if (!_retried && await tryRefresh()) return api(path, method, body, true);
+      clearTokens();
       showLogin();
       throw new Error("Please sign in.");
     }
@@ -58,12 +89,23 @@
   // ---- auth views -------------------------------------------------------- //
   function showLogin() {
     $("loginView").hidden = false;
+    const mfaEl = $("mfaView");
+    if (mfaEl) mfaEl.hidden = true;
     $("emptyState").hidden = true;
     $("console").hidden = true;
     $("sessionMeta").hidden = true;
     $("userChip").hidden = true;
     $("btnNew").hidden = true;
     ["btnPause", "btnResume", "btnVerify"].forEach((id) => ($(id).hidden = true));
+  }
+
+  async function finishLogin(data) {
+    setTokens(data.access_token, data.refresh_token);
+    $("userLabel").textContent = `${data.user.email} · ${data.user.role}`;
+    $("loginView").hidden = true;
+    const mfaEl = $("mfaView");
+    if (mfaEl) mfaEl.hidden = true;
+    await loadHome();
   }
 
   async function login() {
@@ -78,17 +120,70 @@
       });
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || "Sign in failed");
       const data = await res.json();
-      setToken(data.access_token);
-      $("userLabel").textContent = `${data.user.email} · ${data.user.role}`;
-      $("loginView").hidden = true;
-      await loadHome();
+      if (data.mfa_required) { promptMfa(data.challenge); return; }
+      await finishLogin(data);
     } catch (e) {
       err.textContent = e.message;
       err.hidden = false;
     }
   }
 
-  function logout() { setToken(""); showLogin(); }
+  // Second factor: show the code prompt, then exchange challenge + code.
+  let mfaChallenge = null;
+  function promptMfa(challenge) {
+    mfaChallenge = challenge;
+    const view = $("mfaView");
+    if (!view) { toast("MFA required but this build has no code prompt."); return; }
+    $("loginView").hidden = true;
+    view.hidden = false;
+    const codeEl = $("mfaCode");
+    if (codeEl) { codeEl.value = ""; codeEl.focus(); }
+  }
+
+  async function submitMfa() {
+    const err = $("mfaErr");
+    if (err) err.hidden = true;
+    try {
+      const res = await fetch("/api/auth/login/mfa", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ challenge: mfaChallenge, code: $("mfaCode").value.trim() }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || "Invalid code");
+      await finishLogin(await res.json());
+    } catch (e) {
+      if (err) { err.textContent = e.message; err.hidden = false; } else { toast(e.message); }
+    }
+  }
+
+  async function logout() {
+    const rt = getRefresh();
+    if (rt) { try { await fetch("/api/auth/logout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ refresh_token: rt }) }); } catch (e) { /* noop */ } }
+    clearTokens();
+    showLogin();
+  }
+
+  // If we arrived back from an SSO redirect, tokens are in the URL fragment.
+  function consumeSsoFragment() {
+    if (!location.hash || location.hash.indexOf("sso_access=") === -1) return false;
+    const p = new URLSearchParams(location.hash.slice(1));
+    const access = p.get("sso_access");
+    if (!access) return false;
+    setTokens(access, p.get("sso_refresh") || "");
+    // Scrub the tokens from the address bar / history.
+    history.replaceState(null, "", location.pathname + location.search);
+    return true;
+  }
+
+  // Show the "Sign in with SSO" button only when the server has OIDC configured.
+  async function initSso() {
+    const btn = $("btnSso");
+    if (!btn) return;
+    try {
+      const cfg = await (await fetch("/api/auth/oidc/config")).json();
+      btn.hidden = !cfg.enabled;
+    } catch (e) { btn.hidden = true; }
+    btn.addEventListener("click", () => { location.href = "/api/auth/oidc/login"; });
+  }
 
   async function ensureAuthed() {
     if (!getToken()) { showLogin(); return false; }
@@ -203,10 +298,14 @@
   // ---- realtime ---------------------------------------------------------- //
   let socket = null;
   function closeSocket() { if (socket) { try { socket.onclose = null; socket.close(); } catch (e) { /* noop */ } socket = null; } }
-  function subscribeSocket(sid) {
+  async function subscribeSocket(sid) {
     closeSocket();
+    let ticket;
+    try { ticket = (await api(`/api/sessions/${sid}/ws-ticket`, "POST")).ticket; }
+    catch (e) { return; }  // realtime is best-effort; polling paths still work
+    if (currentSid !== sid) return;  // moved on while awaiting
     const scheme = location.protocol === "https:" ? "wss" : "ws";
-    const url = `${scheme}://${location.host}/ws/sessions/${sid}?token=${encodeURIComponent(getToken())}`;
+    const url = `${scheme}://${location.host}/ws/sessions/${sid}?ticket=${encodeURIComponent(ticket)}`;
     try {
       socket = new WebSocket(url);
       socket.onmessage = (ev) => {
@@ -553,6 +652,87 @@
     return html;
   }
 
+  // ---- security settings (change password, MFA) -------------------------- //
+  function closeModal() { $("modal").hidden = true; }
+
+  async function openSecurity() {
+    let me;
+    try { me = await api("/api/auth/me"); } catch (e) { return; }
+    $("modalBody").innerHTML =
+      '<h2 style="margin-top:0">Account security</h2>' +
+      '<div class="setup" style="margin-bottom:1rem">' +
+      '<h3 style="margin:.2rem 0">Change password</h3>' +
+      '<label>Current <input id="secOld" type="password" autocomplete="current-password"></label>' +
+      '<label>New <input id="secNew" type="password" autocomplete="new-password"></label>' +
+      '<button class="btn primary" id="secChangePw">Update password</button>' +
+      '<p class="loginerr" id="secPwMsg" hidden></p></div>' +
+      '<div class="setup"><h3 style="margin:.2rem 0">Two-factor (TOTP)</h3>' +
+      `<p class="sub" id="secMfaState">${me.mfa_enabled ? "Enabled." : "Not enabled."}</p>` +
+      '<div id="secMfaBox"></div></div>';
+    $("modal").hidden = false;
+    $("secChangePw").addEventListener("click", changePassword);
+    renderMfaBox(me.mfa_enabled);
+  }
+
+  function renderMfaBox(enabled) {
+    const box = $("secMfaBox");
+    if (enabled) {
+      box.innerHTML =
+        '<label>Code to disable <input id="mfaDisableCode" inputmode="numeric" maxlength="6" placeholder="000000"></label>' +
+        '<button class="btn ghost" id="btnMfaDisable">Disable 2FA</button><p class="loginerr" id="mfaMsg" hidden></p>';
+      $("btnMfaDisable").addEventListener("click", disableMfa);
+    } else {
+      box.innerHTML = '<button class="btn primary" id="btnMfaStart">Set up 2FA</button><p class="loginerr" id="mfaMsg" hidden></p>';
+      $("btnMfaStart").addEventListener("click", startMfa);
+    }
+  }
+
+  function secMsg(id, text, ok) {
+    const el = $(id);
+    if (!el) { toast(text); return; }
+    el.textContent = text; el.hidden = false;
+    el.style.color = ok ? "var(--good, #3ba55d)" : "";
+  }
+
+  async function changePassword() {
+    try {
+      await api("/api/auth/change-password", "POST",
+        { old_password: $("secOld").value, new_password: $("secNew").value });
+      // Password change revokes refresh tokens server-side; grab a fresh pair.
+      secMsg("secPwMsg", "Password updated.", true);
+      $("secOld").value = ""; $("secNew").value = "";
+    } catch (e) { secMsg("secPwMsg", e.message, false); }
+  }
+
+  async function startMfa() {
+    try {
+      const s = await api("/api/auth/mfa/setup", "POST");
+      $("secMfaBox").innerHTML =
+        '<p class="sub">Add this secret to your authenticator, then confirm with a code.</p>' +
+        `<p><code style="word-break:break-all">${s.secret}</code></p>` +
+        '<label>Code <input id="mfaEnableCode" inputmode="numeric" maxlength="6" placeholder="000000"></label>' +
+        '<button class="btn primary" id="btnMfaEnable">Enable 2FA</button><p class="loginerr" id="mfaMsg" hidden></p>';
+      $("btnMfaEnable").addEventListener("click", enableMfa);
+    } catch (e) { secMsg("mfaMsg", e.message, false); }
+  }
+
+  async function enableMfa() {
+    try {
+      await api("/api/auth/mfa/enable", "POST", { code: $("mfaEnableCode").value.trim() });
+      $("secMfaState").textContent = "Enabled.";
+      renderMfaBox(true);
+      secMsg("mfaMsg", "Two-factor enabled.", true);
+    } catch (e) { secMsg("mfaMsg", e.message, false); }
+  }
+
+  async function disableMfa() {
+    try {
+      await api("/api/auth/mfa/disable", "POST", { code: $("mfaDisableCode").value.trim() });
+      $("secMfaState").textContent = "Not enabled.";
+      renderMfaBox(false);
+    } catch (e) { secMsg("mfaMsg", e.message, false); }
+  }
+
   // ---- wire up ----------------------------------------------------------- //
   function init() {
     initTheme();
@@ -588,7 +768,12 @@
     $("btnLogin").addEventListener("click", login);
     $("loginPassword").addEventListener("keydown", (e) => { if (e.key === "Enter") login(); });
     $("btnLogout").addEventListener("click", logout);
+    $("btnSecurity").addEventListener("click", openSecurity);
+    $("btnMfa").addEventListener("click", submitMfa);
+    $("mfaCode").addEventListener("keydown", (e) => { if (e.key === "Enter") submitMfa(); });
+    initSso();
 
+    consumeSsoFragment();  // pull SSO tokens off the URL before we check auth
     ensureAuthed().then((ok) => { if (ok) loadHome(); });
   }
 

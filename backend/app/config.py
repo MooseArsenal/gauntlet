@@ -38,8 +38,28 @@ USE_ALEMBIC = _flag("GAUNTLET_USE_ALEMBIC", "1")
 SECRET_KEY = os.environ.get("GAUNTLET_SECRET_KEY", "dev-insecure-change-me")
 TIMELINE_KEY = os.environ.get("GAUNTLET_TIMELINE_KEY", SECRET_KEY).encode("utf-8")
 
-# Auth token lifetime, in minutes.
-TOKEN_TTL_MIN = int(os.environ.get("GAUNTLET_TOKEN_TTL_MIN", "720"))
+# Access-token lifetime (short) and refresh-token lifetime (M9). TOKEN_TTL_MIN is
+# kept as a back-compat alias for the access TTL.
+ACCESS_TTL_MIN = int(os.environ.get("GAUNTLET_ACCESS_TTL_MIN",
+                                    os.environ.get("GAUNTLET_TOKEN_TTL_MIN", "30")))
+TOKEN_TTL_MIN = ACCESS_TTL_MIN
+REFRESH_TTL_DAYS = int(os.environ.get("GAUNTLET_REFRESH_TTL_DAYS", "30"))
+
+# Password policy (M9).
+PASSWORD_MIN_LEN = int(os.environ.get("GAUNTLET_PASSWORD_MIN_LEN", "10"))
+
+# Short-lived WebSocket connection ticket TTL, seconds (M9).
+WS_TICKET_TTL_SEC = int(os.environ.get("GAUNTLET_WS_TICKET_TTL_SEC", "30"))
+
+# TOTP MFA issuer label shown in authenticator apps.
+MFA_ISSUER = os.environ.get("GAUNTLET_MFA_ISSUER", "Gauntlet")
+
+# OIDC SSO (M9) — enabled when an issuer + client id are configured.
+OIDC_ISSUER = os.environ.get("GAUNTLET_OIDC_ISSUER", "")
+OIDC_CLIENT_ID = os.environ.get("GAUNTLET_OIDC_CLIENT_ID", "")
+OIDC_CLIENT_SECRET = os.environ.get("GAUNTLET_OIDC_CLIENT_SECRET", "")
+OIDC_REDIRECT_URI = os.environ.get("GAUNTLET_OIDC_REDIRECT_URI", "")
+OIDC_ENABLED = bool(OIDC_ISSUER and OIDC_CLIENT_ID)
 
 # Real seconds per game-minute for auto-advance timers. The default is
 # compressed for demos; set to 60 for wall-clock real-time exercises.

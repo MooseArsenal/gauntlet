@@ -25,7 +25,7 @@
       <button class="btn ghost" id="btnResume" hidden>Resume</button>
       <button class="btn ghost" id="btnVerify" hidden title="Verify the timeline hash-chain">Verify chain</button>
       <button class="btn" id="btnNew" hidden>New exercise</button>
-      <span class="userchip" id="userChip" hidden><span id="userLabel"></span><button class="btn ghost small" id="btnLogout">Sign out</button></span>
+      <span class="userchip" id="userChip" hidden><span id="userLabel"></span><button class="btn ghost small" id="btnSecurity">Security</button><button class="btn ghost small" id="btnLogout">Sign out</button></span>
       <button class="btn toggle" id="btnTheme" aria-label="Toggle theme">◑</button>
     </div>
   </header>
@@ -41,8 +41,23 @@
           <label>Email <input id="loginEmail" type="email" autocomplete="username" placeholder="you@org.example"></label>
           <label>Password <input id="loginPassword" type="password" autocomplete="current-password" placeholder="••••••••"></label>
           <button class="btn primary" id="btnLogin">Sign in</button>
+          <button class="btn ghost" id="btnSso" hidden>Sign in with SSO</button>
           <p class="loginerr" id="loginErr" hidden></p>
           <p class="hint" id="demoHint">Demo: <code>admin@demo.gauntlet</code> / <code>gauntlet-admin</code></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- MFA second factor (shown when login returns mfa_required) -->
+    <section class="empty" id="mfaView" hidden>
+      <div class="empty-card">
+        <p class="eyebrow">Two-factor</p>
+        <h1>Enter your code</h1>
+        <p class="sub">Open your authenticator app and enter the 6-digit code.</p>
+        <div class="setup">
+          <label>Code <input id="mfaCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"></label>
+          <button class="btn primary" id="btnMfa">Verify</button>
+          <p class="loginerr" id="mfaErr" hidden></p>
         </div>
       </div>
     </section>
