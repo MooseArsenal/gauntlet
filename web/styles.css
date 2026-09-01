@@ -85,6 +85,7 @@ input,select,textarea{font:inherit;color:inherit}
 .pill{font-family:"IBM Plex Mono",monospace;font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;padding:.16rem .5rem;border-radius:20px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink-soft)}
 .pill.running{color:var(--good);border-color:color-mix(in srgb,var(--good) 45%,transparent);background:var(--good-wash)}
 .pill.paused{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,transparent);background:var(--warn-wash)}
+.pill.airgap{color:var(--crit);border-color:color-mix(in srgb,var(--crit) 50%,transparent);background:var(--crit-wash);font-weight:600}
 .pill.complete{color:var(--info);border-color:color-mix(in srgb,var(--info) 45%,transparent);background:var(--info-wash)}
 
 .btn{

@@ -16,8 +16,8 @@ from .api import (
     improvements, live, multicell, program, purple, reports, scenarios, schedules, sessions,
 )
 from .config import (
-    APP_TAGLINE, APP_TITLE, CORS_ORIGINS, MAX_REQUEST_BYTES, SEED_ON_START, USE_ALEMBIC,
-    WEB_DIR, validate_config,
+    AIRGAPPED, APP_TAGLINE, APP_TITLE, CORS_ORIGINS, MAX_REQUEST_BYTES, SEED_ON_START,
+    USE_ALEMBIC, WEB_DIR, validate_config,
 )
 from .database import SessionLocal, create_all
 from .security_headers import SecurityHeadersMiddleware
@@ -89,7 +89,7 @@ async def limit_body_size(request, call_next):
 
 @app.get("/api/health", tags=["meta"])
 def health():
-    return {"status": "ok", "app": APP_TITLE, "version": __version__}
+    return {"status": "ok", "app": APP_TITLE, "version": __version__, "airgapped": AIRGAPPED}
 
 
 app.include_router(auth.router)

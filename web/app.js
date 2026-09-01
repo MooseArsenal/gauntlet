@@ -830,8 +830,18 @@
   }
 
   // ---- wire up ----------------------------------------------------------- //
+  // Show the AIR-GAPPED badge when the server reports it (no outbound egress).
+  async function checkAirgap() {
+    try {
+      const h = await (await fetch("/api/health")).json();
+      const pill = $("airgapPill");
+      if (pill && h && h.airgapped) pill.hidden = false;
+    } catch (e) { /* noop */ }
+  }
+
   function init() {
     initTheme();
+    checkAirgap();
     $("btnNew").addEventListener("click", loadHome);
     $("btnStart").addEventListener("click", startNew);
     $("btnGenerate").addEventListener("click", generateScenario);

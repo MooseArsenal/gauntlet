@@ -14,6 +14,8 @@ import os
 
 from sqlalchemy.orm import Session
 
+from . import egress
+
 from . import audit, models
 
 
@@ -28,6 +30,7 @@ def _post_webhook(payload: dict) -> bool:
     try:
         import httpx
 
+        egress.guard("webhook notify")
         httpx.post(url, json=payload, timeout=5.0)
         return True
     except Exception:  # noqa: BLE001 - delivery is best-effort; never break the flow
