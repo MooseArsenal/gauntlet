@@ -36,6 +36,16 @@ def _delete_sessions(db: Session, session_ids: list[int]) -> None:
     """Delete sessions and their children (timeline, observations, reports)."""
     if not session_ids:
         return
+    # Lobby rows go with the session; improvement items are the org's backlog
+    # and outlive the exercise record, so they lose the reference, not the row.
+    for row in db.execute(
+        select(models.SessionJoin).where(models.SessionJoin.session_id.in_(session_ids))
+    ).scalars():
+        db.delete(row)
+    for item in db.execute(
+        select(models.ImprovementItem).where(models.ImprovementItem.session_id.in_(session_ids))
+    ).scalars():
+        item.session_id = None
     for model in (models.Report, models.TimelineEvent, models.Observation):
         for row in db.execute(
             select(model).where(model.session_id.in_(session_ids))
@@ -157,6 +167,10 @@ def erase_org(db: Session, org_id: int) -> dict:
                 n += 1
         return n
 
+    counts["session_joins"] = wipe(models.SessionJoin, [org_id], col="org_id")
+    counts["improvement_items"] = wipe(models.ImprovementItem, [org_id], col="org_id")
+    counts["custom_adversaries"] = wipe(models.CustomAdversary, [org_id], col="org_id")
+    counts["schedules"] = wipe(models.ExerciseSchedule, [org_id], col="org_id")
     counts["injects"] = wipe(models.Inject, scn_ids)
     counts["objectives"] = wipe(models.Objective, scn_ids)
     counts["scenarios"] = wipe(models.Scenario, [org_id], col="org_id")

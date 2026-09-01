@@ -88,6 +88,7 @@ def test_rbac_evaluator_cannot_author_but_can_observe():
         }).json()["id"]
         sid = client.post("/api/sessions", headers=_auth(admin),
                           json={"scenario_id": scn, "name": "run"}).json()["id"]
+        client.post(f"/api/sessions/{sid}/start", headers=_auth(admin))  # observations need a live session (F-1)
 
         # Evaluator may NOT create a scenario...
         forbidden = client.post("/api/scenarios", headers=_auth(ev), json={

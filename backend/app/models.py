@@ -53,6 +53,9 @@ class User(Base):
     # TOTP multi-factor auth (M9).
     mfa_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     mfa_secret: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # A secret being enrolled but not yet confirmed (H2). Setup writes here so
+    # it can never touch the live secret; enable promotes it.
+    mfa_pending_secret: Mapped[str | None] = mapped_column(String(64), nullable=True)
     # Set when the account is linked to an external OIDC identity provider (M9).
     oidc_subject: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
