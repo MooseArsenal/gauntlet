@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from fastapi import Response
@@ -9,7 +10,7 @@ from fastapi import Response
 from fastapi import Request
 
 from .. import audit, models, scenario_io, schemas
-from ..authoring import assist, delivery, generator
+from ..authoring import assist, delivery, designer, generator
 from ..authoring import attack_groups
 from ..authoring.catalog import INJECT_BANK, SCENARIO_TEMPLATES, THREAT_ACTORS
 from ..authoring.generator import _pick_asset
@@ -155,9 +156,23 @@ def generate_scenario(
     if not actor_key:
         raise HTTPException(400, "provide either actor_key or template_key")
 
+    # A custom, proctor-designed adversary (A7) is resolved from the caller's
+    # org and projected into the threat-actor shape the generator consumes.
+    actor_override = None
+    if actor_key not in THREAT_ACTORS:
+        custom = db.execute(
+            select(models.CustomAdversary).where(
+                models.CustomAdversary.org_id == user.org_id,
+                models.CustomAdversary.key == actor_key,
+            )
+        ).scalars().first()
+        if custom is not None:
+            actor_override = designer.to_actor(custom)
+
     try:
         scenario = generator.build_scenario(
-            env, actor_key, name=payload.name, template_key=payload.template_key
+            env, actor_key, name=payload.name, template_key=payload.template_key,
+            actor=actor_override,
         )
     except ValueError as e:
         raise HTTPException(400, str(e))

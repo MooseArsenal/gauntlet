@@ -251,6 +251,54 @@ class AttackGroupOut(BaseModel):
     objective_count: int = 0
 
 
+class AdversaryObjective(BaseModel):
+    title: str
+    success_criteria: str = ""
+
+
+class CustomAdversaryIn(BaseModel):
+    """A proctor-designed adversary (A7). ``kill_chain`` is an ordered list of
+    inject-bank scene keys; objectives are optional (sensible defaults are
+    derived from the chain when omitted)."""
+    name: str
+    description: str = ""
+    motivation: str = ""
+    is_fictitious: bool = True
+    sectors: list[str] = Field(default_factory=list)
+    techniques: list[str] = Field(default_factory=list)
+    kill_chain: list[str] = Field(default_factory=list)
+    objectives: Optional[list[AdversaryObjective]] = None
+
+
+class CustomAdversaryOut(BaseModel):
+    model_config = _orm
+    id: int
+    key: str
+    name: str
+    label: str
+    description: str
+    motivation: str
+    is_fictitious: bool
+    sectors: list[str] = Field(default_factory=list)
+    techniques: list[str] = Field(default_factory=list)
+    kill_chain: list[str] = Field(default_factory=list)
+    objectives: list[AdversaryObjective] = Field(default_factory=list)
+    created_at: datetime
+
+
+class AdversaryDraft(BaseModel):
+    """A generated, unsaved adversary the proctor can review, tweak, and save."""
+    name: str
+    label: str
+    description: str
+    motivation: str
+    is_fictitious: bool
+    sectors: list[str] = Field(default_factory=list)
+    techniques: list[str] = Field(default_factory=list)
+    kill_chain: list[str] = Field(default_factory=list)
+    objectives: list[AdversaryObjective] = Field(default_factory=list)
+
+
 class TemplateOut(BaseModel):
     key: str
     name: str
