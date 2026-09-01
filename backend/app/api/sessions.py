@@ -33,6 +33,18 @@ def _get_session(db: Session, session_id: int, user: models.User) -> models.Sess
     return scope_or_404(db.get(models.Session, session_id), user)
 
 
+ACTIVE = ("running", "paused")
+
+
+def require_status(s: models.Session, *allowed: str) -> None:
+    """The one place the session state machine is enforced (F-1). Every write
+    names the statuses it is valid in; anything else is a 409, so a completed
+    record can never grow and a not-yet-started one can never accrue rulings."""
+    if s.status not in allowed:
+        raise HTTPException(
+            409, f"session is '{s.status}'; this action needs one of {list(allowed)}")
+
+
 @router.post("/{session_id}/ws-ticket", response_model=schemas.WsTicketOut)
 def ws_ticket(
     session_id: int,
@@ -155,8 +167,7 @@ def start_session(
     session_id: int, user: models.User = Depends(require_facilitator), db: Session = Depends(get_db)
 ):
     s = _get_session(db, session_id, user)
-    if s.status == "complete":
-        raise HTTPException(409, "session already complete")
+    require_status(s, "setup")
     injects = _injects(db, s.scenario_id)
     start = msel.get_start_inject(injects)
     if not start:
@@ -218,6 +229,7 @@ def adjudicate_action(
     db: Session = Depends(get_db),
 ):
     s = _get_session(db, session_id, user)
+    require_status(s, *ACTIVE)
     scenario = db.get(models.Scenario, s.scenario_id)
     env = db.get(models.Environment, scenario.environment_id)
     current = _current_inject(db, s)
@@ -250,6 +262,7 @@ def add_observation(
     db: Session = Depends(get_db),
 ):
     s = _get_session(db, session_id, user)
+    require_status(s, *ACTIVE)
     obs = models.Observation(session_id=s.id, **payload.model_dump())
     db.add(obs)
     db.flush()
@@ -274,6 +287,7 @@ def add_note(
     db: Session = Depends(get_db),
 ):
     s = _get_session(db, session_id, user)
+    require_status(s, *ACTIVE)
     current = _current_inject(db, s)
     event = append_event(
         db,
@@ -294,6 +308,7 @@ def pause_session(
     session_id: int, user: models.User = Depends(require_facilitator), db: Session = Depends(get_db)
 ):
     s = _get_session(db, session_id, user)
+    require_status(s, "running")
     scheduler.cancel(s.id)
     s.status = "paused"
     append_event(db, s.id, kind="status", payload={"status": "paused"})
@@ -308,8 +323,7 @@ def resume_session(
     session_id: int, user: models.User = Depends(require_facilitator), db: Session = Depends(get_db)
 ):
     s = _get_session(db, session_id, user)
-    if s.status == "complete":
-        raise HTTPException(409, "session already complete")
+    require_status(s, "paused")
     s.status = "running"
     append_event(db, s.id, kind="status", payload={"status": "running"})
     db.commit()
@@ -326,6 +340,7 @@ def complete_session(
     session_id: int, user: models.User = Depends(require_facilitator), db: Session = Depends(get_db)
 ):
     s = _get_session(db, session_id, user)
+    require_status(s, *ACTIVE)
     scheduler.cancel(s.id)
     s.status = "complete"
     s.completed_at = datetime.now(timezone.utc)

@@ -22,6 +22,7 @@ from ..engine import adjudication
 from ..membership import require_member, require_red_cell
 from ..security import get_current_user, scope_or_404
 from ..timeline import append_event
+from .sessions import ACTIVE, require_status
 
 router = APIRouter(prefix="/api/sessions", tags=["purple-team"])
 
@@ -49,6 +50,7 @@ def submit_red_action(session_id: int, payload: schemas.RedActionIn,
     Open to staff and to participants who joined the session as the red cell."""
     s = _session(db, session_id, user)
     require_red_cell(db, s, user)
+    require_status(s, *ACTIVE)
     scenario = db.get(models.Scenario, s.scenario_id)
     env = db.get(models.Environment, scenario.environment_id)
 
