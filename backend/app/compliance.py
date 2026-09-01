@@ -14,12 +14,25 @@ from __future__ import annotations
 CAPABILITIES = ["detect", "triage", "contain", "eradicate", "recover", "communicate", "govern"]
 
 FRAMEWORKS = {
+    # Tier 1 — core packs (M7).
     "pci": "PCI-DSS v4.0",
     "dora": "DORA (Digital Operational Resilience Act)",
     "nist_csf": "NIST Cybersecurity Framework 2.0",
     "cis_v8": "CIS Controls v8",
     "iso_27001": "ISO/IEC 27001:2022",
     "soc2": "SOC 2 (Trust Services Criteria)",
+    # Tier 2 — sector & regional packs (F2).
+    "hipaa": "HIPAA Security Rule (45 CFR Part 164)",
+    "nerc_cip": "NERC CIP (Critical Infrastructure Protection)",
+    "ffiec": "FFIEC (CAT / IT Examination Handbook)",
+    "nis2": "NIS2 Directive (EU 2022/2555)",
+    "nist_800_53": "NIST SP 800-53 Rev. 5",
+}
+
+# Grouping so a UI can present core vs. sector/regional packs.
+FRAMEWORK_TIER = {
+    "pci": 1, "dora": 1, "nist_csf": 1, "cis_v8": 1, "iso_27001": 1, "soc2": 1,
+    "hipaa": 2, "nerc_cip": 2, "ffiec": 2, "nis2": 2, "nist_800_53": 2,
 }
 
 # framework -> capability -> [(control id, title)]
@@ -87,6 +100,60 @@ CROSSWALK: dict[str, dict[str, list[tuple[str, str]]]] = {
         "recover": [("Art.11", "Response and recovery"), ("Art.12", "Backup and restoration procedures")],
         "communicate": [("Art.19", "Reporting of major ICT-related incidents")],
         "govern": [("Art.24", "Digital operational resilience testing programme")],
+    },
+    # ------------------------------------------------------------------ Tier 2
+    "hipaa": {
+        "detect": [("164.308(a)(1)(ii)(D)", "Information system activity review")],
+        "triage": [("164.308(a)(6)(i)", "Security incident procedures")],
+        "contain": [("164.308(a)(6)(ii)", "Response and reporting")],
+        "eradicate": [("164.308(a)(6)(ii)", "Response and reporting")],
+        "recover": [("164.308(a)(7)(i)", "Contingency plan"),
+                    ("164.308(a)(7)(ii)(D)", "Testing and revision procedures")],
+        "communicate": [("164.308(a)(6)(ii)", "Response and reporting"),
+                        ("164.404", "Breach notification to individuals")],
+        "govern": [("164.308(a)(1)(i)", "Security management process"),
+                   ("164.316", "Policies, procedures, and documentation requirements")],
+    },
+    "nerc_cip": {
+        "detect": [("CIP-007-6 R4", "Security event monitoring")],
+        "triage": [("CIP-008-6 R1", "Incident response plan specifications")],
+        "contain": [("CIP-008-6 R2", "Incident response plan implementation and testing")],
+        "eradicate": [("CIP-008-6 R2", "Incident response plan implementation and testing")],
+        "recover": [("CIP-009-6 R1", "Recovery plan specifications"),
+                    ("CIP-009-6 R3", "Recovery plan review, update, and testing")],
+        "communicate": [("CIP-008-6 R4", "Notifications and reporting (E-ISAC)")],
+        "govern": [("CIP-008-6 R3", "Incident response plan review, update, and communication")],
+    },
+    "ffiec": {
+        "detect": [("D3.DC", "Detective controls"), ("D2.TI", "Threat intelligence")],
+        "triage": [("D5.IR", "Incident resilience planning and strategy")],
+        "contain": [("D5.DR", "Detection, response, and mitigation")],
+        "eradicate": [("D5.DR", "Detection, response, and mitigation")],
+        "recover": [("D5.ER", "Escalation and reporting"),
+                    ("BCM", "Business continuity management — recovery testing")],
+        "communicate": [("D5.ER", "Escalation and reporting"),
+                        ("D4.RM", "External dependency management")],
+        "govern": [("D1.RM", "Cyber risk management and oversight")],
+    },
+    "nis2": {
+        "detect": [("Art.21(2)(b)", "Incident handling — detection")],
+        "triage": [("Art.21(2)(b)", "Incident handling")],
+        "contain": [("Art.21(2)(b)", "Incident handling")],
+        "eradicate": [("Art.21(2)(b)", "Incident handling")],
+        "recover": [("Art.21(2)(c)", "Business continuity, backup, and disaster recovery")],
+        "communicate": [("Art.23", "Reporting obligations (24h early warning / 72h notification)")],
+        "govern": [("Art.20", "Governance — management body responsibility"),
+                   ("Art.21(1)", "Cybersecurity risk-management measures")],
+    },
+    "nist_800_53": {
+        "detect": [("SI-4", "System monitoring"), ("AU-6", "Audit record review, analysis, and reporting")],
+        "triage": [("IR-4", "Incident handling"), ("IR-5", "Incident monitoring")],
+        "contain": [("IR-4", "Incident handling")],
+        "eradicate": [("IR-4", "Incident handling")],
+        "recover": [("CP-10", "System recovery and reconstitution"),
+                    ("CP-4", "Contingency plan testing")],
+        "communicate": [("IR-6", "Incident reporting"), ("IR-7", "Incident response assistance")],
+        "govern": [("IR-8", "Incident response plan"), ("IR-3", "Incident response testing")],
     },
 }
 
