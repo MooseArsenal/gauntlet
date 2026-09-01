@@ -398,6 +398,9 @@
     // environment summary (rail)
     fetchEnvOnce(scenario.id);
 
+    // join lobby (rail)
+    updateLobby(currentSid);
+
     // timeline
     const tl = $("timeline");
     tl.innerHTML = "";
@@ -496,6 +499,28 @@
     const sel = $("obsObj");
     sel.innerHTML = '<option value="">— general —</option>' +
       objectives.map((o) => `<option value="${escapeHtml(o.code)}">${escapeHtml(o.code)} · ${escapeHtml(o.title)}</option>`).join("");
+  }
+
+  // Join-code lobby: show the code + who's joined; refreshed each render.
+  async function updateLobby(sid) {
+    if (!sid || !$("lobbyPanel")) return;
+    try {
+      const roster = await api(`/api/sessions/${sid}/lobby`);
+      $("lobbyList").innerHTML = roster.map((m) =>
+        `<li><span class="lb-cell lb-${escapeHtml(m.cell)}">${escapeHtml((m.cell || "").replace("_cell", ""))}</span>${escapeHtml(m.display_name)}</li>`).join("")
+        || '<li class="muted">No one has joined yet.</li>';
+    } catch (e) { /* noop */ }
+  }
+  async function generateJoinCode() {
+    if (!currentSid) return;
+    try {
+      const { join_code } = await api(`/api/sessions/${currentSid}/join-code`, "POST");
+      const url = `${location.origin}/join.html?code=${join_code}`;
+      $("joinCodeBox").innerHTML =
+        `<code class="jc">${escapeHtml(join_code)}</code><button class="btn ghost small" id="btnCopyJoin" title="Copy join link">Copy link</button>`;
+      const c = $("btnCopyJoin");
+      if (c) c.addEventListener("click", () => { try { navigator.clipboard.writeText(url); toast("Join link copied"); } catch (e) { toast(url); } });
+    } catch (e) { toast(e.message); }
   }
 
   async function fetchEnvOnce(scenarioId) {
@@ -854,6 +879,7 @@
     });
     $("btnDelivery").addEventListener("click", previewDelivery);
     $("btnAdjudicate").addEventListener("click", adjudicate);
+    { const b = $("btnJoinCode"); if (b) b.addEventListener("click", generateJoinCode); }
     $("btnObserve").addEventListener("click", observe);
     $("btnOverride").addEventListener("click", () => {
       const goto = $("overrideGoto").value.trim();
