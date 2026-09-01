@@ -83,6 +83,13 @@ CORS_ORIGINS = [o.strip() for o in os.environ.get("GAUNTLET_CORS_ORIGINS", "*").
 # Trust X-Forwarded-For for the client IP (only enable behind a trusted proxy).
 TRUST_PROXY = _flag("GAUNTLET_TRUST_PROXY", "0")
 
+# Air-gapped mode (D2). When on, every outbound network call (OIDC discovery,
+# LLM authoring assist, tracker push, range adapter, webhook notify) is refused
+# fail-closed — a hard guarantee the deployment makes no egress. The deterministic
+# core (scenario generation, adjudication, scoring, reports) needs no network, so
+# the product remains fully functional offline. Surfaced at /api/health.
+AIRGAPPED = _flag("GAUNTLET_AIRGAPPED", "0")
+
 # Login throttling / lockout.
 LOGIN_MAX_ATTEMPTS = int(os.environ.get("GAUNTLET_LOGIN_MAX_ATTEMPTS", "5"))
 LOGIN_WINDOW_SEC = int(os.environ.get("GAUNTLET_LOGIN_WINDOW_SEC", "300"))

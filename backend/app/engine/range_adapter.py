@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from urllib.parse import urlparse
 
-from .. import config
+from .. import config, egress
 from . import adjudication
 
 
@@ -106,6 +106,7 @@ class CalderaAdapter(RangeAdapter):
         _require_allowlisted(target)
         import httpx
 
+        egress.guard("range adapter: Caldera")
         try:
             r = httpx.post(
                 f"{config.CALDERA_URL}/api/v2/operations",
@@ -133,6 +134,7 @@ class AtomicRedTeamAdapter(RangeAdapter):
         _require_allowlisted(target)
         import httpx
 
+        egress.guard("range adapter: Atomic Red Team")
         try:
             r = httpx.post(
                 f"{config.ATOMIC_URL}/run",

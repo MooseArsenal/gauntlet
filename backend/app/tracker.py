@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import secrets
 
-from . import config
+from . import config, egress
 
 
 class TrackerError(Exception):
@@ -62,6 +62,7 @@ class JiraTracker:
             }
         }
         try:
+            egress.guard("Jira issue create")
             r = httpx.post(f"{config.JIRA_URL}/rest/api/2/issue",
                            json=payload, auth=(config.JIRA_USER, config.JIRA_TOKEN), timeout=10.0)
             r.raise_for_status()
@@ -74,6 +75,7 @@ class JiraTracker:
         import httpx
 
         try:
+            egress.guard("Jira status fetch")
             r = httpx.get(f"{config.JIRA_URL}/rest/api/2/issue/{ref}?fields=status",
                           auth=(config.JIRA_USER, config.JIRA_TOKEN), timeout=10.0)
             r.raise_for_status()
@@ -89,6 +91,7 @@ class ServiceNowTracker:
         import httpx
 
         try:
+            egress.guard("ServiceNow incident create")
             r = httpx.post(f"{config.SERVICENOW_URL}/api/now/table/incident",
                            json={"short_description": title[:160], "description": description},
                            auth=(config.SERVICENOW_USER, config.SERVICENOW_PASSWORD),
@@ -104,6 +107,7 @@ class ServiceNowTracker:
         import httpx
 
         try:
+            egress.guard("ServiceNow status fetch")
             r = httpx.get(f"{config.SERVICENOW_URL}/api/now/table/incident",
                           params={"sysparm_query": f"number={ref}", "sysparm_fields": "state"},
                           auth=(config.SERVICENOW_USER, config.SERVICENOW_PASSWORD),
