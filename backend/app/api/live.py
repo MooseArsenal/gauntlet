@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from .. import models, schemas, ws
+from ..config import MAX_AUTHORIZATION_TTL_MIN
 from ..database import get_db
 from ..engine import range_adapter
 from ..security import require_facilitator, scope_or_404
@@ -49,7 +50,10 @@ def authorize_session(
     db: Session = Depends(get_db),
 ):
     s = scope_or_404(db.get(models.Session, session_id), user)
-    expires = datetime.utcnow() + timedelta(minutes=max(1, payload.ttl_minutes))
+    # Keep the grant time-boxed: clamp to [1, MAX_AUTHORIZATION_TTL_MIN] so a huge
+    # value can neither overflow timedelta (500) nor create a never-expiring grant.
+    ttl = min(max(1, payload.ttl_minutes), MAX_AUTHORIZATION_TTL_MIN)
+    expires = datetime.utcnow() + timedelta(minutes=ttl)
     s.auth_scope = payload.scope
     s.authorized_by = payload.authorized_by
     s.auth_expires_at = expires
