@@ -162,6 +162,13 @@ class LobbyMember(BaseModel):
     joined_at: datetime
 
 
+class JoinedSessionOut(BaseModel):
+    """A session the caller has joined, and the cell they hold in it (H1)."""
+    session: "SessionSummary"
+    cell: str
+    display_name: str = ""
+
+
 class SessionSummary(BaseModel):
     model_config = _orm
     id: int

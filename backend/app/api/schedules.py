@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from .. import audit, models, notify, scheduling, schemas
 from ..database import get_db
-from ..security import get_current_user, require_facilitator, scope_or_404
+from ..security import require_staff, require_facilitator, scope_or_404
 
 router = APIRouter(prefix="/api/schedules", tags=["schedules"])
 
@@ -44,7 +44,7 @@ def create_schedule(payload: schemas.ScheduleCreate, request: Request,
 
 
 @router.get("", response_model=list[schemas.ScheduleOut])
-def list_schedules(user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+def list_schedules(user: models.User = Depends(require_staff), db: Session = Depends(get_db)):
     return db.execute(
         select(models.ExerciseSchedule)
         .where(models.ExerciseSchedule.org_id == user.org_id)
@@ -53,7 +53,7 @@ def list_schedules(user: models.User = Depends(get_current_user), db: Session = 
 
 
 @router.get("/reminders", response_model=list[schemas.ReminderOut])
-def reminders(send: bool = False, user: models.User = Depends(get_current_user),
+def reminders(send: bool = False, user: models.User = Depends(require_staff),
               db: Session = Depends(get_db)):
     """Reminders whose lead window is open. With ``?send=true``, deliver them
     (record + optional webhook) and mark each as reminded."""
@@ -83,7 +83,7 @@ def run_due(request: Request, admin: models.User = Depends(require_facilitator),
 
 
 @router.get("/{schedule_id}", response_model=schemas.ScheduleOut)
-def get_schedule(schedule_id: int, user: models.User = Depends(get_current_user),
+def get_schedule(schedule_id: int, user: models.User = Depends(require_staff),
                  db: Session = Depends(get_db)):
     return _get(db, schedule_id, user)
 

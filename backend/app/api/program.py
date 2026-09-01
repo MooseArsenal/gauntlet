@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from .. import models
 from ..database import get_db
 from ..engine import program
-from ..security import get_current_user
+from ..security import require_staff
 
 router = APIRouter(prefix="/api/program", tags=["program"])
 
@@ -25,10 +25,10 @@ def _all(db: Session, user: models.User):
 
 
 @router.get("/coverage")
-def program_coverage(user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+def program_coverage(user: models.User = Depends(require_staff), db: Session = Depends(get_db)):
     return program.build_program_coverage(*_all(db, user))
 
 
 @router.get("/improvements")
-def program_improvements(user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+def program_improvements(user: models.User = Depends(require_staff), db: Session = Depends(get_db)):
     return program.build_improvements(*_all(db, user))

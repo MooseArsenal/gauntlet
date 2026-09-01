@@ -28,9 +28,13 @@
         body: JSON.stringify({ code, cell, display_name: display_name || null }),
       });
       if (res.status === 401) { location.href = "/index.html"; return; }
-      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || "Could not join");
-      // Joined — go to the matching fog-of-war view.
-      location.href = DEST[cell] || "/participant.html";
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(typeof j.detail === "string" ? j.detail : "Could not join");
+      }
+      const joined = await res.json();
+      // Joined — go to the matching fog-of-war view, on this session.
+      location.href = `${DEST[joined.cell] || "/participant.html"}?session=${encodeURIComponent(joined.session_id)}`;
     } catch (e) { err.textContent = e.message; err.hidden = false; }
   }
 

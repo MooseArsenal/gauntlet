@@ -19,7 +19,8 @@ from sqlalchemy.orm import Session
 from .. import models, schemas, ws
 from ..database import get_db
 from ..engine import adjudication
-from ..security import get_current_user, require_evaluator, scope_or_404
+from ..membership import require_member, require_red_cell
+from ..security import get_current_user, scope_or_404
 from ..timeline import append_event
 
 router = APIRouter(prefix="/api/sessions", tags=["purple-team"])
@@ -42,10 +43,12 @@ def _scored_actions(session: models.Session) -> list[models.TimelineEvent]:
 
 @router.post("/{session_id}/red-actions", response_model=schemas.RedActionOut, status_code=201)
 def submit_red_action(session_id: int, payload: schemas.RedActionIn,
-                      user: models.User = Depends(require_evaluator),
+                      user: models.User = Depends(get_current_user),
                       db: Session = Depends(get_db)):
-    """Red cell submits a move; it is adjudicated live and lands on the timeline."""
+    """Red cell submits a move; it is adjudicated live and lands on the timeline.
+    Open to staff and to participants who joined the session as the red cell."""
     s = _session(db, session_id, user)
+    require_red_cell(db, s, user)
     scenario = db.get(models.Scenario, s.scenario_id)
     env = db.get(models.Environment, scenario.environment_id)
 
@@ -63,6 +66,7 @@ def submit_red_action(session_id: int, payload: schemas.RedActionIn,
 def list_red_actions(session_id: int, user: models.User = Depends(get_current_user),
                      db: Session = Depends(get_db)):
     s = _session(db, session_id, user)
+    require_member(db, s, user)
     return [schemas.TimelineEventOut.model_validate(e)
             for e in sorted(_red_events(s), key=lambda e: e.seq)]
 
@@ -72,6 +76,7 @@ def scoreboard(session_id: int, user: models.User = Depends(get_current_user),
                db: Session = Depends(get_db)):
     """Live purple-team tally over the session's adjudicated red moves."""
     s = _session(db, session_id, user)
+    require_member(db, s, user)
     events = _scored_actions(s)
 
     detected = sum(1 for e in events if e.payload.get("detected"))
