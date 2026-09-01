@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
   <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/progressmap.css">
 </head>
 <body>
   <header class="bar">
@@ -134,6 +135,7 @@
 
       <!-- center: the scene -->
       <section class="stage">
+        <div class="killchain" id="killChain" hidden aria-label="Kill-chain progress"></div>
         <div class="panel scene" id="scenePanel">
           <div class="scene-head">
             <span class="chan" id="injChannel">briefing</span>
@@ -230,6 +232,7 @@
 
   <div class="toast" id="toast" hidden></div>
 
+  <script src="/progressmap.js"></script>
   <script src="/app.js"></script>
 </body>
 </html>
