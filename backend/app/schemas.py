@@ -954,3 +954,12 @@ class InviteIn(BaseModel):
     cells: list[str] = Field(default_factory=list, max_length=20)
     emails: list[str] = Field(default_factory=list, max_length=200)
     message: str = Field(default="", max_length=2000)
+
+
+class EvidenceIn(BaseModel):
+    """A file attached to the exercise record (P3), base64-encoded."""
+    filename: str = Field(max_length=255)
+    content_type: str = Field(default="application/octet-stream", max_length=120)
+    content: str  # base64; the request body cap bounds it
+    note: str = Field(default="", max_length=4000)
+    about_seq: Optional[int] = None

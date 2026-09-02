@@ -122,7 +122,7 @@ def test_session_state_machine_is_enforced_everywhere():
 TENANT_TABLES = {
     "users", "refresh_tokens", "audit_logs", "environments", "scenarios", "sessions",
     "timeline_events", "observations", "reports", "improvement_items",
-    "exercise_schedules", "custom_adversaries", "session_joins", "certificates",
+    "exercise_schedules", "custom_adversaries", "session_joins", "certificates", "attachments",
 }
 
 
@@ -132,6 +132,8 @@ def _seed_everything(c, h, org_id, scn, sid):
     c.post(f"/api/sessions/{sid}/start", headers=h)
     c.post(f"/api/sessions/{sid}/observe", headers=h, json={"note": "n"})
     c.post(f"/api/sessions/{sid}/reports", headers=h, json={"audience": "executive"})
+    assert c.post(f"/api/sessions/{sid}/evidence", headers=h, json={
+        "filename": "note.txt", "content_type": "text/plain", "content": "aGVsbG8="}).status_code == 201
     c.post(f"/api/sessions/{sid}/complete", headers=h)
     assert c.post(f"/api/sessions/{sid}/certificate", headers=h).status_code == 201
     db = SessionLocal()
