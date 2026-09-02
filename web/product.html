@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gauntlet — Exercise control for security teams</title>
+  <meta name="description" content="Gauntlet runs cyber tabletop and purple-team exercises against a model of your environment, adjudicates every move, and issues a signed, verifiable record of the result.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/product.css">
+</head>
+<body class="product">
+  <div class="strip"><span>Exercise control · Product</span><span>Self-hosted · offline-capable · ATT&amp;CK-grounded</span></div>
+  <header class="bar">
+    <div class="brand"><span class="mark"><span>G</span></span><b>Gauntlet</b><small>Exercise control</small></div>
+    <div class="bar-actions">
+      <a class="btn ghost" href="#how">How it works</a>
+      <a class="btn ghost" href="#pricing">Pricing</a>
+      <a class="btn ghost" href="/verify.html">Verify a certificate</a>
+      <a class="btn primary" href="/?tour=1">Open the console</a>
+      <button class="btn toggle" id="btnTheme" aria-label="Toggle theme">◑</button>
+    </div>
+  </header>
+
+  <main class="pd">
+    <section class="pd-hero">
+      <p class="eyebrow">For security teams that have to prove readiness, not perform it</p>
+      <h1>The tabletop that ends with a number you can sign.</h1>
+      <p class="pd-lead">Gauntlet models <em>your</em> environment — assets, controls, detections, deception — and adjudicates every adversary move against it. The exercise is a tamper-evident record; the result is a certificate an auditor, insurer or board can verify without an account.</p>
+      <div class="pd-cta">
+        <a class="btn primary big" href="/?tour=1">Run the demo exercise</a>
+        <a class="btn ghost big" href="https://github.com/Moose11b/gauntlet" rel="noopener">Source and deployment</a>
+      </div>
+      <div class="pd-figures">
+        <div class="pd-fig"><span class="v">100%</span><span class="k">Offline — no LLM, no egress required</span></div>
+        <div class="pd-fig"><span class="v">11</span><span class="k">CTEP packs across 8 sector groups</span></div>
+        <div class="pd-fig"><span class="v">6</span><span class="k">Library environments, one click to stamp</span></div>
+        <div class="pd-fig"><span class="v">4</span><span class="k">Reports from one timeline: executive, technical, GRC, training</span></div>
+      </div>
+    </section>
+
+    <section class="pd-section" id="why">
+      <h2>Why most tabletops fail, and what this one does instead</h2>
+      <div class="pd-cols">
+        <div class="pd-col">
+          <h3>Theatre</h3>
+          <p>Pre-printed cards, a six-slide deck, a facilitator transcribing answers into a report that was written before the room sat down.</p>
+          <h3>Gauntlet</h3>
+          <p>A branching scenario that reacts to what the team actually decides. Every move is ruled against the controls you really have, on the assets you really run, with the deception you really placed. The report is generated from the record, not the other way round.</p>
+        </div>
+        <div class="pd-col">
+          <h3>No memory</h3>
+          <p>Lessons captured in a document nobody opens; the next exercise starts from zero.</p>
+          <h3>Gauntlet</h3>
+          <p>Detection rate, mean time-to-detect, objectives met and ATT&amp;CK breadth trend across exercises. Improvement items are logged in the room and pushed to your tracker. The certificate carries the figures, signed.</p>
+        </div>
+        <div class="pd-col">
+          <h3>Assumed detection</h3>
+          <p>"The SIEM would have caught that." Would it?</p>
+          <h3>Gauntlet</h3>
+          <p>Record the alerts your tools actually raised and every adjudicated action becomes <em>confirmed</em>, a <em>silent gap</em>, a <em>surprise</em>, or <em>missed</em>. The environment model is calibrated against reality, exercise by exercise.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="pd-section" id="how">
+      <h2>How an exercise runs</h2>
+      <ol class="pd-steps">
+        <li><b>Model the system under test.</b> Stamp a library environment or import your CMDB, EDR, SIEM or attack-surface export. Assets, controls with efficacy and latency, detections, deception, crown jewels, per-cell visibility.</li>
+        <li><b>Build the exercise.</b> Emulate a real ATT&amp;CK group or a designed adversary through an attack-type template, import a CTEP pack, or author a branching scenario in the visual editor.</li>
+        <li><b>Run the room.</b> Pre-brief and projector views for the room; join codes for large groups; the facilitator drives from the console by keyboard. Blue, red and observer cells each see only their side.</li>
+        <li><b>Adjudicate.</b> Each adversary move is ruled deterministically against the environment. The purple-team loop shows the red cell instantly whether it was caught.</li>
+        <li><b>Hotwash and record.</b> Rate every objective before anyone leaves; log improvement items; issue the certificate. Four reports, compliance crosswalks and a Navigator layer come from the same signed timeline.</li>
+      </ol>
+    </section>
+
+    <section class="pd-section" id="trust">
+      <h2>Built to be trusted inside the perimeter</h2>
+      <div class="pd-grid">
+        <div><h3>Offline by design</h3><p>The engine needs no network and no language model. Air-gapped mode refuses every outbound call, fail-closed.</p></div>
+        <div><h3>Tamper-evident</h3><p>An append-only, HMAC-chained timeline with a signed head; certificates signed with a domain-separated key and publicly verifiable.</p></div>
+        <div><h3>Enterprise identity</h3><p>OIDC single sign-on, SCIM 2.0 provisioning, TOTP MFA, four roles, a participant boundary enforced on the server.</p></div>
+        <div><h3>Tenant isolation</h3><p>Application scoping plus Postgres row-level security, on by default in production. Encryption at rest with a rotatable keyring.</p></div>
+        <div><h3>Evidence, not attestation</h3><p>Crosswalks to the frameworks your auditors ask about, exported as PDF, DOCX, CSV and JSON — labelled as exercise evidence, never a compliance claim.</p></div>
+        <div><h3>Supply chain</h3><p>SAST, dependency audit and secret scanning on every change; a CycloneDX SBOM with every release; single-worker, non-root container.</p></div>
+      </div>
+    </section>
+
+    <section class="pd-section" id="pricing">
+      <h2>Pricing</h2>
+      <p class="hint">Indicative, per organisation, billed annually. Every tier is the same software; the difference is scale, identity integration and support.</p>
+      <div class="pd-tiers">
+        <div class="pd-tier">
+          <p class="eyebrow">Community</p>
+          <p class="pd-price">Free</p>
+          <p class="pd-sub">Self-hosted, source available</p>
+          <ul>
+            <li>The full engine: environments, adjudication, branching, purple-team loop</li>
+            <li>Environment and CTEP libraries, adversary catalog</li>
+            <li>Reports, certificates, exports</li>
+            <li>One organisation, community support</li>
+          </ul>
+          <a class="btn ghost" href="https://github.com/Moose11b/gauntlet" rel="noopener">Deploy it</a>
+        </div>
+        <div class="pd-tier pd-tier-mid">
+          <p class="eyebrow">Team</p>
+          <p class="pd-price">$6,000<span>/year</span></p>
+          <p class="pd-sub">For a security team running a programme</p>
+          <ul>
+            <li>Everything in Community</li>
+            <li>Up to 5 facilitators, unlimited participants and exercises</li>
+            <li>Telemetry loop, maturity analytics, tracker push (Jira, ServiceNow)</li>
+            <li>Email support, next-business-day</li>
+          </ul>
+          <a class="btn primary" href="mailto:sales@example.invalid?subject=Gauntlet%20Team">Talk to us</a>
+        </div>
+        <div class="pd-tier">
+          <p class="eyebrow">Enterprise</p>
+          <p class="pd-price">From $24,000<span>/year</span></p>
+          <p class="pd-sub">Regulated, multi-team, or air-gapped</p>
+          <ul>
+            <li>Everything in Team</li>
+            <li>SSO and SCIM, Postgres RLS, encryption at rest, retention controls</li>
+            <li>Air-gapped licence, SBOM and pen-test readiness pack</li>
+            <li>Sector benchmarking, support SLA, named contact</li>
+          </ul>
+          <a class="btn ghost" href="mailto:sales@example.invalid?subject=Gauntlet%20Enterprise">Talk to us</a>
+        </div>
+      </div>
+      <p class="hint">Facilitated exercises — we run it with your team, on your instance — from $8,000 per exercise.</p>
+    </section>
+
+    <section class="pd-section pd-final">
+      <h2>See the number.</h2>
+      <p>The demo organisation ships with three exercises across a bank, a hospital and a water utility. Run one; issue the certificate; verify it.</p>
+      <a class="btn primary big" href="/?tour=1">Open the console</a>
+    </section>
+  </main>
+
+  <footer class="pd-foot">
+    <span>Gauntlet · exercise control</span>
+    <span><a href="/SECURITY.md">Security policy</a> · <a href="https://github.com/Moose11b/gauntlet/blob/main/docs/ENTERPRISE.md" rel="noopener">Enterprise checklist</a> · <a href="/verify.html">Verify a certificate</a></span>
+  </footer>
+  <script src="/product.js"></script>
+</body>
+</html>
