@@ -13,7 +13,7 @@ from .sessions import ACTIVE, require_status
 router = APIRouter(prefix="/api/sessions", tags=["evidence"])
 
 
-@router.post("/{session_id}/evidence", status_code=201)
+@router.post("/{session_id}/attachments", status_code=201)
 def upload(session_id: int, payload: schemas.EvidenceIn, request: Request,
            user: models.User = Depends(require_evaluator), db: Session = Depends(get_db)):
     """Attach a file to the exercise record; its digest lands on the chain."""
@@ -29,7 +29,7 @@ def upload(session_id: int, payload: schemas.EvidenceIn, request: Request,
     return evidence.summary(att)
 
 
-@router.get("/{session_id}/evidence")
+@router.get("/{session_id}/attachments")
 def list_evidence(session_id: int, user: models.User = Depends(require_evaluator), db: Session = Depends(get_db)):
     s = scope_or_404(db.get(models.Session, session_id), user)
     rows = db.execute(select(models.Attachment).where(models.Attachment.session_id == s.id)
@@ -39,7 +39,7 @@ def list_evidence(session_id: int, user: models.User = Depends(require_evaluator
             "valid": ev["valid"], "problems": ev["problems"]}
 
 
-@router.get("/{session_id}/evidence/{attachment_id}")
+@router.get("/{session_id}/attachments/{attachment_id}")
 def download(session_id: int, attachment_id: int, request: Request,
              user: models.User = Depends(require_evaluator), db: Session = Depends(get_db)):
     s = scope_or_404(db.get(models.Session, session_id), user)

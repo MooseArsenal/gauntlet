@@ -132,7 +132,7 @@ def _seed_everything(c, h, org_id, scn, sid):
     c.post(f"/api/sessions/{sid}/start", headers=h)
     c.post(f"/api/sessions/{sid}/observe", headers=h, json={"note": "n"})
     c.post(f"/api/sessions/{sid}/reports", headers=h, json={"audience": "executive"})
-    assert c.post(f"/api/sessions/{sid}/evidence", headers=h, json={
+    assert c.post(f"/api/sessions/{sid}/attachments", headers=h, json={
         "filename": "note.txt", "content_type": "text/plain", "content": "aGVsbG8="}).status_code == 201
     c.post(f"/api/sessions/{sid}/complete", headers=h)
     assert c.post(f"/api/sessions/{sid}/certificate", headers=h).status_code == 201

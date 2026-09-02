@@ -495,13 +495,13 @@
   async function updateEvidence() {
     if (!currentSid || !$("evidenceList")) return;
     try {
-      const ev = await api(`/api/sessions/${currentSid}/evidence`);
+      const ev = await api(`/api/sessions/${currentSid}/attachments`);
       $("evidenceState").textContent = ev.attachments.length ? (ev.valid ? `— ${ev.attachments.length} file(s), digests verified` : `— ${ev.problems.join("; ")}`) : "";
       $("evidenceList").innerHTML = ev.attachments.length
         ? ev.attachments.map((a) => `<li><a href="#" data-att="${a.id}" data-name="${escapeHtml(a.filename)}">${escapeHtml(a.filename)}</a> <span class="hint">${a.size} B · ${escapeHtml(a.sha256.slice(0, 12))}…${a.note ? " · " + escapeHtml(truncate(a.note, 50)) : ""}</span></li>`).join("")
         : '<li class="muted">Nothing attached yet.</li>';
       $("evidenceList").querySelectorAll("[data-att]").forEach((a) => a.addEventListener("click", (e) => {
-        e.preventDefault(); downloadBlob(`/api/sessions/${currentSid}/evidence/${a.dataset.att}`, a.dataset.name);
+        e.preventDefault(); downloadBlob(`/api/sessions/${currentSid}/attachments/${a.dataset.att}`, a.dataset.name);
       }));
     } catch (e) { /* evidence is optional */ }
   }
@@ -510,7 +510,7 @@
     if (!f) { toast("Choose a file first."); return; }
     try {
       const b64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1] || ""); r.onerror = rej; r.readAsDataURL(f); });
-      await api(`/api/sessions/${currentSid}/evidence`, "POST", { filename: f.name, content_type: f.type || "application/octet-stream", content: b64, note: $("evNote").value.trim() });
+      await api(`/api/sessions/${currentSid}/attachments`, "POST", { filename: f.name, content_type: f.type || "application/octet-stream", content: b64, note: $("evNote").value.trim() });
       $("evFile").value = ""; $("evNote").value = "";
       toast("Evidence attached — its digest is on the record.");
       await loadState();
@@ -950,7 +950,7 @@
 
   async function previewCompliance() {
     try {
-      const ev = await api(`/api/sessions/${currentSid}/evidence`);
+      const ev = await api(`/api/sessions/${currentSid}/attachments`);
       const blocks = ev.frameworks.map((f) => {
         const rows = f.controls.map((c) =>
           `<tr><td><code>${escapeHtml(c.id)}</code></td><td>${escapeHtml(c.title)}</td>` +
