@@ -3,6 +3,14 @@
 # scale by adding containers behind a sticky proxy (or move that state to a
 # shared store first). See docs/DEPLOY.md.
 FROM python:3.12-slim AS base
+ARG GAUNTLET_VERSION=dev
+ARG GAUNTLET_REVISION=unknown
+LABEL org.opencontainers.image.title="Gauntlet" \
+      org.opencontainers.image.description="Exercise control: environment-grounded cyber tabletop and purple-team engine" \
+      org.opencontainers.image.version="${GAUNTLET_VERSION}" \
+      org.opencontainers.image.revision="${GAUNTLET_REVISION}" \
+      org.opencontainers.image.source="https://github.com/Moose11b/gauntlet" \
+      org.opencontainers.image.licenses="See LICENSE"
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
 RUN useradd --create-home --uid 10001 gauntlet
 WORKDIR /srv/gauntlet
