@@ -286,6 +286,14 @@ def seed_if_empty(db: Session) -> bool:
     env.org_id = org.id
     db.add(env)
     db.flush()
+    # A few more systems under test, so the environment picker is a choice on
+    # day one (E1). The worked scenario below stays on Northwind.
+    from .authoring.environments import build_from_template
+    for key in ("hospital", "water_utility", "saas"):
+        extra = build_from_template(key)
+        extra.org_id = org.id
+        db.add(extra)
+    db.flush()
 
     scenario = models.Scenario(
         org_id=org.id,
