@@ -146,9 +146,69 @@
     }
     const lnk = $("lnkPartner"); if (lnk) lnk.hidden = !lic.features.includes("partner_mode");
     const lnkC = $("lnkClassroom"); if (lnkC) lnkC.hidden = !lic.features.includes("education");
+    // L5: content packs and the intel feed
+    const packsOn = lic.features.includes("content_packs"), intelOn = lic.features.includes("intel_feed");
+    $("packPanel").hidden = false;
+    $("packState").innerHTML = packsOn ? "— scenario packs" + (intelOn ? " and intel" : "") + " install here" : '<span class="pill">Team</span> — not in this deployment\'s tier; inspecting still works';
+    loadPacks();
+    $("intelPanel").hidden = false;
+    $("intelState").innerHTML = intelOn ? "" : '<span class="pill">Enterprise</span> — not in this deployment\'s tier';
+    if (intelOn) loadIntel();
     const scimOn = lic.features.includes("scim");
     const scimPanel = $("scimPanel");
     if (scimPanel) scimPanel.querySelector(".eyebrow").innerHTML = `SCIM provisioning ${scimOn ? '<span class="hint">— let the identity provider create and deactivate members</span>' : '<span class="pill">Enterprise</span> <span class="hint">— not in this deployment\'s tier</span>'}`;
+  }
+
+  async function loadPacks() {
+    try {
+      const rows = await api("/api/packs");
+      $("packList").innerHTML = rows.length ? `<table class="dfields"><thead><tr><th>Pack</th><th>Kind</th><th>Version</th><th>Publisher</th><th>Items</th><th>Installed</th><th></th></tr></thead><tbody>` +
+        rows.map((p) => `<tr><td><b>${esc(p.name)}</b> <span class="hint">${esc(p.pack_id)}</span></td><td>${esc(p.kind)}</td><td class="mono">${esc(p.version)}</td><td>${esc(p.publisher)}</td><td>${p.items}</td><td>${esc(new Date(p.updated_at).toLocaleDateString())}</td><td><button class="btn ghost small" data-forget="${p.id}">Forget</button></td></tr>`).join("") + `</tbody></table>`
+        : '<p class="hint">No packs installed.</p>';
+      $("packList").querySelectorAll("[data-forget]").forEach((b) => b.addEventListener("click", async () => {
+        if (!confirm("Forget this pack? The scenarios or adversaries it created stay.")) return;
+        try { await api(`/api/packs/${b.dataset.forget}`, "DELETE"); loadPacks(); loadIntel(); } catch (e) { toast(e.message); }
+      }));
+    } catch (e) { $("packList").innerHTML = `<p class="hint">${esc(e.message)}</p>`; }
+  }
+  async function loadIntel() {
+    try {
+      const feed = await api("/api/packs/intel");
+      $("intelFeed").innerHTML = feed.length ? feed.map((e) => `<div class="panel scene" style="margin:.4rem 0"><p class="eyebrow">${esc(e.published || "")} · ${esc(e.pack)} ${esc(e.pack_version)}</p><b>${esc(e.title)}</b>${e.headline ? ` — ${esc(e.headline)}` : ""}` +
+        `<p class="hint" style="white-space:pre-wrap">${esc(e.notes || "")}</p><p class="hint">${(e.techniques || []).map((t) => `<span class="tag">${esc(t)}</span>`).join(" ")} ${(e.sectors || []).map((t) => `<span class="tag obj">${esc(t)}</span>`).join(" ")}</p>` +
+        ((e.references || []).length ? `<p class="hint">${e.references.map((r) => esc(r)).join("<br>")}</p>` : "") + `</div>`).join("")
+        : '<p class="hint">No intel installed yet. Intel packs add dated adversary profiles here and as custom adversaries the scenario generator can use.</p>';
+    } catch (e) { $("intelFeed").innerHTML = `<p class="hint">${esc(e.message)}</p>`; }
+  }
+  async function packToken() {
+    const f = $("packFile").files[0];
+    if (f) return (await f.text()).trim();
+    return $("packToken").value.trim();
+  }
+  async function inspectPack() {
+    const tok = await packToken(); if (!tok) { toast("Paste a pack token or choose a file."); return; }
+    try {
+      const pre = await api("/api/packs/inspect", "POST", { token: tok });
+      let envSel = "";
+      if (pre.kind === "scenarios") {
+        const envs = await api("/api/environments");
+        envSel = `<label class="hint">Bind to <select id="packEnv"><option value="">the library environment each scenario names</option>${envs.map((e) => `<option value="${e.id}">${esc(e.name)}</option>`).join("")}</select></label>`;
+      }
+      $("packPreview").hidden = false;
+      $("packPreview").innerHTML = `<div class="panel scene"><p class="eyebrow">${esc(pre.kind)} pack · signature verified</p><b>${esc(pre.name)}</b> <span class="mono">${esc(pre.version)}</span> <span class="hint">by ${esc(pre.publisher)}, issued ${esc(pre.issued)} · ${pre.count} item${pre.count === 1 ? "" : "s"} · sha256 ${esc(pre.digest.slice(0, 12))}…</span>` +
+        `<ul style="margin:.4rem 0 .4rem 1rem">${pre.items.map((it) => `<li>${esc(it.title)}${it.threat_actor ? ` <span class="hint">— ${esc(it.threat_actor)}, ${it.injects} injects, ${it.environment_key ? "environment " + esc(it.environment_key) : "no library environment"}</span>` : ""}${it.headline ? ` <span class="hint">— ${esc(it.headline)}</span>` : ""}</li>`).join("")}</ul>` +
+        `<div class="row">${envSel}<button class="btn primary" id="btnPackInstall" ${pre.licensed ? "" : "disabled"}>Install</button>${pre.licensed ? "" : '<span class="hint">needs ' + esc(pre.feature.replace("_", " ")) + " in the licence</span>"}</div></div>`;
+      const btn = $("btnPackInstall");
+      if (btn) btn.addEventListener("click", async () => {
+        const envEl = $("packEnv"); const environment_id = envEl && envEl.value ? Number(envEl.value) : null;
+        try {
+          const out = await api("/api/packs/install", "POST", { token: tok, environment_id });
+          toast(`Installed ${out.pack.name} ${out.pack.version}: ${out.created.length} item${out.created.length === 1 ? "" : "s"}${out.warnings.length ? " (" + out.warnings.length + " warning" + (out.warnings.length === 1 ? "" : "s") + ")" : ""}.`);
+          $("packPreview").hidden = true; $("packToken").value = ""; $("packFile").value = "";
+          loadPacks(); loadIntel();
+        } catch (e) { toast(e.message); }
+      });
+    } catch (e) { toast(e.message); }
   }
 
   function init() {
@@ -180,6 +240,7 @@
       try { await api("/api/admin/license", "DELETE"); toast("Licence removed — running as Community."); loadLicense(); }
       catch (e) { toast(e.message); }
     });
+    $("btnPackInspect").addEventListener("click", inspectPack);
     $("btnScimMint").addEventListener("click", async () => {
       try {
         const out = await api("/api/admin/scim-token", "POST");

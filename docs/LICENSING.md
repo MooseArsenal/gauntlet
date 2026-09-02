@@ -51,3 +51,7 @@ shipping the new public key in a release, and re-issuing licences.
   class into a run, the gradebook and its CSV export, anonymous grading.
 - `replay` — `GET /api/sessions/{id}/replay` and `POST /api/sessions/{id}/rewind`:
   the exercise as scenes, and a fork of a new run from any scene.
+
+- `content_packs` — `POST /api/packs/install` for scenario packs; `intel_feed` —
+  intel packs and `GET /api/packs/intel`. Inspecting a pack is always allowed.
+  See `docs/CONTENT_PACKS.md`.

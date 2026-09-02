@@ -11,7 +11,7 @@ import asyncio
 
 from . import __version__, ws
 from .api import (
-    admin, adversaries, analytics_api, archive, attendance_api, attack_api, audit_api, auth, authoring, certificates, decisions, delivery_api, education_api, evidence_api, license_api, partner_api, propose_api, replay_api,
+    admin, adversaries, analytics_api, archive, attendance_api, attack_api, audit_api, auth, authoring, certificates, decisions, delivery_api, education_api, evidence_api, license_api, packs_api, partner_api, propose_api, replay_api,
     compliance_api,
     environments, exports_api, improvements, join_api, live, members, multicell, program, purple,
     reports,
@@ -128,6 +128,7 @@ app.include_router(license_api.router)
 app.include_router(partner_api.router)
 app.include_router(education_api.router)
 app.include_router(replay_api.router)
+app.include_router(packs_api.router)
 app.include_router(scim.router)
 app.include_router(telemetry.router)
 app.include_router(ws.router)
