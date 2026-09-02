@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
   <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/game.css">
 </head>
 <body>
   <div class="strip"><span>Exercise control · Participant view</span><span>Facilitated exercise — no production access — all actions are simulated</span></div>
@@ -35,6 +36,7 @@
         <div id="scene"><p class="muted">Pick a session to join.</p></div>
         <div class="dc" id="decision" hidden></div>
         <div class="dc" id="attendance" hidden></div>
+        <div id="sheet" hidden></div>
       </div>
     </section>
     <aside class="side">
@@ -47,6 +49,7 @@
 
   <div class="toast" id="toast" hidden></div>
   <script src="/brand.js"></script>
+  <script src="/game.js"></script>
   <script src="/participant.js"></script>
 </body>
 </html>

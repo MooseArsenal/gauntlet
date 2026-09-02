@@ -69,6 +69,7 @@ def cell_session_view(
         current_inject=inject_out,
         timeline=[schemas.TimelineEventOut.model_validate(e) for e in visible_events],
         objectives=[schemas.ObjectiveOut.model_validate(o) for o in scenario.objectives],
+        impact=dict((s.state or {}).get("impact") or {}),
         decision=decisions.public_spec(spec),
         my_response=decisions.my_response(s, user.id, visible_current.code) if visible_current else None,
     )
