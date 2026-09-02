@@ -1,58 +1,58 @@
 /* Gauntlet guided wizards (Q3). Mouse-first, uses the shared design tokens. */
 .wz{max-width:900px;margin:0 auto;padding:2rem 1.2rem;width:100%}
-.wz-crumbs{font-family:"IBM Plex Mono",monospace;font-size:.72rem;color:var(--muted)}
+.wz-crumbs{font-family:var(--mono);font-size:.72rem;color:var(--muted)}
 .wz-crumbs b{color:var(--accent-ink)}
 
 .wz-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:.6rem}
 @media(max-width:800px){.wz-cards{grid-template-columns:1fr}}
-.wz-card{text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:16px;
-  padding:1.4rem 1.2rem;box-shadow:var(--shadow);transition:.15s ease;display:grid;gap:.35rem}
-.wz-card:hover{border-color:var(--accent);transform:translateY(-2px)}
-.wz-card .wz-ic{font-size:1.6rem}
-.wz-card h3{font-family:"Archivo",sans-serif;font-size:1.1rem;margin:.2rem 0 0}
+.wz-card{text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:1.4rem 1.2rem;border-color:var(--rule);border-width:1.5px;display:grid;gap:.35rem}
+.wz-card:hover{background:var(--surface-2)}
+.wz-card .wz-ic{width:28px;height:28px;color:var(--ink)} .wz-card .wz-ic svg{width:28px;height:28px}
+.wz-card h3{font-family:var(--display);font-size:1.1rem;margin:.2rem 0 0}
 .wz-card p{color:var(--muted);font-size:.82rem;margin:0}
 
 /* Step dots */
 .wz-dots{display:flex;gap:.5rem;align-items:center;margin-bottom:1.3rem}
-.wz-dots .d{width:9px;height:9px;border-radius:50%;background:var(--surface-3);border:1px solid var(--line)}
-.wz-dots .d.on{background:var(--accent);border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-wash)}
-.wz-dots .d.done{background:var(--good);border-color:var(--good)}
+.wz-dots .d{width:9px;height:9px;border-radius:0;background:var(--surface);border:1.5px solid var(--rule)}
+.wz-dots .d.on{background:var(--crit);border-color:var(--crit)}
+.wz-dots .d.done{background:var(--rule);border-color:var(--rule)}
 
-.wz-step h2{font-family:"Archivo",sans-serif;font-size:1.5rem;margin:0 0 .3rem}
+.wz-step h2{font-family:var(--display);font-size:1.5rem;margin:0 0 .3rem}
 .wz-lead{color:var(--ink-soft);margin:0 0 1.3rem}
 
 /* Pick-a-card tiles (scenario library, scenarios, sessions) */
 .wz-tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:.7rem}
 @media(max-width:640px){.wz-tiles{grid-template-columns:1fr}}
-.wz-tile{text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:12px;
+.wz-tile{text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
   padding:.85rem 1rem;cursor:pointer;transition:.12s ease;display:grid;gap:.2rem}
 .wz-tile:hover{border-color:var(--accent)}
-.wz-tile.sel{border-color:var(--accent);background:var(--accent-wash);box-shadow:0 0 0 1px var(--accent) inset}
+.wz-tile.sel{border-color:var(--rule);box-shadow:0 0 0 1.5px var(--rule) inset;background:var(--surface)}
 .wz-tile .t{font-weight:600;font-size:.9rem}
 .wz-tile .d{color:var(--muted);font-size:.76rem;line-height:1.3}
-.wz-tile .m{font-family:"IBM Plex Mono",monospace;font-size:.64rem;color:var(--accent-ink);text-transform:uppercase;letter-spacing:.06em}
+.wz-tile .m{font-family:var(--mono);font-size:.64rem;color:var(--accent-ink);text-transform:uppercase;letter-spacing:.06em}
 
 /* Segmented "how do you want to choose?" control */
 .wz-seg{display:inline-flex;gap:.2rem;background:var(--surface-2);border:1px solid var(--line);
-  border-radius:12px;padding:.25rem;margin-bottom:1rem;flex-wrap:wrap}
-.wz-seg .seg{border:0;background:transparent;color:var(--muted);border-radius:9px;
+  border-radius:var(--r);padding:.25rem;margin-bottom:1rem;flex-wrap:wrap}
+.wz-seg .seg{border:0;background:transparent;color:var(--muted);border-radius:var(--r);
   padding:.5rem .9rem;font:inherit;font-size:.85rem;cursor:pointer;transition:.12s ease}
 .wz-seg .seg:hover{color:var(--ink)}
-.wz-seg .seg.on{background:var(--surface);color:var(--accent-ink);box-shadow:var(--shadow)}
+.wz-seg .seg.on{background:var(--rule);color:var(--bg)}
 
 .wz-pickhead{display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin-bottom:.6rem;min-height:1.9rem}
-.wz-count{font-family:"IBM Plex Mono",monospace;font-size:.72rem;color:var(--accent-ink);text-transform:uppercase;letter-spacing:.06em}
+.wz-count{font-family:var(--mono);font-size:.72rem;color:var(--accent-ink);text-transform:uppercase;letter-spacing:.06em}
 .wz-pickchip{font-size:.82rem;color:var(--ink-soft);background:var(--accent-wash);border:1px solid var(--line);
-  border-radius:10px;padding:.5rem .8rem;margin:0 0 1rem;display:inline-block}
+  border-radius:var(--r);padding:.5rem .8rem;margin:0 0 1rem;display:inline-block}
 .wz-pickchip b{color:var(--accent-ink)}
 
 .wz-field{display:grid;gap:.35rem;margin-bottom:1rem;max-width:520px}
 .wz-field label{font-size:.78rem;color:var(--muted)}
-.wz-field input,.wz-field select{background:var(--surface-2);border:1px solid var(--line);border-radius:8px;
+.wz-field input,.wz-field select{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r);
   padding:.6rem .7rem;font:inherit;font-size:.9rem;color:var(--ink)}
 .wz-choice{display:flex;gap:.5rem;flex-wrap:wrap}
-.wz-choice .opt{border:1px solid var(--line);background:var(--surface-2);border-radius:10px;padding:.6rem .9rem;cursor:pointer;font-size:.85rem}
-.wz-choice .opt.sel{border-color:var(--accent);background:var(--accent-wash);color:var(--accent-ink)}
+.wz-choice .opt{border:1px solid var(--line);background:var(--surface-2);border-radius:var(--r);padding:.6rem .9rem;cursor:pointer;font-size:.85rem}
+.wz-choice .opt.sel{border-color:var(--rule);background:var(--rule);color:var(--bg)}
 
 .wz-nav{display:flex;align-items:center;gap:.6rem;margin-top:1.6rem;padding-top:1rem;border-top:1px solid var(--line)}
 .wz-spacer{flex:1}
@@ -70,8 +70,8 @@
 .wz-addrow select{flex:1}
 .wz-chain{display:flex;flex-direction:column;gap:.35rem;margin:.2rem 0 1rem}
 .wz-chain .chip{display:flex;align-items:center;gap:.5rem;background:var(--surface-2);border:1px solid var(--line);
-  border-radius:8px;padding:.4rem .6rem;font-size:.82rem}
-.wz-chain .chip b{font-family:"IBM Plex Mono",monospace;font-size:.7rem;color:var(--accent-ink);
+  border-radius:var(--r);padding:.4rem .6rem;font-size:.82rem}
+.wz-chain .chip b{font-family:var(--mono);font-size:.7rem;color:var(--accent-ink);
   background:var(--accent-wash);border-radius:5px;padding:.05rem .35rem}
 .wz-chain .chip .x{margin-left:auto;background:none;border:0;color:var(--muted);cursor:pointer;font-size:.85rem}
 .wz-chain .chip .x:hover{color:var(--crit)}
