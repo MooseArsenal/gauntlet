@@ -44,6 +44,11 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         if path.startswith("/api/"):
             # Tokens, exports and personal data must never sit in a shared cache (S-11).
             response.headers.setdefault("Cache-Control", "no-store")
+        else:
+            # Console files: always revalidate. StaticFiles sends an ETag, so an
+            # unchanged file costs a 304, and a deploy is visible on the next
+            # load instead of after the browser's heuristic cache expires (U-7).
+            response.headers.setdefault("Cache-Control", "no-cache, must-revalidate")
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("X-Frame-Options", "DENY")
         response.headers.setdefault("Referrer-Policy", "no-referrer")
