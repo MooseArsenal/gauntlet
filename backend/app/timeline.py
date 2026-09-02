@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import hmac
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from hashlib import sha256
 
 from sqlalchemy import select
@@ -49,7 +49,7 @@ def append_event(
     prev_hash = last.hash if last else ""
     # Naive UTC so the value hashed here round-trips byte-identically out of the
     # database when the chain is later re-verified.
-    at = datetime.utcnow()
+    at = datetime.now(timezone.utc).replace(tzinfo=None)  # naive UTC, as before (U-6)
 
     canonical = json.dumps(
         {

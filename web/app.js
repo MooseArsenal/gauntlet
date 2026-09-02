@@ -4,6 +4,7 @@
 
   const $ = (id) => document.getElementById(id);
   let currentSid = null;
+  let currentUser = null;   // set on sign-in / session restore; drives role-gated UI
   let currentInjectId = null;
   let selectedRating = "note";
   let detectStreak = 0;   // consecutive detections — a little momentum
@@ -105,6 +106,7 @@
 
   async function finishLogin(data) {
     setTokens(data.access_token, data.refresh_token);
+    currentUser = data.user;
     $("userLabel").textContent = `${data.user.email} · ${data.user.role}`;
     $("loginView").hidden = true;
     const mfaEl = $("mfaView");
@@ -193,6 +195,7 @@
     if (!getToken()) { showLogin(); return false; }
     try {
       const me = await api("/api/auth/me");
+      currentUser = me;
       $("userLabel").textContent = `${me.email} · ${me.role}`;
       return true;
     } catch (e) { showLogin(); return false; }
@@ -210,7 +213,7 @@
     $("btnNew").hidden = false;
     $("btnGuided").hidden = false;
     $("btnEditor").hidden = false;
-    $("btnMembers").hidden = !(me && me.role === "admin");  // U-1: admins manage members
+    $("btnMembers").hidden = !(currentUser && currentUser.role === "admin");  // U-1: admins manage members
     ["btnPause", "btnResume", "btnVerify"].forEach((id) => ($(id).hidden = true));
 
     const showArchived = $("showArchived") && $("showArchived").checked;
@@ -614,6 +617,7 @@
       `<div class="verdict"><span class="${r.detected ? "v-detected" : "v-missed"}">${r.detected ? "DETECTED" : "MISSED"}</span>` +
       `<span>${r.time_to_detect_min != null ? r.time_to_detect_min + " min" : "—"}</span></div>` +
       `<div class="rationale">${escapeHtml(r.rationale)}</div>` +
+      (r.asset_known === false ? `<div class="rationale warn">⚠ "${escapeHtml(r.target_asset)}" is not an asset in this environment — check the code.</div>` : "") +
       (controls ? `<div class="controls">${controls}</div>` : "");
   }
 
@@ -900,6 +904,9 @@
       const h = await (await fetch("/api/health")).json();
       const pill = $("airgapPill");
       if (pill && h && h.airgapped) pill.hidden = false;
+      // U-5: only advertise the seeded demo credentials when they actually exist.
+      const hint = $("demoHint");
+      if (hint) hint.hidden = !(h && h.demo);
     } catch (e) { /* noop */ }
   }
 

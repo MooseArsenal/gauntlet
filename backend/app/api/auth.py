@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from .. import audit, models, oidc, schemas, security
 from ..audit import client_ip
-from ..config import LOGIN_ACCOUNT_MAX_ATTEMPTS, OIDC_ENABLED
+from ..config import LOGIN_ACCOUNT_MAX_ATTEMPTS, OIDC_ENABLED, REGISTER_MAX_PER_WINDOW
 from ..database import get_db
 from ..security import (
     create_token,
@@ -58,6 +58,10 @@ def _email_taken(db: Session, email: str) -> bool:
 @router.post("/register", response_model=schemas.TokenOut, status_code=201)
 def register(payload: schemas.RegisterIn, request: Request, db: Session = Depends(get_db)):
     """Create a new organisation and its first user (an admin)."""
+    reg_key = f"reg|{client_ip(request)}"
+    if throttle.retry_after(reg_key) > 0:
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS,
+                            "too many organisations created from this address; try again later")
     _enforce_password(payload.password)
     if _email_taken(db, payload.email):
         raise HTTPException(status.HTTP_409_CONFLICT, "email already registered")
@@ -75,6 +79,7 @@ def register(payload: schemas.RegisterIn, request: Request, db: Session = Depend
                  detail={"org": org.name}, commit=False)
     result = _tokens(db, user)
     db.commit()
+    throttle.record_failure(reg_key, limit=REGISTER_MAX_PER_WINDOW)  # counts registrations, not failures
     return result
 
 

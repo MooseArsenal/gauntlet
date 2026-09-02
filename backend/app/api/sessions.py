@@ -128,7 +128,7 @@ def create_session(
 
 
 @router.get("", response_model=list[schemas.SessionSummary])
-def list_sessions(include_archived: bool = False,
+def list_sessions(include_archived: bool = False, limit: int = 100, offset: int = 0,
                   user: models.User = Depends(require_staff), db: Session = Depends(get_db)):
     return (
         db.execute(
@@ -136,6 +136,7 @@ def list_sessions(include_archived: bool = False,
             .where(models.Session.org_id == user.org_id,
                    *([] if include_archived else [models.Session.archived_at.is_(None)]))
             .order_by(models.Session.id.desc())
+            .limit(max(1, min(limit, 500))).offset(max(0, offset))
         )
         .scalars()
         .all()

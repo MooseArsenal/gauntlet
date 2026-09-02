@@ -17,8 +17,8 @@ from .api import (
     scenarios, schedules, sessions,
 )
 from .config import (
-    AIRGAPPED, APP_TAGLINE, APP_TITLE, CORS_ORIGINS, MAX_REQUEST_BYTES, SEED_ON_START,
-    USE_ALEMBIC, WEB_DIR, validate_config,
+    AIRGAPPED, APP_TAGLINE, APP_TITLE, CORS_ORIGINS, DOCS_ENABLED, IS_PROD, MAX_REQUEST_BYTES,
+    SEED_ON_START, USE_ALEMBIC, WEB_DIR, validate_config,
 )
 from .body_limit import BodySizeLimitMiddleware
 from .database import SessionLocal, create_all
@@ -65,6 +65,10 @@ app = FastAPI(
     description=f"{APP_TAGLINE}. Tabletop-first reference implementation.",
     version=__version__,
     lifespan=lifespan,
+    # S-11: no API surface enumeration in production unless GAUNTLET_DOCS=1.
+    docs_url="/docs" if DOCS_ENABLED else None,
+    redoc_url="/redoc" if DOCS_ENABLED else None,
+    openapi_url="/openapi.json" if DOCS_ENABLED else None,
 )
 
 app.add_middleware(SecurityHeadersMiddleware)
@@ -81,7 +85,9 @@ app.add_middleware(BodySizeLimitMiddleware, max_bytes=lambda: MAX_REQUEST_BYTES)
 
 @app.get("/api/health", tags=["meta"])
 def health():
-    return {"status": "ok", "app": APP_TITLE, "version": __version__, "airgapped": AIRGAPPED}
+    # "demo" tells the sign-in page whether the seeded demo account exists (U-5).
+    return {"status": "ok", "app": APP_TITLE, "version": __version__, "airgapped": AIRGAPPED,
+            "demo": bool(SEED_ON_START and not IS_PROD)}
 
 
 app.include_router(auth.router)
