@@ -80,6 +80,10 @@ def _timeline_lines(events: Sequence) -> list[str]:
             out.append(f"- `{clock}` Adjudication [{verdict}] — {e.payload.get('rationale', '')}")
         elif e.kind == "note":
             out.append(f"- `{clock}` Note — {e.payload.get('text', '')}")
+        elif e.kind == "response":
+            p_ = e.payload or {}
+            out.append(f"- `{clock}` Decision by {p_.get('display_name', '')} ({p_.get('cell', '')}) — "
+                       f"{p_.get('label') or p_.get('text', '')}" + (f" [{p_.get('latency_sec')} s]" if p_.get("latency_sec") is not None else ""))
         elif e.kind == "status":
             out.append(f"- `{clock}` Status → {e.payload.get('status', '')}")
         elif e.kind == "telemetry":
@@ -95,6 +99,32 @@ def build_report(session, scenario, environment, events, observations, audience:
     from .. import telemetry as _telemetry  # M4: real alerts vs the ruling
     cmp = _telemetry.compare(session)
     telemetry_md = "\n".join(_telemetry.summary_lines(cmp))
+    from .. import decisions as _decisions  # P1
+    dec = _decisions.summary(events)
+    dec_exec = ""
+    dec_tech = ""
+    if dec["responses"]:
+        dec_exec = (f"\n## How the room decided\n\n{dec['responders']} participant(s) answered {dec['injects_answered']} "
+                    f"decision card(s) ({dec['responses']} answers)"
+                    + (f", scoring **{round(dec['mean_score'] * 100)}%** against the modelled best move" if dec["mean_score"] is not None else "")
+                    + (f", median time to decide **{dec['median_latency_sec']} s**" if dec["median_latency_sec"] is not None else "") + ".\n")
+        by_inj: dict[str, list] = {}
+        for e in events:
+            if e.kind == "response":
+                by_inj.setdefault(e.ref, []).append(e.payload or {})
+        rows = []
+        for code, ps in by_inj.items():
+            picks: dict[str, int] = {}
+            for p_ in ps:
+                lbl = p_.get("label") or "(free text)"
+                picks[lbl] = picks.get(lbl, 0) + 1
+            top = max(picks.items(), key=lambda kv: kv[1])
+            sc = [p_["score"] for p_ in ps if p_.get("score") is not None]
+            lat = [p_["latency_sec"] for p_ in ps if p_.get("latency_sec") is not None]
+            rows.append(f"| {code} | {len(ps)} | {top[0]} ({top[1]}) | "
+                        f"{round(sum(sc) / len(sc) * 100) if sc else 'n/a'}% | {round(sum(lat) / len(lat)) if lat else 'n/a'} s |")
+        dec_tech = ("## Participant decisions\n\n| Inject | Answers | Most chosen | Score | Mean time |\n|---|---|---|---|---|\n"
+                    + "\n".join(rows) + "\n\n")
     from .. import benchmark as _benchmark  # M7: the sector's modelled expectation
     ref = _benchmark.reference().get((environment.sector or "") if environment else "")
     ref_md = ""
@@ -130,7 +160,7 @@ def build_report(session, scenario, environment, events, observations, audience:
             f"gaps for the improvement plan below.\n\n"
             f"## Improvement commitments\n\n"
             f"{_improvement_block(observations)}\n"
-            + ref_md
+            + ref_md + dec_exec
             + (f"\n## What the tools saw\n\nAgainst {cmp['alerts']} real alert(s) the SOC's tools raised, the "
                f"environment model agreed on **{round((cmp['model_agreement'] or 0) * 100)}%** of adjudicated actions; "
                f"**{cmp['counts']['silent_gap']}** expected detection(s) never fired.\n" if cmp["alerts"] else "")
@@ -147,6 +177,7 @@ def build_report(session, scenario, environment, events, observations, audience:
             f"| ATT&CK techniques exercised | {', '.join(m['techniques_exercised']) or 'n/a'} |\n"
             f"| Coverage gaps | {', '.join(m['coverage_gaps']) or 'none'} |\n\n"
             + (telemetry_md + "\n" if telemetry_md else "")
+            + dec_tech
             + f"## Full timeline\n\n" + "\n".join(_timeline_lines(events)) + "\n\n"
             f"## Evaluator observations\n\n" + _observation_block(observations) + "\n"
         )

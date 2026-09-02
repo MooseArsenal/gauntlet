@@ -433,3 +433,18 @@ table.grid tbody tr:hover{background:var(--surface-2)}
 .hw-table td{vertical-align:top}.hw-btns{white-space:nowrap;text-align:right}
 .btn.ghost.hw-rate.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 .hw-items{list-style:none;padding:0;margin:.3rem 0 .6rem}.hw-items li{padding:.3rem 0;border-bottom:1px dotted var(--rule)}
+
+/* P1 — participant decisions */
+.dc{background:var(--surface);border:1.5px solid var(--ink);box-shadow:var(--ink-shadow);padding:1rem 1.2rem;margin-top:1rem}
+.dc-prompt{font-family:var(--display);font-weight:700;font-size:1.15rem;margin:.2rem 0 .7rem}
+.dc-opts{display:grid;gap:.45rem;margin-bottom:.6rem}
+.dc-opt{display:flex;gap:.7rem;align-items:flex-start;text-align:left;background:var(--paper);border:1.5px solid var(--rule);padding:.6rem .75rem;font:inherit;color:var(--ink);cursor:pointer}
+.dc-opt:hover{border-color:var(--ink)}.dc-key{font-family:var(--mono);font-size:.75rem;border:1.5px solid var(--ink);padding:.05rem .35rem;flex:0 0 auto}
+.dc textarea{width:100%;margin:.3rem 0 .5rem}
+.dc-done{font-size:1.05rem}
+.responses{border-top:1px dotted var(--rule);margin-top:.8rem;padding-top:.6rem}
+.rs-prompt{font-weight:600;margin:.1rem 0 .4rem}
+.rs-row{display:grid;grid-template-columns:1fr 140px 2rem;gap:.5rem;align-items:center;font-size:.86rem;margin:.15rem 0}
+.rs-bar{height:.6rem;border:1px solid var(--rule);background:var(--paper)}.rs-bar span{display:block;height:100%;background:var(--accent)}
+.rs-n{font-family:var(--mono);font-size:.78rem;text-align:right}
+.rs-texts{margin:.4rem 0 0;padding-left:1.1rem;font-size:.86rem}
