@@ -56,3 +56,26 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Software bill of materials (M5): CycloneDX JSON from the pinned lockfile,
+  # attached to every run so a buyer's supply-chain review has the artifact.
+  sbom:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install cyclonedx-bom
+        run: pip install "cyclonedx-bom>=4.0"
+      - name: Generate SBOM (CycloneDX)
+        run: cyclonedx-py requirements requirements.lock.txt --of JSON -o sbom.cdx.json
+      - name: Sanity-check SBOM
+        run: python -c "import json; d=json.load(open('sbom.cdx.json')); print(d['bomFormat'], d['specVersion'], len(d.get('components', [])), 'components')"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom-cyclonedx
+          path: backend/sbom.cdx.json

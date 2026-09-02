@@ -103,3 +103,31 @@ def erase_org(
     counts = retention.erase_org(db, admin.org_id)
     db.commit()
     return schemas.EraseOut(erased=counts)
+
+
+# --------------------------------------------------------------------------- #
+# SCIM provisioning token (M5)
+# --------------------------------------------------------------------------- #
+@router.post("/scim-token", response_model=schemas.ScimTokenOut)
+def mint_scim_token(request: Request, admin: models.User = Depends(require_role("admin")),
+                    db: Session = Depends(get_db)):
+    """Mint (or rotate) the organisation's SCIM bearer token. Shown once;
+    only its hash is stored. Configure it in the identity provider with the
+    base URL ``<host>/scim/v2``."""
+    from .scim import hash_token, mint_token
+    raw = mint_token()
+    org = db.get(models.Organization, admin.org_id)
+    org.scim_token_hash = hash_token(raw)
+    audit.record(db, "scim.token.mint", request=request, user=admin, detail={"org_id": org.id}, commit=False)
+    db.commit()
+    base = f"{request.base_url.scheme}://{request.base_url.netloc}/scim/v2"
+    return schemas.ScimTokenOut(token=raw, base_url=base)
+
+
+@router.delete("/scim-token", status_code=204)
+def revoke_scim_token(request: Request, admin: models.User = Depends(require_role("admin")),
+                      db: Session = Depends(get_db)):
+    org = db.get(models.Organization, admin.org_id)
+    org.scim_token_hash = None
+    audit.record(db, "scim.token.revoke", request=request, user=admin, detail={"org_id": org.id}, commit=False)
+    db.commit()
