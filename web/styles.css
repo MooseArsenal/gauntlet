@@ -448,3 +448,7 @@ table.grid tbody tr:hover{background:var(--surface-2)}
 .rs-bar{height:.6rem;border:1px solid var(--rule);background:var(--paper)}.rs-bar span{display:block;height:100%;background:var(--accent)}
 .rs-n{font-family:var(--mono);font-size:.78rem;text-align:right}
 .rs-texts{margin:.4rem 0 0;padding-left:1.1rem;font-size:.86rem}
+
+/* P2 — delivery */
+.dl-send{border-top:1.5px solid var(--ink);margin-top:1rem;padding-top:.7rem}
+.btn.ghost.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}.btn.chip[disabled]{opacity:.45;cursor:not-allowed}

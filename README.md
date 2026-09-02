@@ -37,6 +37,11 @@ product with no dependency on any other system. See
 - **Product page and tour** — `/product.html` (positioning, how an exercise runs,
   indicative pricing) and a guided tour of the console (`/?tour=1`). Releases are
   tagged, published to GHCR with an SBOM, and described in `CHANGELOG.md`.
+- **Real inject delivery** — send an inject as the email, chat message or alert
+  it is pretending to be: over SMTP to the people who joined the addressed cells
+  (plus named addresses), and to Slack or Teams through an incoming webhook;
+  invitations carry the join code. Operator-configured senders only, air-gap
+  guarded, recorded on the timeline.
 - **Participant decisions** — every inject can carry a decision card (scored
   options, free text, a time limit) declared as `meta.decision` in YAML or derived
   from its expected actions. Participants answer from their own device; answers
