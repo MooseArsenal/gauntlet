@@ -2,10 +2,10 @@
 
 A pack is one compact signed token::
 
-    GP1.<base64url(zlib(manifest json))>.<base64url(ed25519 signature)>
+    GP1.<kid>.<base64url(zlib(manifest json))>.<base64url(ed25519 signature)>
 
-signed by the publisher's private key and verified here with the pack public
-key (``GAUNTLET_PACK_PUBKEY``, defaulting to the licence key), so a pack can
+signed by the publisher's private key and verified here against the trusted
+pack keys (see signing.py; the licence keys by default), so a pack can
 travel on a USB stick into an air-gapped deployment and still be trusted —
 and cannot be altered on the way. Two kinds:
 
@@ -26,7 +26,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import re
 import zlib
 from datetime import date, datetime, timezone
@@ -35,11 +34,11 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from . import entitlements, models, scenario_io
+from . import entitlements, models, scenario_io, signing
 from .authoring import designer
 from .authoring import environments as env_library
 from .authoring.catalog import THREAT_ACTORS
-from .entitlements import _b64d, _b64e
+from .signing import b64d as _b64d, b64e as _b64e
 
 FORMAT = "GP1"
 KINDS = ("scenarios", "intel")
@@ -54,21 +53,13 @@ class PackError(ValueError):
     pass
 
 
-def _pubkey():
-    b64 = os.environ.get("GAUNTLET_PACK_PUBKEY", "")
-    if not b64:
-        return entitlements._pubkey()
-    from cryptography.hazmat.primitives.asymmetric import ed25519
-    return ed25519.Ed25519PublicKey.from_public_bytes(_b64d(b64))
-
-
 def sign(private_key_b64: str, manifest: dict) -> str:
-    """Publisher side: sign a manifest. Used by tools/build_pack.py and tests."""
-    from cryptography.hazmat.primitives.asymmetric import ed25519
+    """Publisher side: sign a manifest. Used by tools/build_pack.py and tests.
+    The token names the signing key (kid) so deployments can rotate keys."""
     check_manifest(manifest)
-    priv = ed25519.Ed25519PrivateKey.from_private_bytes(_b64d(private_key_b64))
     body = zlib.compress(json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode(), 9)
-    return f"{FORMAT}.{_b64e(body)}.{_b64e(priv.sign(body))}"
+    kid = signing.kid_for(signing.public_of(private_key_b64))
+    return f"{FORMAT}.{kid}.{_b64e(body)}.{_b64e(signing.sign(private_key_b64, body))}"
 
 
 def check_manifest(m: dict) -> None:
@@ -113,14 +104,14 @@ def verify(token: str) -> tuple[dict, str]:
     if len(token) > MAX_TOKEN_BYTES:
         raise PackError("pack is too large")
     parts = token.split(".")
-    if len(parts) != 3 or parts[0] != FORMAT:
+    if parts[0] != FORMAT or len(parts) not in (3, 4):
         raise PackError("not a Gauntlet content pack")
-    pub = _pubkey()
-    if pub is None:
-        raise PackError("no pack public key is configured on this deployment")
+    kid = parts[1] if len(parts) == 4 else None
     try:
-        body, sig = _b64d(parts[1]), _b64d(parts[2])
-        pub.verify(sig, body)
+        body, sig = _b64d(parts[-2]), _b64d(parts[-1])
+        signing.verify("pack", body, sig, kid)
+    except ValueError as exc:
+        raise PackError(f"pack signature does not verify: {exc}") from exc
     except Exception as exc:  # noqa: BLE001 - any failure is "invalid"
         raise PackError("pack signature does not verify") from exc
     try:

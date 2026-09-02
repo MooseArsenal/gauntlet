@@ -64,6 +64,9 @@ def test_startup_guards_name_multi_worker_and_seeded_prod(monkeypatch):
     assert "demo admin" in problems and "workers" in problems
     monkeypatch.setattr(config, "WORKERS", 1)
     monkeypatch.setattr(config, "SEED_ON_START", False)
+    # the suite's own signing key would be ignored in production, and named
+    for v in ("GAUNTLET_LICENSE_PUBKEY", "GAUNTLET_LICENSE_PUBKEYS", "GAUNTLET_PACK_PUBKEY", "GAUNTLET_PACK_PUBKEYS"):
+        monkeypatch.delenv(v, raising=False)
     assert config.startup_problems() == []
 
 

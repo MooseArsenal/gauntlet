@@ -978,7 +978,7 @@ class ProposalAcceptIn(BaseModel):
 
 
 class LicenseIn(BaseModel):
-    token: str = Field(max_length=8000)
+    token: str = Field(max_length=65536)
 
 
 class BrandingIn(BaseModel):
