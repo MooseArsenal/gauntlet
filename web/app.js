@@ -503,6 +503,38 @@
   const env_cache = {};
   let injectBank = null;
 
+  // P5: draft the next scene from the live session; the proctor reviews, edits, fires.
+  async function proposeNext() {
+    if (!currentSid) return;
+    let d;
+    try { d = await api(`/api/sessions/${currentSid}/propose`, "POST", { brief: "" }); } catch (e) { toast(e.message); return; }
+    const inj = d.inject;
+    $("modalBody").innerHTML =
+      `<p class="eyebrow">Proposed next scene · ${escapeHtml(d.context.phase)} <span class="hint">— drafted by ${escapeHtml(d.generator)}; nothing is saved until you accept</span></p>` +
+      `<p class="hint">${escapeHtml(d.context.brief)}</p>` +
+      `<div class="setup"><label>Title<input id="ppTitle" value="${escapeHtml(inj.title || "")}"></label>` +
+      `<label>Channel<select id="ppChannel">${["briefing", "email", "chat", "ticket", "siem_alert", "edr_alert", "phone", "news", "media", "regulator", "customer", "social", "board"].map((c) => `<option ${c === inj.channel ? "selected" : ""}>${c}</option>`).join("")}</select></label>` +
+      `<label>Narrative<textarea id="ppNarr" rows="5">${escapeHtml(inj.narrative || "")}</textarea></label>` +
+      `<label>Techniques<input id="ppTech" value="${escapeHtml((inj.attack_techniques || []).join(", "))}"></label>` +
+      `<label>Target asset<input id="ppAsset" value="${escapeHtml(inj.target_asset || "")}"></label>` +
+      `<label>Expected actions (one per line)<textarea id="ppActs" rows="3">${escapeHtml((inj.expected_actions || []).join("\n"))}</textarea></label>` +
+      `<div class="row"><button class="btn primary" id="ppFire">Add and fire now</button><button class="btn ghost" id="ppAdd">Add as a branch only</button><button class="btn ghost" id="ppAgain">Draft again</button></div></div>`;
+    $("modal").hidden = false;
+    const collect = () => ({ ...inj, title: $("ppTitle").value.trim(), channel: $("ppChannel").value, narrative: $("ppNarr").value.trim(),
+      attack_techniques: $("ppTech").value.split(",").map((x) => x.trim()).filter(Boolean), target_asset: $("ppAsset").value.trim(),
+      expected_actions: $("ppActs").value.split("\n").map((x) => x.trim()).filter(Boolean), generator: d.generator });
+    const accept = async (fire) => {
+      try {
+        const st = await api(`/api/sessions/${currentSid}/propose/accept`, "POST", { inject: collect(), fire });
+        closeModal(); render(st); scenario_injects_cache[st.scenario.id] = null;
+        toast(fire ? "Scene added and fired." : "Scene added as a branch — take it when ready.");
+      } catch (e) { toast(e.message); }
+    };
+    $("ppFire").addEventListener("click", () => accept(true));
+    $("ppAdd").addEventListener("click", () => accept(false));
+    $("ppAgain").addEventListener("click", proposeNext);
+  }
+
   // P3: evidence attached to the record, with its verification state.
   async function updateEvidence() {
     if (!currentSid || !$("evidenceList")) return;
@@ -1283,6 +1315,7 @@
     $("btnHotwash").addEventListener("click", hotwash);
     $("btnInvite").addEventListener("click", inviteByCode);
     $("btnEvidence").addEventListener("click", attachEvidence);
+    $("btnPropose").addEventListener("click", proposeNext);
     $("btnTour").addEventListener("click", () => { if (window.GauntletTour) window.GauntletTour.start(); });
     document.addEventListener("keydown", keys);
     $("modalX").addEventListener("click", () => ($("modal").hidden = true));
