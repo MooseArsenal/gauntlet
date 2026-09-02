@@ -11,6 +11,13 @@ os.environ["GAUNTLET_USE_ALEMBIC"] = "0"
 # dedicated auth tests flip this off per-request to exercise the real flow.
 os.environ["GAUNTLET_AUTH_OPTIONAL"] = "1"
 os.environ["GAUNTLET_SECRET_KEY"] = "test-secret-key-at-least-32-bytes-long-000"
+# L1: the suite runs as a licensed Enterprise deployment; the entitlement tests
+# remove the licence to exercise the Community behaviour.
+from app import entitlements as _ent  # noqa: E402
+
+TEST_PRIV, TEST_PUB = _ent.keygen()
+os.environ["GAUNTLET_LICENSE_PUBKEY"] = TEST_PUB
+os.environ["GAUNTLET_LICENSE"] = _ent.issue(TEST_PRIV, tier="enterprise", customer="Test suite", exp="2999-01-01")
 
 import pytest
 

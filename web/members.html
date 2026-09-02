@@ -48,6 +48,13 @@
       <div class="mem-table" id="memTable"></div>
     </div>
 
+    <div class="panel" id="licPanel" hidden>
+      <p class="eyebrow">Licence <span class="hint" id="licState"></span></p>
+      <div class="lic-grid" id="licGrid"></div>
+      <div class="row" style="margin-top:.5rem"><input id="licToken" placeholder="Paste a licence token (GL1.…)" style="flex:1;font-family:var(--mono)"><button class="btn" id="btnLicInstall">Install</button><button class="btn ghost" id="btnLicRemove">Remove</button></div>
+      <p class="hint">No licence runs the Community tier: the full engine, the record, reports and certificates. Paid tiers add the features listed here. An expired licence keeps working for 30 days, then degrades to Community; nothing is ever hidden.</p>
+    </div>
+
     <div class="panel" id="scimPanel" hidden>
       <p class="eyebrow">SCIM provisioning <span class="hint">— let the identity provider create and deactivate members</span></p>
       <p class="hint">Okta, Entra ID, OneLogin and JumpCloud provision users over SCIM 2.0. Mint a token, paste it and the base URL into the provider's SCIM connector. The token is shown once; only its hash is kept. Minting again rotates it.</p>
