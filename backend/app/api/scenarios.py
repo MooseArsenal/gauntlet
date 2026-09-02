@@ -58,12 +58,14 @@ def create_scenario(
 
 @router.get("", response_model=list[schemas.ScenarioSummary])
 def list_scenarios(
+    include_archived: bool = False,
     user: models.User = Depends(require_staff), db: Session = Depends(get_db)
 ):
     return (
         db.execute(
             select(models.Scenario)
-            .where(models.Scenario.org_id == user.org_id)
+            .where(models.Scenario.org_id == user.org_id,
+                   *([] if include_archived else [models.Scenario.archived_at.is_(None)]))
             .order_by(models.Scenario.id)
         )
         .scalars()
