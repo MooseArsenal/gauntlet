@@ -95,6 +95,17 @@ def build_report(session, scenario, environment, events, observations, audience:
     from .. import telemetry as _telemetry  # M4: real alerts vs the ruling
     cmp = _telemetry.compare(session)
     telemetry_md = "\n".join(_telemetry.summary_lines(cmp))
+    from .. import benchmark as _benchmark  # M7: the sector's modelled expectation
+    ref = _benchmark.reference().get((environment.sector or "") if environment else "")
+    ref_md = ""
+    if ref and ref.get("detection_rate") is not None and m["adjudications"]:
+        own_rate = m["detected"] / m["adjudications"]
+        ref_md = (f"\n## Against the sector's modelled expectation\n\nThe library's {environment.sector} environments "
+                  f"are modelled to detect **{round(ref['detection_rate'] * 100)}%** of the moves in their exercise packs; "
+                  f"this exercise detected **{round(own_rate * 100)}%**"
+                  + (f" (mean time-to-detect {m['mttd']} min against a modelled {ref['mean_time_to_detect_min']} min)"
+                     if m["mttd"] is not None and ref.get("mean_time_to_detect_min") is not None else "")
+                  + ". A modelled yardstick, not survey data.\n")
     when = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     head = f"# {scenario.name} — {AUDIENCES[audience]}\n"
     meta = (
@@ -119,6 +130,7 @@ def build_report(session, scenario, environment, events, observations, audience:
             f"gaps for the improvement plan below.\n\n"
             f"## Improvement commitments\n\n"
             f"{_improvement_block(observations)}\n"
+            + ref_md
             + (f"\n## What the tools saw\n\nAgainst {cmp['alerts']} real alert(s) the SOC's tools raised, the "
                f"environment model agreed on **{round((cmp['model_agreement'] or 0) * 100)}%** of adjudicated actions; "
                f"**{cmp['counts']['silent_gap']}** expected detection(s) never fired.\n" if cmp["alerts"] else "")
