@@ -82,6 +82,9 @@ def _timeline_lines(events: Sequence) -> list[str]:
             out.append(f"- `{clock}` Note — {e.payload.get('text', '')}")
         elif e.kind == "status":
             out.append(f"- `{clock}` Status → {e.payload.get('status', '')}")
+        elif e.kind == "telemetry":
+            out.append(f"- `{clock}` Alert [{e.payload.get('source', '')}] {e.payload.get('alert', '')}"
+                       + (f" ({', '.join(e.payload.get('techniques') or [])})" if e.payload.get('techniques') else ""))
     return out
 
 
@@ -89,6 +92,9 @@ def build_report(session, scenario, environment, events, observations, audience:
     """Return ``(title, markdown)`` for the requested audience."""
     audience = audience if audience in AUDIENCES else "executive"
     m = _metrics(events)
+    from .. import telemetry as _telemetry  # M4: real alerts vs the ruling
+    cmp = _telemetry.compare(session)
+    telemetry_md = "\n".join(_telemetry.summary_lines(cmp))
     when = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     head = f"# {scenario.name} — {AUDIENCES[audience]}\n"
     meta = (
@@ -113,6 +119,9 @@ def build_report(session, scenario, environment, events, observations, audience:
             f"gaps for the improvement plan below.\n\n"
             f"## Improvement commitments\n\n"
             f"{_improvement_block(observations)}\n"
+            + (f"\n## What the tools saw\n\nAgainst {cmp['alerts']} real alert(s) the SOC's tools raised, the "
+               f"environment model agreed on **{round((cmp['model_agreement'] or 0) * 100)}%** of adjudicated actions; "
+               f"**{cmp['counts']['silent_gap']}** expected detection(s) never fired.\n" if cmp["alerts"] else "")
         )
     elif audience == "technical":
         body = (
@@ -125,7 +134,8 @@ def build_report(session, scenario, environment, events, observations, audience:
             f"| Mean time-to-detect | {m['mttd'] if m['mttd'] is not None else 'n/a'} min |\n"
             f"| ATT&CK techniques exercised | {', '.join(m['techniques_exercised']) or 'n/a'} |\n"
             f"| Coverage gaps | {', '.join(m['coverage_gaps']) or 'none'} |\n\n"
-            f"## Full timeline\n\n" + "\n".join(_timeline_lines(events)) + "\n\n"
+            + (telemetry_md + "\n" if telemetry_md else "")
+            + f"## Full timeline\n\n" + "\n".join(_timeline_lines(events)) + "\n\n"
             f"## Evaluator observations\n\n" + _observation_block(observations) + "\n"
         )
     elif audience == "grc":

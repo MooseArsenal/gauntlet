@@ -735,6 +735,58 @@
     } catch (e) { toast(e.message); }
   }
 
+  // M4: what the tools actually saw, against what the ruling expected.
+  async function telemetry() {
+    if (!currentSid) return;
+    let cmp;
+    try { cmp = await api(`/api/sessions/${currentSid}/telemetry/compare`); } catch (e) { toast(e.message); return; }
+    const pct = (v) => (v == null ? "n/a" : Math.round(v * 100) + "%");
+    const label = { confirmed: "Confirmed", silent_gap: "Silent gap", surprise: "Surprise", missed: "Missed" };
+    const rows = cmp.rows.map((r) =>
+      `<tr><td class="mono">${escapeHtml(r.game_clock || "--:--")}</td><td>${escapeHtml((r.techniques || []).join(", ") || "action")}${r.target_asset ? ` <span class="hint">on ${escapeHtml(r.target_asset)}</span>` : ""}</td>` +
+      `<td>${r.expected ? "detected" : "missed"}${r.expected_ttd_min != null ? ` <span class="hint">${r.expected_ttd_min} min</span>` : ""}</td>` +
+      `<td>${r.observed ? "alert" : "—"}${r.observed_latency_min != null ? ` <span class="hint">${r.observed_latency_min} min</span>` : ""}</td>` +
+      `<td><span class="tl-out ${r.outcome}">${label[r.outcome]}</span></td></tr>`).join("");
+    const tiles = [
+      ["Modelled", pct(cmp.expected_rate)], ["Observed", pct(cmp.observed_rate)], ["Agreement", pct(cmp.model_agreement)], ["Alerts", String(cmp.alerts)],
+    ].map(([k, v]) => `<div class="stile info"><span class="v">${escapeHtml(v)}</span><span class="k">${escapeHtml(k)}</span></div>`).join("");
+    $("modalBody").innerHTML =
+      `<p class="eyebrow">Telemetry · expected vs observed</p><h1>What did the tools see?</h1>` +
+      `<p class="sub">The ruling says what the modelled controls should have caught. Record the alerts the SOC's tools actually raised and every action becomes confirmed, a silent gap, a surprise, or missed.</p>` +
+      `<div class="score cert-tiles">${tiles}</div>` +
+      `<div class="row"><span class="pill">${cmp.counts.confirmed} confirmed</span><span class="pill">${cmp.counts.silent_gap} silent gap</span><span class="pill">${cmp.counts.surprise} surprise</span><span class="pill">${cmp.counts.missed} missed</span></div>` +
+      `<table class="dfields tl-table"><thead><tr><th>Clock</th><th>Action</th><th>Expected</th><th>Observed</th><th>Outcome</th></tr></thead><tbody>${rows || '<tr><td colspan="5" class="muted">No adjudicated actions yet.</td></tr>'}</tbody></table>` +
+      (cmp.unmatched_alerts.length ? `<p class="hint">${cmp.unmatched_alerts.length} alert(s) matched no action: ${cmp.unmatched_alerts.map((u) => escapeHtml(u.alert)).join(", ")}.</p>` : "") +
+      `<h2>Record an alert</h2>` +
+      `<div class="setup tl-form"><label>Alert<input id="tlAlert" placeholder="e.g. Credential dumping via LSASS"></label>` +
+      `<label>Techniques<input id="tlTech" placeholder="T1003.001, T1078"></label>` +
+      `<label>Asset<input id="tlAsset" placeholder="SRV-01 (blank = any)"></label>` +
+      `<label>Source<select id="tlSource"><option>siem</option><option>edr</option><option>ndr</option><option>email</option><option>identity</option><option>cloud</option><option selected>manual</option></select></label>` +
+      `<label>Observed at<input id="tlWhen" placeholder="2026-09-02T10:15:00Z (blank = now)"></label>` +
+      `<button class="btn" id="tlAdd">Record alert</button></div>` +
+      `<h2>Import an export</h2><p class="hint">JSON or CSV from the SIEM/EDR: columns such as alert/rule_name, technique(s), host, source, time are recognised.</p>` +
+      `<div class="row"><select id="tlFmt"><option value="json">JSON</option><option value="csv">CSV</option></select><input type="file" id="tlFile" accept=".json,.csv,.txt"><button class="btn ghost" id="tlImport">Import</button></div>`;
+    $("modal").hidden = false;
+    $("tlAdd").addEventListener("click", async () => {
+      const alert = $("tlAlert").value.trim();
+      if (!alert) { toast("Name the alert."); return; }
+      try {
+        await api(`/api/sessions/${currentSid}/telemetry`, "POST", {
+          alert, techniques: $("tlTech").value.split(",").map((x) => x.trim()).filter(Boolean),
+          asset: $("tlAsset").value.trim(), source: $("tlSource").value, observed_at: $("tlWhen").value.trim() });
+        toast("Alert recorded."); await telemetry();
+      } catch (e) { toast(e.message); }
+    });
+    $("tlImport").addEventListener("click", async () => {
+      const f = $("tlFile").files[0];
+      if (!f) { toast("Choose an export file."); return; }
+      try {
+        const out = await api(`/api/sessions/${currentSid}/telemetry/import`, "POST", { format: $("tlFmt").value, data: await f.text() });
+        toast(`${out.recorded} alert(s) recorded, ${out.skipped} row(s) skipped.`); await telemetry();
+      } catch (e) { toast(e.message); }
+    });
+  }
+
   function exportTimeline(fmt) {
     if (!currentSid) return;
     downloadBlob(`/api/sessions/${currentSid}/timeline.${fmt}`, `timeline-${currentSid}.${fmt}`);
@@ -807,6 +859,7 @@
       case "observation": return `Observation [${escapeHtml(p.rating)}] ${escapeHtml(truncate(p.note, 80))}`;
       case "note": return `Note — ${escapeHtml(truncate(p.text, 90))}`;
       case "status": return `Status → ${escapeHtml(p.status)}`;
+      case "telemetry": return `Alert [${escapeHtml(p.source || "tool")}] ${escapeHtml(truncate(p.alert, 70))}${(p.techniques || []).length ? " · " + escapeHtml(p.techniques.join(", ")) : ""}`;
       default: return e.kind;
     }
   }
@@ -1014,6 +1067,7 @@
     { const b = $("btnImportCtep"); if (b) b.addEventListener("click", () => importCtep(false)); }
     { const b = $("btnImportCtepOwn"); if (b) b.addEventListener("click", () => importCtep(true)); }
     $("btnCompliance").addEventListener("click", previewCompliance);
+    $("btnTelemetry").addEventListener("click", telemetry);
     $("btnExportCsv").addEventListener("click", () => exportTimeline("csv"));
     $("btnExportJson").addEventListener("click", () => exportTimeline("json"));
     $("btnAttackLayer").addEventListener("click", () => {
