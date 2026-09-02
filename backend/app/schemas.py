@@ -963,3 +963,13 @@ class EvidenceIn(BaseModel):
     content: str  # base64; the request body cap bounds it
     note: str = Field(default="", max_length=4000)
     about_seq: Optional[int] = None
+
+
+class ProposeIn(BaseModel):
+    """Steer for the proposed next scene (P5)."""
+    brief: str = Field(default="", max_length=4000)
+
+
+class ProposalAcceptIn(BaseModel):
+    inject: dict
+    fire: bool = True
