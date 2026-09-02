@@ -105,7 +105,7 @@
   async function renderTypeMode(host) {
     host.innerHTML = '<p class="hint">Loading library…</p>';
     const tmpls = await api("/api/catalog/templates");
-    host.innerHTML = `<div class="wz-pickhead"><span></span><button class="btn ghost small" id="wzRand">🎲 Random</button></div><div id="wzGrid"></div>`;
+    host.innerHTML = `<div class="wz-pickhead"><span></span><button class="btn ghost small" id="wzRand">Random</button></div><div id="wzGrid"></div>`;
     tiles($("wzGrid"), tmpls.map((t) => ({ value: t.key, title: t.name, desc: t.narrative })), "template_key");
     $("wzRand").addEventListener("click", () => {
       const pick = tmpls[Math.floor(Math.random() * tmpls.length)];
@@ -117,7 +117,7 @@
     host.innerHTML = '<p class="hint">Loading adversaries…</p>';
     const groups = await api("/api/catalog/attack-groups" + (sector ? `?sector=${encodeURIComponent(sector)}` : ""));
     if (!groups.length) { host.innerHTML = '<p class="hint">No adversaries match — try another industry.</p>'; return; }
-    host.innerHTML = `<div class="wz-pickhead"><span class="wz-count">${groups.length} real ATT&CK group${groups.length === 1 ? "" : "s"}</span><button class="btn ghost small" id="wzRand">🎲 Surprise me</button></div><div id="wzGrid"></div>`;
+    host.innerHTML = `<div class="wz-pickhead"><span class="wz-count">${groups.length} real ATT&CK group${groups.length === 1 ? "" : "s"}</span><button class="btn ghost small" id="wzRand">Surprise me</button></div><div id="wzGrid"></div>`;
     tiles($("wzGrid"), groups.map(actorTile), "actor_key");
     // remember chosen group's display name for the summary
     $("wzGrid").querySelectorAll(".wz-tile").forEach((t) => t.addEventListener("click", () => {
@@ -156,7 +156,7 @@
     const sceneLabel = (k) => { const s = bank.find((x) => x.key === k); return s ? `${s.phase} · ${s.title}` : k; };
     host.innerHTML =
       `<div class="wz-pickhead"><span class="wz-count">Design an adversary</span>
-         <button class="btn ghost small" id="wzGenRand">🎲 Generate random</button></div>
+         <button class="btn ghost small" id="wzGenRand">Generate random</button></div>
        <div class="wz-field"><label>Name</label><input id="dName" placeholder="e.g. Obsidian Kraken" value="${esc(d.name)}"></div>
        <div class="wz-row2">
          <div class="wz-field"><label>Motivation</label><select id="dMot">${MOTIVES.map((m) => `<option value="${m}" ${m === d.motivation ? "selected" : ""}>${m}</option>`).join("")}</select></div>
@@ -244,7 +244,7 @@
         $("wzEnv").addEventListener("change", (e) => (data.environment_id = Number(e.target.value)));
         $("wzName").addEventListener("input", (e) => (data.name = e.target.value));
       },
-      nextLabel: "Generate ✨",
+      nextLabel: "Generate ",
       async onNext() {
         if (data.environment_id == null) { toast("Pick an environment."); return false; }
         data.scenario = await api("/api/scenarios/generate", "POST", {
@@ -260,7 +260,7 @@
       title: "Ready", lead: "", terminal: true,
       render(el) {
         const s = data.scenario;
-        el.innerHTML = `<div class="wz-done"><div class="big">🎯</div><h2>${esc(s.name)}</h2>
+        el.innerHTML = `<div class="wz-done"><div class="big"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg></div><h2>${esc(s.name)}</h2>
           <p class="wz-lead">${s.injects.length} scenes · ${s.objectives.length} objectives, grounded and ready.</p>
           <div class="row">
             <a class="btn primary" href="/editor.html">Open in editor</a>
@@ -297,7 +297,7 @@
         ], "mode", "tabletop");
         $("wzSn").addEventListener("input", (e) => (data.sname = e.target.value));
       },
-      nextLabel: "Start ▶", terminal: false,
+      nextLabel: "Start exercise", terminal: false,
       async onNext() {
         const sess = await api("/api/sessions", "POST", { scenario_id: Number(data.scenario_id), name: data.sname || "Guided run", mode: data.mode });
         await api(`/api/sessions/${sess.id}/start`, "POST");
@@ -307,7 +307,7 @@
     {
       title: "Running", lead: "", terminal: true,
       render(el) {
-        el.innerHTML = `<div class="wz-done"><div class="big">🚀</div><h2>Exercise started</h2>
+        el.innerHTML = `<div class="wz-done"><div class="big"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg></div><h2>Exercise started</h2>
           <p class="wz-lead">Drive it from the facilitator console.</p>
           <div class="row"><a class="btn primary" href="/index.html">Open the console</a>
           <button class="btn ghost" id="wzAgain">Run another</button></div></div>`;
@@ -355,7 +355,7 @@
 
   // ---- init -------------------------------------------------------------- //
   function initTheme() {
-    let t = "dark"; try { t = localStorage.getItem("gauntlet-theme") || "dark"; } catch (e) { /* noop */ }
+    let t = "dark"; try { t = localStorage.getItem("gauntlet-theme") || "light"; } catch (e) { /* noop */ }
     document.documentElement.setAttribute("data-theme", t);
     $("btnTheme").addEventListener("click", () => {
       const n = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
