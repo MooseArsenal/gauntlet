@@ -35,6 +35,7 @@ from . import config
 # GAUNTLET_TRUST_ENV_KEYS=1 is deliberately chosen.
 VENDOR_KEYS: dict[str, str] = {
     "57ad1f1b7780": "bAmy5BZtr5XyCz6dmzyRj_O3AsqeNEOcGoj1pM40RcM",  # vendor licence key, 2026
+    "92e5525705a7": "avp1Lb2oqGMvLaGPpbZyfX2g3E-14OoG5A5MCIZEmqY",  # standby licence key, 2026
 }
 
 ENV_VARS = {
