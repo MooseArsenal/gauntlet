@@ -77,6 +77,16 @@ product with no dependency on any other system. See
   XP from decision scores, party hit points from the impact of the path, quests
   from objectives. Toggle with the die button or `?mode=game`; the record,
   certificate and reports underneath are unchanged.
+- **Education edition** (Education tier) — cohorts with a join code that lets
+  students create their own participant accounts, one-click seating of the whole
+  class into a run (round-robin across cells), anonymous grading by alias, and a
+  gradebook (score, latency, coverage per student per run) with CSV export at
+  `/classroom.html`. Students see only their own standing.
+- **Session replay** (Education tier) — any exercise replayed scene by scene at
+  `/replay.html`: what the room answered, what the engine ruled, the branch
+  taken, what it cost, and the roads not taken. Rewind forks a new running
+  session from any scene with the state as it was; the original record is
+  never edited.
 - **White-label and partner mode** — an organisation's name, colour, logo and
   report footer on the console and every PDF (Team); a partner organisation runs
   exercises for client organisations through shadow admin accounts inside each

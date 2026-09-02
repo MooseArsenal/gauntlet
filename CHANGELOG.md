@@ -4,6 +4,20 @@ All notable changes to Gauntlet. The format follows Keep a Changelog; versions
 follow SemVer. Container images are published as
 `ghcr.io/moose11b/gauntlet:<version>` on each tag.
 
+## [Unreleased]
+
+### Added
+- **Licence and entitlements** — offline Ed25519 licences, tiers (Community,
+  Team, Education, Enterprise), feature gates, facilitator seats, grace period.
+- **White-label branding and partner mode** — your name, colour and logo on the
+  console and every PDF; consultancies run client organisations from one login.
+- **Game mode** — a free skin over the engine: cards, a d20 consistent with the
+  ruling, XP, HP and quests.
+- **Education edition** — cohorts, self-enrolment by code, one-click seating,
+  anonymous grading, gradebook with CSV export.
+- **Session replay** — the record as scenes with the roads not taken; rewind
+  forks a new run from any scene without touching the original.
+
 ## [0.2.0] — 2026-09-02
 
 The "sell the number" release: the exercise produces a signed, verifiable

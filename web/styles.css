@@ -469,3 +469,27 @@ table.grid tbody tr:hover{background:var(--surface-2)}
 .brand-logo{height:22px;width:auto;display:block}
 .partner-bar{display:flex;justify-content:space-between;align-items:center;gap:1rem;background:var(--accent);color:#fff;padding:.35rem 1rem;font-size:.85rem}
 .partner-bar .btn{border-color:#fff;color:#fff}
+
+/* L4: classroom + replay */
+.code-big{font-family:var(--mono);font-size:2rem;letter-spacing:.3em;font-weight:700;color:var(--accent-ink);margin:.2rem 0}
+.grade{width:100%;border-collapse:collapse;font-size:.85rem}
+.grade th{font-family:var(--mono);font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:left;padding:.35rem .5rem;border-bottom:1.5px solid var(--rule)}
+.grade td{padding:.4rem .5rem;border-bottom:1px dotted var(--rule);font-variant-numeric:tabular-nums;vertical-align:top}
+.grade td.n{text-align:right}
+.grade .g{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.grade .g.hi{color:var(--good)}.grade .g.lo{color:var(--crit)}
+.grade-wrap{overflow-x:auto}
+.rp-head{display:flex;flex-wrap:wrap;gap:.6rem 1.2rem;align-items:center;margin:.4rem 0 .8rem}
+.rp-scene{background:var(--surface);border:1.5px solid var(--rule);box-shadow:var(--ink-shadow);padding:1.1rem 1.3rem;margin:.9rem 0;animation:rpin .5s ease}
+.rp-scene.dim{opacity:.55}
+@keyframes rpin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.rp-line{font-family:var(--mono);font-size:.72rem;color:var(--muted);margin:.2rem 0 .5rem}
+.rp-blocks{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.6rem 1rem;margin-top:.6rem}
+.rp-block{border-top:1px dotted var(--rule);padding-top:.4rem;font-size:.84rem}
+.rp-block ul{margin:.2rem 0 0 1rem;padding:0}
+.rp-block li{margin:.15rem 0}
+.rp-road{display:flex;justify-content:space-between;align-items:center;gap:.6rem;padding:.3rem 0;border-bottom:1px dotted var(--rule)}
+.rp-road.taken{font-weight:700;color:var(--accent-ink)}
+.rp-progress{height:4px;background:var(--rule);margin:.4rem 0 .8rem;position:relative}
+.rp-progress > span{position:absolute;left:0;top:0;bottom:0;background:var(--accent);transition:width .4s}
+@media (max-width:720px){.code-big{font-size:1.4rem;letter-spacing:.2em}}
