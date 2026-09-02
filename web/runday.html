@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gauntlet — Run day</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/progressmap.css">
+  <link rel="stylesheet" href="/runday.css">
+</head>
+<body class="runday">
+  <div class="strip"><span id="stripLeft">Exercise control · Run day</span><span>Facilitated exercise — no production access — all actions are simulated</span></div>
+  <header class="bar rd-bar">
+    <div class="brand"><span class="mark"><span>G</span></span><b>Gauntlet</b><small id="brandSub">Run day</small></div>
+    <div class="bar-mid"><span class="pill" id="statusPill">—</span><span class="clock" id="clock">T+00:00</span><span class="sess-name" id="sessName"></span></div>
+    <div class="bar-actions">
+      <span class="pill" id="livePill" title="Live connection">offline</span>
+      <button class="btn ghost" id="btnBrief">Pre-brief</button>
+      <button class="btn ghost" id="btnProjector">Projector</button>
+      <button class="btn ghost" id="btnFull" title="Full screen (F)">Full screen</button>
+      <a class="btn ghost" id="btnConsole" href="/">Console</a>
+      <button class="btn toggle" id="btnTheme" aria-label="Toggle theme">◑</button>
+    </div>
+  </header>
+
+  <!-- Pre-brief: what the room reads before the first inject -->
+  <main class="rd-brief" id="briefView" hidden>
+    <section class="rd-hero">
+      <p class="eyebrow">Pre-brief</p>
+      <h1 id="bfName">—</h1>
+      <p class="sub" id="bfScenario"></p>
+    </section>
+    <div class="rd-cols">
+      <section class="rd-col">
+        <h2>Rules of engagement</h2>
+        <p class="rd-roe" id="bfRoe"></p>
+        <h2>Scope</h2>
+        <p id="bfScope"></p>
+        <h2>Objectives</h2>
+        <ol class="rd-objs" id="bfObjectives"></ol>
+      </section>
+      <section class="rd-col">
+        <h2>Cells</h2>
+        <ul class="rd-cells" id="bfCells"></ul>
+        <h2>Join</h2>
+        <div class="rd-join">
+          <div class="rd-code" id="bfCode">— — — — — —</div>
+          <p class="rd-joinurl" id="bfJoinUrl"></p>
+          <button class="btn ghost small" id="btnIssueCode">Issue join code</button>
+        </div>
+        <h2>In the room <span class="hint" id="bfCount"></span></h2>
+        <ul class="lobby rd-lobby" id="bfLobby"></ul>
+      </section>
+    </div>
+    <div class="rd-actions">
+      <button class="btn primary big" id="btnStart">Start exercise</button>
+      <span class="hint">Starting fires the first inject. Switch to the projector view for the room.</span>
+    </div>
+  </main>
+
+  <!-- Projector: the current scene as the room should see it -->
+  <main class="rd-proj" id="projView" hidden>
+    <div class="rd-kc" id="kc"></div>
+    <section class="rd-scene" id="scene"></section>
+    <aside class="rd-side">
+      <div class="rd-tally">
+        <div class="rd-num"><span class="v" id="tDetected">0</span><span class="k">Detected</span></div>
+        <div class="rd-num crit"><span class="v" id="tMissed">0</span><span class="k">Missed</span></div>
+        <div class="rd-num"><span class="v" id="tInjects">0</span><span class="k">Injects</span></div>
+      </div>
+      <ol class="timeline rd-feed" id="feed"></ol>
+    </aside>
+    <div class="rd-paused" id="pausedBanner" hidden>PAUSED — the facilitator has halted play</div>
+    <div class="rd-done" id="doneBanner" hidden>EXERCISE COMPLETE — proceed to the hotwash</div>
+  </main>
+
+  <div class="toast" id="toast" hidden></div>
+  <script src="/progressmap.js"></script>
+  <script src="/runday.js"></script>
+</body>
+</html>
