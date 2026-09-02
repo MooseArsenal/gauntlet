@@ -269,6 +269,8 @@ class Session(Base):
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+    # L4: a classroom run belongs to a cohort; its students are graded together.
+    cohort_id: Mapped[int | None] = mapped_column(ForeignKey("cohorts.id"), nullable=True, index=True)
 
     events: Mapped[list["TimelineEvent"]] = relationship(
         back_populates="session", cascade="all, delete-orphan", order_by="TimelineEvent.seq"
@@ -483,4 +485,31 @@ class SessionJoin(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     display_name: Mapped[str] = mapped_column(String(160), default="")
     cell: Mapped[str] = mapped_column(String(40), default="blue_cell")
+    joined_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+
+class Cohort(Base):
+    """A class (L4): an instructor, a join code, students with aliases, and the
+    sessions they play together. Grades come from the students' decisions."""
+
+    __tablename__ = "cohorts"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id"), index=True)
+    name: Mapped[str] = mapped_column(String(200))
+    code: Mapped[str] = mapped_column(String(12), unique=True, index=True)
+    instructor_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    anonymous: Mapped[bool] = mapped_column(Boolean, default=False)  # grade by alias, not name
+    open: Mapped[bool] = mapped_column(Boolean, default=True)  # students may still enrol by code
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+
+class CohortMember(Base):
+    __tablename__ = "cohort_members"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    cohort_id: Mapped[int] = mapped_column(ForeignKey("cohorts.id"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    alias: Mapped[str] = mapped_column(String(40))  # "S-07": stable, anonymous
     joined_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)

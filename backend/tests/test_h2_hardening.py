@@ -123,6 +123,7 @@ TENANT_TABLES = {
     "users", "refresh_tokens", "audit_logs", "environments", "scenarios", "sessions",
     "timeline_events", "observations", "reports", "improvement_items",
     "exercise_schedules", "custom_adversaries", "session_joins", "certificates", "attachments",
+    "cohorts", "cohort_members",
 }
 
 
@@ -136,6 +137,8 @@ def _seed_everything(c, h, org_id, scn, sid):
         "filename": "note.txt", "content_type": "text/plain", "content": "aGVsbG8="}).status_code == 201
     c.post(f"/api/sessions/{sid}/complete", headers=h)
     assert c.post(f"/api/sessions/{sid}/certificate", headers=h).status_code == 201
+    cohort = c.post("/api/cohorts", headers=h, json={"name": "class"}).json()
+    assert c.post("/api/cohorts/join", headers=h, json={"code": cohort["code"]}).status_code == 200
     db = SessionLocal()
     db.add(models.ImprovementItem(org_id=org_id, session_id=sid, title="fix", description="d"))
     db.add(models.CustomAdversary(org_id=org_id, key="k", name="n", description="d"))

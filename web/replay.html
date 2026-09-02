@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gauntlet — Replay</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/game.css">
+</head>
+<body>
+  <div class="strip"><span>Exercise control · Replay</span><span>Facilitated exercise — no production access — all actions are simulated</span></div>
+  <header class="bar">
+    <div class="brand"><span class="mark"><span>G</span></span><b>Gauntlet</b><small>Replay</small></div>
+    <div class="bar-actions">
+      <a class="btn ghost" href="/" id="lnkConsole">Console</a>
+      <button class="btn toggle" id="btnTheme" aria-label="Toggle theme">◑</button>
+    </div>
+  </header>
+  <main class="mat" style="max-width:980px">
+    <p class="eyebrow">Session replay</p>
+    <h1 style="font-size:1.6rem;margin:.1rem 0 .3rem" id="title">Replay</h1>
+    <p class="muted" id="lead">Loading…</p>
+    <div id="player" hidden>
+      <div class="rp-head">
+        <button class="btn primary" id="btnPlay">▶ Play</button>
+        <button class="btn" id="btnStep">Step</button>
+        <button class="btn ghost" id="btnAll">Show all</button>
+        <button class="btn ghost" id="btnRestart">Restart</button>
+        <label class="hint">Pace <select id="pace"><option value="3000">3 s a scene</option><option value="6000" selected>6 s a scene</option><option value="12000">12 s a scene</option></select></label>
+        <span class="hint" id="progress"></span>
+      </div>
+      <div class="rp-progress"><span id="bar" style="width:0"></span></div>
+      <div class="stats" id="stats"></div>
+      <div id="rewound" class="hint" hidden></div>
+      <div id="scenes"></div>
+      <div class="panel" id="forkPanel" hidden>
+        <p class="eyebrow">Rewound</p>
+        <p id="forkMsg"></p>
+        <a class="btn primary" href="/">Open the console</a>
+      </div>
+    </div>
+    <div class="panel" id="gatePanel" hidden>
+      <p class="eyebrow">Not in this deployment's tier</p>
+      <p class="muted" id="gateMsg"></p>
+      <p class="hint">Session replay is in the Education and Enterprise tiers. See <a href="/product.html">packaging</a>.</p>
+    </div>
+  </main>
+  <div class="toast" id="toast" hidden></div>
+  <script src="/brand.js"></script>
+  <script src="/game.js"></script>
+  <script src="/replay.js"></script>
+</body>
+</html>
