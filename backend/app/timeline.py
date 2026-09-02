@@ -17,7 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session as DbSession
 
 from .keys import timeline_sign_key, timeline_verify_keys
-from .models import TimelineEvent
+from .models import Session as ExerciseSession, TimelineEvent
 
 
 def _hash(prev_hash: str, canonical: str, key: bytes | None = None) -> str:
@@ -77,13 +77,38 @@ def append_event(
     )
     db.add(event)
     db.flush()
+    _advance_head(db, session_id, seq, event.hash)
     return event
 
 
-def verify_chain(events: list[TimelineEvent]) -> bool:
-    """Return True if the ordered events form an unbroken hash chain."""
+def _head_sig(seq: int, head_hash: str, key: bytes | None = None) -> str:
+    return _hash("head", f"{seq}:{head_hash}", key)
+
+
+def _advance_head(db: DbSession, session_id: int, seq: int, head_hash: str) -> None:
+    """Record the chain head on the session (S-6). A chain is only as
+    trustworthy as its last link: without a signed head, deleting the final N
+    events leaves a shorter chain that still verifies."""
+    s = db.get(ExerciseSession, session_id)
+    if s is None:
+        return
+    s.head_seq = seq
+    s.head_hash = head_hash
+    s.head_sig = _head_sig(seq, head_hash)
+
+
+def verify_chain(events: list[TimelineEvent], session: ExerciseSession | None = None) -> bool:
+    """Return True if the ordered events form an unbroken, complete chain.
+
+    Every link must hash to the next, sequence numbers must run 1..n with no
+    gaps, and — when the session carries a signed head — the last event must
+    be the one the head names. Truncation, insertion and edits all fail.
+    """
     prev_hash = ""
-    for e in sorted(events, key=lambda x: x.seq):
+    ordered = sorted(events, key=lambda x: x.seq)
+    for i, e in enumerate(ordered, start=1):
+        if e.seq != i:
+            return False
         canonical = json.dumps(
             {
                 "seq": e.seq,
@@ -103,4 +128,16 @@ def verify_chain(events: list[TimelineEvent]) -> bool:
         if not any(e.hash == _hash(prev_hash, canonical, k) for k in timeline_verify_keys()):
             return False
         prev_hash = e.hash
-    return True
+    return head_valid(ordered, session)
+
+
+def head_valid(ordered: list[TimelineEvent], session: ExerciseSession | None) -> bool:
+    """The session's signed head must name the last event (S-6). Sessions that
+    predate the head (head_seq is null) are accepted on the chain alone."""
+    if session is None or session.head_seq is None:
+        return True
+    last_seq = ordered[-1].seq if ordered else 0
+    last_hash = ordered[-1].hash if ordered else ""
+    if session.head_seq != last_seq or (session.head_hash or "") != last_hash:
+        return False
+    return any(session.head_sig == _head_sig(last_seq, last_hash, k) for k in timeline_verify_keys())

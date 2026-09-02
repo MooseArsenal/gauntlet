@@ -10,6 +10,9 @@ small module.
 from __future__ import annotations
 
 import threading
+from datetime import datetime, timedelta, timezone
+
+from sqlalchemy import select
 
 from .config import SECONDS_PER_GAME_MINUTE
 from .database import SessionLocal
@@ -30,6 +33,7 @@ def cancel(session_id: int) -> None:
 def arm(session: models.Session, inject) -> None:
     """Schedule the timeout branch of ``inject`` if the session auto-advances."""
     cancel(session.id)
+    session.due_at = None
     if not session.auto_advance or session.status != "running":
         return
     branch = session_ops.timeout_branch(inject)
@@ -37,12 +41,42 @@ def arm(session: models.Session, inject) -> None:
         return
     minutes = session_ops.parse_duration_minutes(branch.get("after", ""))
     delay = max(1.0, minutes * SECONDS_PER_GAME_MINUTE)
+    # Persisted so a restart can pick the timer back up (F-5).
+    session.due_at = datetime.now(timezone.utc) + timedelta(seconds=delay)
+    _start(session.id, inject.code, delay)
 
-    t = threading.Timer(delay, _fire, args=(session.id, inject.code))
+
+def _start(session_id: int, code: str, delay: float) -> None:
+    t = threading.Timer(delay, _fire, args=(session_id, code))
     t.daemon = True
     with _lock:
-        _timers[session.id] = t
+        _timers[session_id] = t
     t.start()
+
+
+def rearm_all() -> int:
+    """On startup, re-arm every running auto-advance session whose timer was
+    lost with the previous process (F-5). Overdue timers fire within a second.
+    Returns the number re-armed."""
+    db = SessionLocal()
+    n = 0
+    try:
+        now = datetime.now(timezone.utc)
+        for s in db.execute(
+            select(models.Session).where(
+                models.Session.status == "running",
+                models.Session.auto_advance.is_(True),
+                models.Session.due_at.isnot(None),
+            )
+        ).scalars():
+            due = s.due_at if s.due_at.tzinfo else s.due_at.replace(tzinfo=timezone.utc)
+            delay = max(1.0, (due - now).total_seconds())
+            if s.current_inject_code:
+                _start(s.id, s.current_inject_code, delay)
+                n += 1
+    finally:
+        db.close()
+    return n
 
 
 def _fire(session_id: int, expected_code: str) -> None:
