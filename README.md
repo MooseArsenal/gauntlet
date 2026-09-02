@@ -87,6 +87,10 @@ product with no dependency on any other system. See
   taken, what it cost, and the roads not taken. Rewind forks a new running
   session from any scene with the state as it was; the original record is
   never edited.
+- **Content packs and intel feed** (Team / Enterprise) — scenario packs and
+  dated adversary intel arrive as one signed token, verified offline, installed
+  from the Members page; intel entries become custom adversaries the generator
+  can use and a feed on the Members page. See `docs/CONTENT_PACKS.md`.
 - **White-label and partner mode** — an organisation's name, colour, logo and
   report footer on the console and every PDF (Team); a partner organisation runs
   exercises for client organisations through shadow admin accounts inside each

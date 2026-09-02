@@ -1,0 +1,15 @@
+[
+  {
+    "key": "glasswing",
+    "name": "GLASSWING",
+    "headline": "Initial access broker now selling into ransomware affiliates targeting regional hospitals",
+    "notes": "Observed since July: phishing with fake HR portals, then Cobalt Strike hand-off within 48 hours. Affiliates favour encryption of imaging and shared drives over data theft.",
+    "published": "2026-08-28",
+    "sectors": ["Healthcare"],
+    "techniques": ["T1566.001", "T1078", "T1021.002", "T1486"],
+    "kill_chain": [],
+    "motivation": "financial",
+    "is_fictitious": true,
+    "references": ["https://example.invalid/reports/glasswing-2026-08"]
+  }
+]

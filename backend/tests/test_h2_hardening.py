@@ -123,7 +123,7 @@ TENANT_TABLES = {
     "users", "refresh_tokens", "audit_logs", "environments", "scenarios", "sessions",
     "timeline_events", "observations", "reports", "improvement_items",
     "exercise_schedules", "custom_adversaries", "session_joins", "certificates", "attachments",
-    "cohorts", "cohort_members",
+    "cohorts", "cohort_members", "content_packs",
 }
 
 
@@ -142,6 +142,7 @@ def _seed_everything(c, h, org_id, scn, sid):
     db = SessionLocal()
     db.add(models.ImprovementItem(org_id=org_id, session_id=sid, title="fix", description="d"))
     db.add(models.CustomAdversary(org_id=org_id, key="k", name="n", description="d"))
+    db.add(models.ContentPack(org_id=org_id, pack_id="p", kind="intel", name="p", version="1", digest="0" * 64))
     db.add(models.ExerciseSchedule(org_id=org_id, scenario_id=scn, name="s",
                                    next_run_at=datetime.now(timezone.utc)))
     db.commit(); db.close()

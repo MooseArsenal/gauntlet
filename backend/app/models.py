@@ -513,3 +513,25 @@ class CohortMember(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     alias: Mapped[str] = mapped_column(String(40))  # "S-07": stable, anonymous
     joined_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+
+class ContentPack(Base):
+    """An installed signed content pack (L5): what it was, which version, its
+    digest, and a summary of what it carried (the intel feed reads that)."""
+
+    __tablename__ = "content_packs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id"), index=True)
+    pack_id: Mapped[str] = mapped_column(String(80), index=True)
+    kind: Mapped[str] = mapped_column(String(20))  # scenarios|intel
+    name: Mapped[str] = mapped_column(String(200))
+    version: Mapped[str] = mapped_column(String(40))
+    publisher: Mapped[str] = mapped_column(String(200), default="")
+    issued: Mapped[str] = mapped_column(String(10), default="")
+    digest: Mapped[str] = mapped_column(String(64))
+    items: Mapped[int] = mapped_column(Integer, default=0)
+    manifest: Mapped[dict] = mapped_column(JSON, default=dict)
+    installed_by: Mapped[str] = mapped_column(String(320), default="")
+    installed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
