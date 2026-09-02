@@ -339,6 +339,18 @@ gauntlet/
 └── docs/                      design brief (HTML + Markdown)
 ```
 
+## Deploy
+
+```bash
+cp .env.example .env            # set GAUNTLET_SECRET_KEY and POSTGRES_PASSWORD
+docker compose up -d --build    # app + Postgres, migrations run on start
+```
+
+One process, one worker per container, TLS at your proxy. The full production
+checklist, the air-gapped procedure, and the scaling notes are in
+[`docs/DEPLOY.md`](docs/DEPLOY.md). `backend/requirements.lock.txt` pins the
+exact install set the image uses.
+
 ## Configuration
 
 | Variable | Default | Purpose |

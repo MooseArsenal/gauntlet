@@ -37,12 +37,14 @@ class EnvironmentCreate(EnvironmentBase):
 class EnvironmentOut(EnvironmentBase):
     model_config = _orm
     id: int
+    archived_at: Optional[datetime] = None
     created_at: datetime
 
 
 class EnvironmentSummary(BaseModel):
     model_config = _orm
     id: int
+    archived_at: Optional[datetime] = None
     name: str
     sector: str
     box_type: str
@@ -110,6 +112,7 @@ class ScenarioCreate(BaseModel):
 class ScenarioSummary(BaseModel):
     model_config = _orm
     id: int
+    archived_at: Optional[datetime] = None
     name: str
     threat_actor: str
     exercise_type: str
@@ -119,6 +122,7 @@ class ScenarioSummary(BaseModel):
 class ScenarioOut(BaseModel):
     model_config = _orm
     id: int
+    archived_at: Optional[datetime] = None
     environment_id: int
     name: str
     threat_actor: str
@@ -179,6 +183,7 @@ class JoinedSessionOut(BaseModel):
 class SessionSummary(BaseModel):
     model_config = _orm
     id: int
+    archived_at: Optional[datetime] = None
     scenario_id: int
     name: str
     status: str

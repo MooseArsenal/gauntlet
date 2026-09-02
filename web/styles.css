@@ -362,4 +362,7 @@ table.grid tbody tr:hover{background:var(--surface-2)}
 .mem-who{display:grid;line-height:1.2} .mem-who small{color:var(--muted);font-size:.72rem}
 .mem-acts{display:flex;flex-wrap:wrap;gap:.3rem}
 
+.sess-acts{display:flex;gap:.3rem}
+#archivedToggle{margin-top:.6rem;font-size:.76rem}
+
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}

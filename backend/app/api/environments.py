@@ -68,12 +68,14 @@ def import_environment(
 
 @router.get("", response_model=list[schemas.EnvironmentSummary])
 def list_environments(
+    include_archived: bool = False,
     user: models.User = Depends(require_staff), db: Session = Depends(get_db)
 ):
     return (
         db.execute(
             select(models.Environment)
-            .where(models.Environment.org_id == user.org_id)
+            .where(models.Environment.org_id == user.org_id,
+                   *([] if include_archived else [models.Environment.archived_at.is_(None)]))
             .order_by(models.Environment.id)
         )
         .scalars()
