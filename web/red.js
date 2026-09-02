@@ -27,7 +27,7 @@
   }
   function toast(m) { const el = $("toast"); el.textContent = m; el.hidden = false; clearTimeout(el._t); el._t = setTimeout(() => (el.hidden = true), 2600); }
   function initTheme() {
-    let t = "dark"; try { t = localStorage.getItem("gauntlet-theme") || "dark"; } catch (e) { /* noop */ }
+    let t = "dark"; try { t = localStorage.getItem("gauntlet-theme") || "light"; } catch (e) { /* noop */ }
     document.documentElement.setAttribute("data-theme", t);
     $("btnTheme").addEventListener("click", () => {
       const n = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";

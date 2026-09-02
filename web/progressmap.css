@@ -1,44 +1,42 @@
 /* Kill-chain progress map (Q2b). Shared by the console (live) and editor (coverage).
    Defines the phase palette here too, so the console gets it without editor.css. */
 :root{
-  --ph-initial-access:#6ea8fe; --ph-execution:#b892ff; --ph-persistence:#f7a072;
-  --ph-privilege-escalation:#f4845f; --ph-defense-evasion:#c9a227;
-  --ph-credential-access:#e8c468; --ph-discovery:#5bc0be;
-  --ph-command-and-control:#ffd166; --ph-lateral-movement:#4bbd88;
-  --ph-collection:#e8759b; --ph-exfiltration:#ef6f6c; --ph-impact:#e5484d;
-  --ph-recovery:#4bbd88; --ph-other:#7E8794; --ph-default:#7E8794;
+  /* Phase inks — restrained, print-safe; the current phase is the only warm one. */
+  --ph-initial-access:#2F5D7C; --ph-execution:#4A6D8C; --ph-persistence:#7A6C3F;
+  --ph-privilege-escalation:#8C5A3A; --ph-defense-evasion:#6B6B6B;
+  --ph-credential-access:#9A6700; --ph-discovery:#3F7A6A;
+  --ph-command-and-control:#5B5B8C; --ph-lateral-movement:#1E7A4B;
+  --ph-collection:#7A4F6D; --ph-exfiltration:#A8412E; --ph-impact:#D9480F;
+  --ph-recovery:#1E7A4B; --ph-other:#5B6469; --ph-default:#5B6469;
 }
 
-.killchain{padding:.6rem .9rem .3rem;background:var(--surface);border:1px solid var(--line);
-  border-radius:12px;margin-bottom:.8rem}
+.killchain{padding:.4rem 0 .3rem;background:transparent;border:0;border-bottom:1px dotted var(--rule);margin-bottom:.2rem}
 .kc-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:.5rem}
-.kc-title{font-family:"IBM Plex Mono",monospace;font-size:.62rem;letter-spacing:.14em;
+.kc-title{font-family:var(--mono);font-size:.62rem;letter-spacing:.14em;
   text-transform:uppercase;color:var(--muted)}
-.kc-meta{font-family:"IBM Plex Mono",monospace;font-size:.72rem;color:var(--accent-ink);
+.kc-meta{font-family:var(--mono);font-size:.72rem;color:var(--ink);
   font-variant-numeric:tabular-nums}
 
 .kc-rail{position:relative;padding:.2rem 0 .1rem}
-.kc-track,.kc-fill{position:absolute;top:12px;left:14px;right:14px;height:3px;border-radius:2px}
+.kc-track,.kc-fill{position:absolute;top:12px;left:14px;right:14px;height:3px;border-radius:0}
 .kc-track{background:var(--line)}
-.kc-fill{right:auto;background:linear-gradient(90deg,var(--good),var(--accent));
-  box-shadow:0 0 8px color-mix(in srgb,var(--accent) 45%,transparent)}
+.kc-fill{right:auto;background:var(--rule)}
 @media (prefers-reduced-motion: no-preference){ .kc-fill{transition:width .5s cubic-bezier(.4,0,.2,1)} }
 
 .kc-stops{list-style:none;display:flex;justify-content:space-between;margin:0;padding:0;position:relative}
 .kc-stop{display:flex;flex-direction:column;align-items:center;gap:.25rem;flex:1;min-width:0;text-align:center}
-.kc-dot{width:16px;height:16px;border-radius:50%;background:var(--surface-2);
-  border:2px solid var(--line);display:grid;place-items:center;font-size:.6rem;color:#0d0f13;
+.kc-dot{width:14px;height:14px;border-radius:0;background:var(--surface);
+  border:1.5px solid var(--rule);display:grid;place-items:center;font-size:.6rem;color:var(--bg);
   z-index:1;transition:transform .2s ease}
-.kc-lbl{font-size:.6rem;color:var(--muted);line-height:1.1;max-width:74px;overflow:hidden;
-  text-overflow:ellipsis;white-space:nowrap}
+.kc-lbl{font-size:.56rem;font-family:var(--mono);letter-spacing:.04em;text-transform:uppercase;color:var(--muted);line-height:1.15;max-width:82px;white-space:normal}
 .kc-ct{display:none}
 
 /* States */
-.kc-done .kc-dot{background:var(--ph);border-color:var(--ph);color:#0d0f13;font-weight:700}
+.kc-done .kc-dot{background:var(--rule);border-color:var(--rule);color:var(--bg);font-weight:700}
 .kc-done .kc-lbl{color:var(--ink-soft)}
-.kc-current .kc-dot{background:var(--ph);border-color:var(--ph);
-  box-shadow:0 0 0 3px color-mix(in srgb,var(--ph) 30%,transparent)}
-.kc-current .kc-lbl{color:var(--ink);font-weight:600}
+.kc-current .kc-dot{background:var(--crit);border-color:var(--crit);
+  box-shadow:0 0 0 3px var(--crit-wash)}
+.kc-current .kc-lbl{color:var(--ink);font-weight:700}
 .kc-upcoming .kc-dot{background:var(--surface-2)}
 .kc-coverage .kc-stop .kc-dot{background:var(--ph);border-color:var(--ph);opacity:.9}
 .kc-coverage .kc-lbl{color:var(--ink-soft)}
@@ -46,14 +44,14 @@
 @media (prefers-reduced-motion: no-preference){
   .kc-current .kc-dot{animation:kc-pulse 2s ease-in-out infinite}
   @keyframes kc-pulse{
-    0%,100%{box-shadow:0 0 0 3px color-mix(in srgb,var(--ph) 30%,transparent)}
-    50%{box-shadow:0 0 0 6px color-mix(in srgb,var(--ph) 12%,transparent)}
+    0%,100%{box-shadow:0 0 0 3px var(--crit-wash)}
+    50%{box-shadow:0 0 0 6px transparent}
   }
   .kc-pop{animation:kc-pop .45s ease}
   @keyframes kc-pop{0%{transform:scale(1)}40%{transform:scale(1.35)}100%{transform:scale(1)}}
 }
 
 /* Editor coverage strip floats over the top of the canvas */
-.ed-coverage{position:absolute;top:10px;left:14px;right:14px;z-index:5;margin:0;
-  box-shadow:0 6px 20px rgba(0,0,0,.28);backdrop-filter:blur(2px)}
+.ed-coverage{position:absolute;top:0;left:0;right:0;z-index:5;margin:0;padding:.4rem .9rem .3rem;
+  background:var(--surface);border-bottom:1px solid var(--line)}
 .ed-coverage .kc-head{margin-bottom:.35rem}
