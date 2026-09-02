@@ -39,3 +39,27 @@ def remove_license(request: Request, admin: models.User = Depends(require_role("
     audit.record(db, "license.remove", request=request, user=admin, commit=False)
     db.commit()
     return None
+
+
+@router.post("/api/admin/license/revocations")
+def install_revocations(payload: schemas.LicenseIn, request: Request,
+                        admin: models.User = Depends(require_role("admin")), db: Session = Depends(get_db)):
+    """Install a signed revocation list (GR1). A revoked licence degrades to
+    Community at once; the list stays until replaced or removed."""
+    try:
+        p = entitlements.parse_revocations(payload.token)
+    except entitlements.LicenseError as exc:
+        raise HTTPException(422, str(exc))
+    entitlements.store_revocations(db, payload.token.strip())
+    audit.record(db, "license.revocations.install", request=request, user=admin,
+                 detail={"issued": p.get("issued"), "count": len(p["revoked"])}, commit=False)
+    db.commit()
+    return entitlements.status(db)
+
+
+@router.delete("/api/admin/license/revocations", status_code=204)
+def remove_revocations(request: Request, admin: models.User = Depends(require_role("admin")), db: Session = Depends(get_db)):
+    entitlements.store_revocations(db, None)
+    audit.record(db, "license.revocations.remove", request=request, user=admin, commit=False)
+    db.commit()
+    return None

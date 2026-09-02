@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Publisher tool: build and sign Gauntlet content packs (L5).
 
-    python tools/build_pack.py keygen
-    python tools/build_pack.py scenarios --key <private_b64> --id acme-healthcare --name "Healthcare pack" \
+    python tools/build_pack.py keygen vendor-pack.key
+    python tools/build_pack.py scenarios --key-file vendor-pack.key --id acme-healthcare --name "Healthcare pack" \
         --version 2026.9 --publisher "Acme" scenario1.yaml[:hospital] scenario2.yaml[:water_utility] > pack.gpack
-    python tools/build_pack.py intel --key <private_b64> --id acme-intel --name "Acme intel" \
+    python tools/build_pack.py intel --key-file vendor-pack.key --id acme-intel --name "Acme intel" \
         --version 2026.09.02 --publisher "Acme" intel.json > intel.gpack
     python tools/build_pack.py inspect pack.gpack
 
@@ -20,6 +20,7 @@ Keep the private key out of the repository.
 from __future__ import annotations
 
 import argparse
+import getpass
 import json
 import os
 import sys
@@ -27,11 +28,12 @@ from datetime import date
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "backend"))
 os.environ.setdefault("GAUNTLET_SECRET_KEY", "issuer-only-not-a-deployment-key-000000000")
-from app import entitlements, packs, scenario_io  # noqa: E402
+from app import packs, scenario_io, signing  # noqa: E402
 
 
 def _common(sub):
-    sub.add_argument("--key", required=True, help="private key (base64url) from keygen")
+    sub.add_argument("--key-file", help="encrypted private key from keygen (recommended)")
+    sub.add_argument("--key", help="raw private key (base64url); discouraged")
     sub.add_argument("--id", required=True, help="pack id: short lowercase slug, stable across versions")
     sub.add_argument("--name", required=True)
     sub.add_argument("--version", required=True)
@@ -42,7 +44,7 @@ def _common(sub):
 def main() -> int:
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest="cmd", required=True)
-    sub.add_parser("keygen")
+    kg = sub.add_parser("keygen"); kg.add_argument("out", nargs="?", help="write the encrypted private key here")
     sc = sub.add_parser("scenarios"); _common(sc)
     sc.add_argument("files", nargs="+", help="scenario.yaml[:environment_key]")
     it = sub.add_parser("intel"); _common(it)
@@ -50,14 +52,26 @@ def main() -> int:
     ins = sub.add_parser("inspect"); ins.add_argument("file")
     a = ap.parse_args()
     if a.cmd == "keygen":
-        priv, pub = entitlements.keygen()
-        print(f"PRIVATE (keep secret): {priv}\nPUBLIC (GAUNTLET_PACK_PUBKEY): {pub}")
+        priv, pub = signing.keygen()
+        out = os.environ.get("GAUNTLET_KEY_OUT") or (sys.argv[2] if len(sys.argv) > 2 and not sys.argv[2].startswith("-") else "")
+        if not out:
+            sys.exit("usage: build_pack.py keygen <out-file>  (the private key is written encrypted; a passphrase is asked for)")
+        pw = os.environ.get("GAUNTLET_SIGNING_PASSPHRASE") or getpass.getpass("Key passphrase: ")
+        signing.save_private_key(out, priv, pw)
+        print(f"private key written (encrypted) to {out}\nPUBLIC: {pub}\nKID: {signing.kid_for(pub)}")
         return 0
     if a.cmd == "inspect":
         with open(a.file, encoding="utf-8") as f:
             manifest, digest = packs.verify(f.read())
         print(json.dumps(packs.summary(manifest, digest), indent=2))
         return 0
+    if a.key_file:
+        priv = signing.load_private_key(a.key_file, os.environ.get("GAUNTLET_SIGNING_PASSPHRASE") or getpass.getpass("Key passphrase: "))
+    elif a.key:
+        print("warning: --key puts the private key in your shell history; prefer --key-file", file=sys.stderr)
+        priv = a.key
+    else:
+        sys.exit("give --key-file (recommended) or --key")
     items = []
     if a.cmd == "scenarios":
         for spec in a.files:
@@ -70,7 +84,7 @@ def main() -> int:
             items = json.load(f)
     manifest = {"v": 1, "kind": a.cmd, "id": a.id, "name": a.name, "version": a.version,
                 "publisher": a.publisher, "issued": a.issued, "items": items}
-    print(packs.sign(a.key, manifest))
+    print(packs.sign(priv, manifest))
     return 0
 
 
