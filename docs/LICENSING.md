@@ -55,3 +55,12 @@ shipping the new public key in a release, and re-issuing licences.
 - `content_packs` — `POST /api/packs/install` for scenario packs; `intel_feed` —
   intel packs and `GET /api/packs/intel`. Inspecting a pack is always allowed.
   See `docs/CONTENT_PACKS.md`.
+
+## Keys, serials and revocation
+
+Every licence names the key that signed it (`kid`) and carries a random
+`serial`. Deployments trust the vendor keys compiled into the release
+(`signing.VENDOR_KEYS`); key rotation adds a kid and removes the old one a
+release later. A signed revocation list (`GR1`) installed on the Members page
+or via `GAUNTLET_LICENSE_REVOCATIONS` degrades a revoked serial to Community at
+once. Procedure and ceremony: `docs/KEY_MANAGEMENT.md`.

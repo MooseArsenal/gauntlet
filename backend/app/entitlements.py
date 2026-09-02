@@ -16,16 +16,16 @@ enforces them. Community is what runs with no licence at all.
 """
 from __future__ import annotations
 
-import base64
 import json
 import os
+import secrets
 from datetime import date, datetime, timedelta, timezone
 
 from fastapi import Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from . import models
+from . import models, signing
 from .database import get_db
 from .security import get_current_user
 
@@ -48,76 +48,134 @@ FEATURE_LABELS = {
 GRACE_DAYS = 30
 SETTING_KEY = "license"
 
-# The vendor's Ed25519 public key (raw, base64url). Override for self-issued
-# licences in development with GAUNTLET_LICENSE_PUBKEY.
-VENDOR_PUBKEY_B64 = os.environ.get("GAUNTLET_LICENSE_PUBKEY", "")
+# Trust anchors (which vendor public keys are trusted, and key rotation) live
+# in signing.py; the deployment never trusts a key an environment variable
+# names in production unless GAUNTLET_TRUST_ENV_KEYS=1 is chosen on purpose.
+REVOCATION_KEY = "license_revocations"
+MAX_TOKEN_CHARS = 8000
 
 
 class LicenseError(ValueError):
     pass
 
 
-def _b64d(s: str) -> bytes:
-    s = s.strip()
-    return base64.urlsafe_b64decode(s + "=" * (-len(s) % 4))
+_b64d = signing.b64d
+_b64e = signing.b64e
+keygen = signing.keygen
 
 
-def _b64e(b: bytes) -> str:
-    return base64.urlsafe_b64encode(b).decode().rstrip("=")
-
-
-def _pubkey():
-    b64 = os.environ.get("GAUNTLET_LICENSE_PUBKEY", VENDOR_PUBKEY_B64)
-    if not b64:
-        return None
-    from cryptography.hazmat.primitives.asymmetric import ed25519
-    return ed25519.Ed25519PublicKey.from_public_bytes(_b64d(b64))
+def _unverified_payload(part: str) -> dict:
+    """Read the payload before verifying — only to learn which key to use."""
+    try:
+        p = json.loads(_b64d(part))
+    except Exception as exc:  # noqa: BLE001
+        raise LicenseError("licence payload is not readable") from exc
+    return p if isinstance(p, dict) else {}
 
 
 def parse(token: str) -> dict:
     """Verify a licence token and return its payload. Raises LicenseError."""
     token = (token or "").strip()
+    if len(token) > MAX_TOKEN_CHARS:
+        raise LicenseError("licence token is too long")
     parts = token.split(".")
     if len(parts) != 3 or parts[0] != "GL1":
         raise LicenseError("not a Gauntlet licence")
-    pub = _pubkey()
-    if pub is None:
-        raise LicenseError("no licence public key is configured on this deployment")
+    hint = _unverified_payload(parts[1])
     try:
         body, sig = _b64d(parts[1]), _b64d(parts[2])
-        pub.verify(sig, body)
+        kid = signing.verify("license", body, sig, hint.get("kid"))
         payload = json.loads(body)
+    except ValueError as exc:
+        raise LicenseError(f"licence signature does not verify: {exc}") from exc
     except Exception as exc:  # noqa: BLE001 - any failure is "invalid"
         raise LicenseError("licence signature does not verify") from exc
-    if payload.get("v") != 1 or payload.get("tier") not in TIERS:
+    if payload.get("v") not in (1, 2) or payload.get("tier") not in TIERS:
         raise LicenseError("unsupported licence version or tier")
     try:
         date.fromisoformat(payload.get("exp", ""))
     except ValueError:
         raise LicenseError("licence has no valid expiry")
+    payload["kid"] = kid
+    payload.setdefault("serial", "")
     return payload
 
 
 def issue(private_key_b64: str, *, tier: str, customer: str, exp: str, features: list[str] | None = None,
-          seats: dict | None = None, org: str = "*") -> str:
-    """Vendor side: mint a licence. Used by tools/issue_license.py and tests."""
-    from cryptography.hazmat.primitives.asymmetric import ed25519
-    priv = ed25519.Ed25519PrivateKey.from_private_bytes(_b64d(private_key_b64))
-    payload = {"v": 1, "tier": tier, "customer": customer, "org": org, "exp": exp,
+          seats: dict | None = None, org: str = "*", serial: str | None = None) -> str:
+    """Vendor side: mint a licence. Used by tools/issue_license.py and tests.
+    Every licence carries a random serial (for revocation) and the key id."""
+    pub = signing.public_of(private_key_b64)
+    payload = {"v": 2, "kid": signing.kid_for(pub), "serial": serial or secrets.token_hex(8),
+               "tier": tier, "customer": customer, "org": org, "exp": exp,
                "features": sorted(set(features or [])), "seats": seats or {},
                "issued": date.today().isoformat()}
     body = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
-    return f"GL1.{_b64e(body)}.{_b64e(priv.sign(body))}"
+    return f"GL1.{_b64e(body)}.{_b64e(signing.sign(private_key_b64, body))}"
 
 
-def keygen() -> tuple[str, str]:
-    """Vendor side: a new Ed25519 keypair as (private_b64, public_b64)."""
-    from cryptography.hazmat.primitives import serialization
-    from cryptography.hazmat.primitives.asymmetric import ed25519
-    priv = ed25519.Ed25519PrivateKey.generate()
-    pb = priv.private_bytes(serialization.Encoding.Raw, serialization.PrivateFormat.Raw, serialization.NoEncryption())
-    pu = priv.public_key().public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)
-    return _b64e(pb), _b64e(pu)
+# --------------------------------------------------------------------------- #
+# revocation lists: GR1.<payload>.<sig>, {"v":1,"kid":..,"issued":..,"revoked":[serials]}
+# --------------------------------------------------------------------------- #
+def issue_revocations(private_key_b64: str, serials: list[str], *, issued: str | None = None) -> str:
+    pub = signing.public_of(private_key_b64)
+    payload = {"v": 1, "kid": signing.kid_for(pub), "issued": issued or date.today().isoformat(),
+               "revoked": sorted({s.strip() for s in serials if s.strip()})}
+    body = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+    return f"GR1.{_b64e(body)}.{_b64e(signing.sign(private_key_b64, body))}"
+
+
+def parse_revocations(token: str) -> dict:
+    token = (token or "").strip()
+    if len(token) > 64 * 1024:
+        raise LicenseError("revocation list is too long")
+    parts = token.split(".")
+    if len(parts) != 3 or parts[0] != "GR1":
+        raise LicenseError("not a Gauntlet revocation list")
+    hint = _unverified_payload(parts[1])
+    try:
+        body, sig = _b64d(parts[1]), _b64d(parts[2])
+        signing.verify("license", body, sig, hint.get("kid"))
+        payload = json.loads(body)
+    except ValueError as exc:
+        raise LicenseError(f"revocation list does not verify: {exc}") from exc
+    except Exception as exc:  # noqa: BLE001
+        raise LicenseError("revocation list does not verify") from exc
+    if payload.get("v") != 1 or not isinstance(payload.get("revoked"), list):
+        raise LicenseError("unsupported revocation list")
+    return payload
+
+
+def stored_revocations(db: Session) -> str:
+    row = db.get(models.InstanceSetting, REVOCATION_KEY)
+    if row and row.value:
+        return row.value
+    return os.environ.get("GAUNTLET_LICENSE_REVOCATIONS", "")
+
+
+def store_revocations(db: Session, token: str | None) -> None:
+    row = db.get(models.InstanceSetting, REVOCATION_KEY)
+    if token is None:
+        if row:
+            db.delete(row)
+        return
+    if row is None:
+        db.add(models.InstanceSetting(key=REVOCATION_KEY, value=token))
+    else:
+        row.value = token
+
+
+def revocations(db: Session) -> dict:
+    """The installed revocation list, or an empty one; a list that no longer
+    verifies is reported and ignored."""
+    tok = stored_revocations(db)
+    if not tok:
+        return {"revoked": [], "issued": None, "error": None}
+    try:
+        p = parse_revocations(tok)
+        return {"revoked": p["revoked"], "issued": p.get("issued"), "error": None}
+    except LicenseError as exc:
+        return {"revoked": [], "issued": None, "error": str(exc)}
 
 
 # --------------------------------------------------------------------------- #
@@ -158,6 +216,10 @@ def status(db: Session, today: date | None = None) -> dict:
     days_left = (exp - today).days
     tier = p["tier"]
     features = set(TIER_FEATURES[tier]) | {f for f in (p.get("features") or []) if f in ALL_FEATURES}
+    rev = revocations(db)
+    if p.get("serial") and p["serial"] in rev["revoked"]:
+        return {**base, "customer": p.get("customer", ""), "exp": p["exp"], "serial": p["serial"], "kid": p["kid"],
+                "state": "revoked", "error": "this licence has been revoked", "revocations": rev}
     if days_left >= 0:
         state = "active"
     elif days_left >= -GRACE_DAYS:
@@ -166,7 +228,8 @@ def status(db: Session, today: date | None = None) -> dict:
         state, tier, features = "expired", "community", set(TIER_FEATURES["community"])
     return {"tier": tier, "features": sorted(features), "licensed": state in ("active", "grace"),
             "customer": p.get("customer", ""), "exp": p["exp"], "state": state, "days_left": days_left,
-            "seats": p.get("seats") or {}, "error": None, "grace_days": GRACE_DAYS}
+            "seats": p.get("seats") or {}, "error": None, "grace_days": GRACE_DAYS,
+            "serial": p.get("serial", ""), "kid": p["kid"], "revocations": rev}
 
 
 def has(db: Session, feature: str) -> bool:

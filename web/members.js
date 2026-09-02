@@ -134,7 +134,10 @@
     const state = lic.state === "active" ? `${lic.tier} · ${lic.customer || ""} · expires ${lic.exp} (${lic.days_left} days)`
       : lic.state === "grace" ? `${lic.tier} · EXPIRED ${-lic.days_left} days ago — ${lic.grace_days + lic.days_left} days of grace left`
       : lic.state === "expired" ? "expired — running as Community" : lic.state === "invalid" ? `invalid licence: ${lic.error}` : "Community (no licence)";
-    $("licState").textContent = "— " + state;
+    $("licState").textContent = "— " + (lic.state === "revoked" ? "REVOKED — running as Community" : state);
+    const rev = lic.revocations || {};
+    $("licKeys").textContent = (lic.serial ? `Licence serial ${lic.serial}, signed by key ${lic.kid}. ` : "") +
+      (rev.issued ? `Revocation list of ${rev.issued} installed (${rev.revoked.length} serial${rev.revoked.length === 1 ? "" : "s"}).` : rev.error ? `Revocation list ignored: ${rev.error}` : "");
     $("licGrid").innerHTML = lic.all_features.map((f) =>
       `<span class="lic-feat ${lic.features.includes(f) ? "on" : ""}">${lic.features.includes(f) ? "✓" : "○"} ${esc(lic.labels[f] || f)}</span>`).join("");
     const brandOn = lic.features.includes("white_label");
@@ -234,6 +237,11 @@
     $("btnLicInstall").addEventListener("click", async () => {
       const token = $("licToken").value.trim(); if (!token) { toast("Paste a licence token."); return; }
       try { await api("/api/admin/license", "POST", { token }); $("licToken").value = ""; toast("Licence installed."); loadLicense(); }
+      catch (e) { toast(e.message); }
+    });
+    $("btnRevInstall").addEventListener("click", async () => {
+      const token = $("revToken").value.trim(); if (!token) { toast("Paste a revocation list."); return; }
+      try { await api("/api/admin/license/revocations", "POST", { token }); $("revToken").value = ""; toast("Revocation list installed."); loadLicense(); }
       catch (e) { toast(e.message); }
     });
     $("btnLicRemove").addEventListener("click", async () => {

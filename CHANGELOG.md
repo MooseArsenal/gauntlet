@@ -4,6 +4,16 @@ All notable changes to Gauntlet. The format follows Keep a Changelog; versions
 follow SemVer. Container images are published as
 `ghcr.io/moose11b/gauntlet:<version>` on each tag.
 
+## [Unreleased]
+
+### Security
+- **Signing keys** — vendor public keys are compiled into the release by key id
+  and are the only trust anchor in production; environment keys are honoured
+  outside production or with an explicit opt-in. Licences and packs carry the
+  key id so keys rotate. Licences carry a serial; a signed revocation list
+  degrades a revoked licence at once. The tools keep private keys in
+  passphrase-encrypted files and never print them. `docs/KEY_MANAGEMENT.md`.
+
 ## [0.3.0] — 2026-09-02
 
 The "paid surface" release: an offline licence with tiers, and the features a

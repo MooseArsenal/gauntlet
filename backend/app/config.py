@@ -189,6 +189,11 @@ def startup_problems() -> list[str]:
         if SEED_ON_START and not os.environ.get("GAUNTLET_DEMO_PASSWORD"):
             problems.append("GAUNTLET_SEED creates the demo admin with its default password in production "
                             "(set GAUNTLET_DEMO_PASSWORD or GAUNTLET_SEED=0)")
+        env_keys = [v for v in ("GAUNTLET_LICENSE_PUBKEY", "GAUNTLET_LICENSE_PUBKEYS", "GAUNTLET_PACK_PUBKEY", "GAUNTLET_PACK_PUBKEYS")
+                    if os.environ.get(v)]
+        if env_keys and not _flag("GAUNTLET_TRUST_ENV_KEYS", "0"):
+            problems.append(f"{', '.join(env_keys)} set but ignored in production: the built-in vendor keys are the "
+                            "trust anchor (set GAUNTLET_TRUST_ENV_KEYS=1 only for a fork that issues its own licences)")
     if WORKERS > 1:
         problems.append(f"{WORKERS} workers configured but login throttling, WebSocket tickets, "
                         "OIDC state and timers are per-process — run one worker per container")
