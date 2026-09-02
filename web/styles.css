@@ -421,6 +421,14 @@ table.grid tbody tr:hover{background:var(--surface-2)}
 .cert-verdict.bad{border-color:var(--crit)}.cert-verdict.bad .rc-vtag{color:var(--crit)}
 .cert-org{margin:.4rem 0 .2rem;font-size:1.5rem}
 
+/* M4 — telemetry loop */
+.tl-table th{font-family:var(--mono);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);text-align:left;padding:.3rem .4rem;border-bottom:1.5px solid var(--ink)}
+.tl-table td.mono{font-family:var(--mono);font-size:.78rem}
+.tl-out{font-family:var(--mono);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;padding:.15rem .4rem;border:1.5px solid var(--ink)}
+.tl-out.confirmed{border-color:var(--good);color:var(--good)}.tl-out.silent_gap{border-color:var(--crit);color:var(--crit)}
+.tl-out.surprise{border-color:var(--warn);color:var(--warn)}.tl-out.missed{color:var(--ink-soft);border-color:var(--rule)}
+.tl-form{margin-bottom:.8rem}
+.timeline li.k-telemetry b{color:var(--accent)}
 /* M3 — hotwash */
 .hw-table td{vertical-align:top}.hw-btns{white-space:nowrap;text-align:right}
 .btn.ghost.hw-rate.on{background:var(--ink);color:#fff;border-color:var(--ink)}
