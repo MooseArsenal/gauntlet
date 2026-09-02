@@ -34,6 +34,9 @@ product with no dependency on any other system. See
   hash-chained log that can be verified.
 - **Reports** — one timeline, four audience lenses: executive, technical (SOC/IR),
   GRC/audit evidence, and training gaps.
+- **Product page and tour** — `/product.html` (positioning, how an exercise runs,
+  indicative pricing) and a guided tour of the console (`/?tour=1`). Releases are
+  tagged, published to GHCR with an SBOM, and described in `CHANGELOG.md`.
 - **Enterprise ready** — OIDC SSO, SCIM 2.0 provisioning, TOTP MFA, Postgres
   row-level security on by default in production, encryption at rest, retention
   and erasure, audit log, air-gapped mode, Redis-shared throttles, CycloneDX SBOM
