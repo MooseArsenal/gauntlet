@@ -43,7 +43,7 @@ def _world(client, ha):
         "injects": [
             {"code": "INJ-01", "title": "start", "narrative": "SPOILER-ONE", "is_start": True,
              "visible_to": ["blue_cell"],
-             "branches": [{"label": "go", "next_inject": "INJ-02", "kind": "proctor_choice"}]},
+             "branches": [{"label": "go", "when": "proctor_choice", "goto": "INJ-02"}]},
             {"code": "INJ-02", "title": "later", "narrative": "SPOILER-TWO", "visible_to": ["red_cell"]},
         ]}).json()["id"]
     sid = client.post("/api/sessions", headers=ha, json={"scenario_id": scn, "name": "run"}).json()["id"]

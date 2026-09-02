@@ -331,6 +331,7 @@ def resume_session(
     current = _current_inject(db, s)
     if current:
         scheduler.arm(s, current)  # resume any pending auto-advance
+        db.commit()                # persist due_at (F-5)
     ws.manager.notify(s.id)
     return _state(db, s)
 
@@ -357,5 +358,6 @@ def verify_timeline(
     session_id: int, user: models.User = Depends(require_staff), db: Session = Depends(get_db)
 ):
     s = _get_session(db, session_id, user)
-    valid = verify_chain(list(s.events))
-    return {"session_id": s.id, "events": len(s.events), "chain_valid": valid}
+    valid = verify_chain(list(s.events), s)
+    return {"session_id": s.id, "events": len(s.events), "chain_valid": valid,
+            "head": {"seq": s.head_seq, "hash": s.head_hash, "signed": s.head_seq is not None}}

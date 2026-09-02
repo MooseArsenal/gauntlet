@@ -36,7 +36,7 @@ def _world(c, h):
     scn = c.post("/api/scenarios", headers=h, json={
         "environment_id": env, "name": "s",
         "injects": [{"code": "INJ-01", "title": "a", "is_start": True,
-                     "branches": [{"label": "go", "next_inject": "INJ-02", "kind": "proctor_choice"}]},
+                     "branches": [{"label": "go", "when": "proctor_choice", "goto": "INJ-02"}]},
                     {"code": "INJ-02", "title": "b"}]}).json()["id"]
     sid = c.post("/api/sessions", headers=h, json={"scenario_id": scn, "name": "run"}).json()["id"]
     return env, scn, sid

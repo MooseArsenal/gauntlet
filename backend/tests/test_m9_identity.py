@@ -302,7 +302,8 @@ def test_oidc_callback_links_existing_user(monkeypatch):
         now = int(time.time())
         id_token = jwt.encode(
             {"iss": "https://idp.example", "aud": "gauntlet-client", "sub": "sso-sub-1",
-             "email": "sso@example.com", "iat": now, "exp": now + 300, "nonce": nonce},
+             "email": "sso@example.com", "email_verified": True,  # linking needs a verified email (S-8)
+             "iat": now, "exp": now + 300, "nonce": nonce},
             key, algorithm="RS256", headers={"kid": "test-key"})
         monkeypatch.setattr(oidc, "_post_form", lambda u, d: {"id_token": id_token})
 
