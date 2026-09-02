@@ -18,7 +18,7 @@
 .pd-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem}
 .pd-grid div{border:1.5px solid var(--rule);padding:1rem 1.1rem;background:var(--surface)}
 .pd-grid h3{font-size:1.05rem;margin:0 0 .3rem}.pd-grid p{font-size:.92rem;margin:0}
-.pd-tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem;margin:1rem 0}
+.pd-tiers{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin:1rem 0}
 .pd-tier{border:1.5px solid var(--ink);padding:1.2rem 1.3rem;background:var(--surface);display:flex;flex-direction:column;gap:.4rem}
 .pd-tier-mid{box-shadow:var(--ink-shadow)}
 .pd-price{font-family:var(--display);font-weight:800;font-size:2rem;margin:0;line-height:1}
