@@ -496,8 +496,11 @@ curl -X POST localhost:8000/api/scenarios/generate \
   -H 'content-type: application/json' \
   -d '{"environment_id":1,"actor_key":"apt29","template_key":"network_pentest","name":"Q3 drill"}'
 
-# Import a CISA CTEP pack (D5) as a runnable, adjudicated exercise — offline,
-# never fetched from cisa.gov. Pick a bundled pack or POST your own pack object.
+# Import a CTEP pack as a runnable, adjudicated exercise — offline. Eleven packs
+# ship across healthcare, water, manufacturing, SaaS, local government, higher
+# education and cross-sector themes (M2); omit environment_id to import a pack
+# into the library environment it was written for.
+# Packs are never fetched from cisa.gov: pick a bundled one or POST your own pack object.
 curl localhost:8000/api/catalog/ctep-packs
 curl -X POST localhost:8000/api/scenarios/import-ctep \
   -H 'content-type: application/json' \

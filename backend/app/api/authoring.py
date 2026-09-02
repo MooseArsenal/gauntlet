@@ -109,13 +109,18 @@ def random_attack_group(
 @router.get("/api/catalog/ctep-packs", response_model=list[schemas.CtepPackOut])
 def list_ctep_packs(user: models.User = Depends(get_current_user)):
     """Bundled CISA-CTEP-derived packs the proctor can import as runnable exercises."""
-    return [
-        schemas.CtepPackOut(
+    from ..authoring import environments as env_library
+    out = []
+    for k, p in ctep.CTEP_PACKS.items():
+        env_key = p.get("environment_key", "")
+        tpl = env_library.ENVIRONMENT_TEMPLATES.get(env_key, {})
+        out.append(schemas.CtepPackOut(
             key=k, title=p["title"], threat_actor=p["threat_actor"],
             modules=len(p.get("modules", [])), objectives=len(p.get("objectives", [])),
-        )
-        for k, p in ctep.CTEP_PACKS.items()
-    ]
+            sector=p.get("sector", ""), environment_key=env_key,
+            environment_name=tpl.get("name", ""), description=p.get("description", ""),
+        ))
+    return out
 
 
 @router.post("/api/scenarios/import-ctep", response_model=schemas.ScenarioOut, status_code=201)
@@ -126,12 +131,31 @@ def import_ctep(
 ):
     """Import a CTEP pack (bundled by key, or an uploaded pack object) into a
     runnable, adjudicated scenario bound to an environment."""
-    env = scope_or_404(db.get(models.Environment, payload.environment_id), user)
     pack = payload.pack
     if pack is None:
         pack = ctep.CTEP_PACKS.get(payload.pack_key or "")
         if pack is None:
             raise HTTPException(400, f"unknown CTEP pack '{payload.pack_key}'")
+    if payload.environment_id is not None:
+        env = scope_or_404(db.get(models.Environment, payload.environment_id), user)
+    else:
+        # M2: a bundled pack knows the library environment it was written for;
+        # reuse the org's copy if it has one, otherwise stamp it now.
+        from ..authoring import environments as env_library
+        env_key = pack.get("environment_key") if payload.pack is None else None
+        if not env_key or env_key not in env_library.ENVIRONMENT_TEMPLATES:
+            raise HTTPException(400, "environment_id is required for this pack")
+        tpl_name = env_library.ENVIRONMENT_TEMPLATES[env_key]["name"]
+        env = db.execute(
+            select(models.Environment).where(
+                models.Environment.org_id == user.org_id, models.Environment.name == tpl_name,
+                models.Environment.archived_at.is_(None))
+        ).scalars().first()
+        if env is None:
+            env = env_library.build_from_template(env_key)
+            env.org_id = user.org_id
+            db.add(env)
+            db.flush()
     if len(pack.get("modules") or []) > MAX_INJECTS:
         raise HTTPException(413, "CTEP pack has too many modules")
     try:
