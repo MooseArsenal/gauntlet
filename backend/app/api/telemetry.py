@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from .. import audit, intake, models, schemas, telemetry, ws
 from ..database import get_db
+from ..entitlements import require_feature
 from ..security import require_evaluator, scope_or_404
 from ..timeline import append_event
 
@@ -38,7 +39,8 @@ def _record(db: Session, s: models.Session, alert: dict, user: models.User) -> m
 
 @router.post("/{session_id}/telemetry", response_model=schemas.TimelineEventOut, status_code=201)
 def record_alert(session_id: int, payload: schemas.TelemetryIn, request: Request,
-                 user: models.User = Depends(require_evaluator), db: Session = Depends(get_db)):
+                 user: models.User = Depends(require_evaluator), db: Session = Depends(get_db),
+                 _feature: models.User = Depends(require_feature("telemetry_loop"))):
     """Record one real alert (from the SOC's tools, or by hand) on the timeline."""
     s = _session(db, session_id, user)
     ev = _record(db, s, payload.model_dump(), user)
@@ -52,7 +54,8 @@ def record_alert(session_id: int, payload: schemas.TelemetryIn, request: Request
 
 @router.post("/{session_id}/telemetry/import", response_model=schemas.TelemetryImportOut, status_code=201)
 def import_alerts(session_id: int, payload: schemas.TelemetryImportIn, request: Request,
-                  user: models.User = Depends(require_evaluator), db: Session = Depends(get_db)):
+                  user: models.User = Depends(require_evaluator), db: Session = Depends(get_db),
+                 _feature: models.User = Depends(require_feature("telemetry_loop"))):
     """Import a SIEM/EDR alert export (JSON or CSV) for this exercise."""
     s = _session(db, session_id, user)
     try:

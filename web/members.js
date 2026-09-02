@@ -51,7 +51,7 @@
     }
     members = await api("/api/members");
     $("memLead").textContent = "Add people, set roles, deactivate leavers, and recover locked-out accounts.";
-    $("addPanel").hidden = false; $("listPanel").hidden = false; $("scimPanel").hidden = false;
+    $("addPanel").hidden = false; $("listPanel").hidden = false; $("scimPanel").hidden = false; $("licPanel").hidden = false; loadLicense();
     render();
   }
 
@@ -127,11 +127,35 @@
     } catch (e) { err.textContent = e.message; err.hidden = false; }
   }
 
+  // L1: what this deployment is entitled to, and where to put a licence.
+  async function loadLicense() {
+    let lic;
+    try { lic = await api("/api/license"); } catch (e) { return; }
+    const state = lic.state === "active" ? `${lic.tier} · ${lic.customer || ""} · expires ${lic.exp} (${lic.days_left} days)`
+      : lic.state === "grace" ? `${lic.tier} · EXPIRED ${-lic.days_left} days ago — ${lic.grace_days + lic.days_left} days of grace left`
+      : lic.state === "expired" ? "expired — running as Community" : lic.state === "invalid" ? `invalid licence: ${lic.error}` : "Community (no licence)";
+    $("licState").textContent = "— " + state;
+    $("licGrid").innerHTML = lic.all_features.map((f) =>
+      `<span class="lic-feat ${lic.features.includes(f) ? "on" : ""}">${lic.features.includes(f) ? "✓" : "○"} ${esc(lic.labels[f] || f)}</span>`).join("");
+    const scimOn = lic.features.includes("scim");
+    const scimPanel = $("scimPanel");
+    if (scimPanel) scimPanel.querySelector(".eyebrow").innerHTML = `SCIM provisioning ${scimOn ? '<span class="hint">— let the identity provider create and deactivate members</span>' : '<span class="pill">Enterprise</span> <span class="hint">— not in this deployment\'s tier</span>'}`;
+  }
+
   function init() {
     initTheme();
     if (!token()) { location.href = "/"; return; }
     $("btnAdd").addEventListener("click", add);
     // M5: SCIM token lifecycle — shown once, hash-only at rest.
+    $("btnLicInstall").addEventListener("click", async () => {
+      const token = $("licToken").value.trim(); if (!token) { toast("Paste a licence token."); return; }
+      try { await api("/api/admin/license", "POST", { token }); $("licToken").value = ""; toast("Licence installed."); loadLicense(); }
+      catch (e) { toast(e.message); }
+    });
+    $("btnLicRemove").addEventListener("click", async () => {
+      try { await api("/api/admin/license", "DELETE"); toast("Licence removed — running as Community."); loadLicense(); }
+      catch (e) { toast(e.message); }
+    });
     $("btnScimMint").addEventListener("click", async () => {
       try {
         const out = await api("/api/admin/scim-token", "POST");

@@ -56,6 +56,9 @@ def update_member(member_id: int, payload: schemas.MemberUpdateIn, request: Requ
     changes = payload.model_dump(exclude_unset=True)
     if "role" in changes and changes["role"] not in models.ROLES:
         raise HTTPException(422, f"role must be one of {list(models.ROLES)}")
+    if "role" in changes and changes["role"] in ("admin", "facilitator") and u.role not in ("admin", "facilitator"):
+        from .. import entitlements  # L1
+        entitlements.check_seats(db, admin.org_id, changes["role"])
     demoting = "role" in changes and changes["role"] != "admin"
     deactivating = "is_active" in changes and changes["is_active"] is False
     if u.id == admin.id and (demoting or deactivating):

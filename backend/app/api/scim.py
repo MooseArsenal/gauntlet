@@ -57,6 +57,9 @@ def _error(exc: ScimError) -> JSONResponse:
 
 
 def scim_org(request: Request, db: Session = Depends(get_db)) -> models.Organization:
+    from .. import entitlements  # L1: SCIM is an Enterprise feature
+    if not entitlements.has(db, "scim"):
+        raise ScimError(402, "SCIM provisioning is not included in this deployment's licence tier")
     auth = request.headers.get("authorization", "")
     if not auth.lower().startswith("bearer "):
         raise ScimError(401, "bearer token required")
@@ -200,6 +203,8 @@ async def create_user(request: Request, org: models.Organization = Depends(scim_
     email = _email_of(body)
     if db.execute(select(models.User).where(models.User.email == email)).scalars().first() is not None:
         raise ScimError(409, "userName already exists", "uniqueness")
+    from .. import entitlements  # L1: facilitator seats
+    entitlements.check_seats(db, org.id, _role_of(body))
     u = models.User(org_id=org.id, email=email, name=_name_of(body), role=_role_of(body),
                     is_active=bool(body.get("active", True)), scim_external_id=(body.get("externalId") or None),
                     password_hash=security.hash_password(secrets.token_urlsafe(24)))
