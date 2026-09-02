@@ -41,5 +41,14 @@ class LoginThrottle:
             self._fails.pop(key, None)
             self._locked_until.pop(key, None)
 
+    def reset_email(self, email: str) -> None:
+        """Clear every lockout for an account, whatever address it came from
+        (an admin unlocking a member)."""
+        suffix = f"|{email.lower()}"
+        with self._lock:
+            for store in (self._fails, self._locked_until):
+                for k in [k for k in store if k.endswith(suffix)]:
+                    store.pop(k, None)
+
 
 throttle = LoginThrottle()
