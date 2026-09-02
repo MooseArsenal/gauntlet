@@ -444,6 +444,16 @@ class Attachment(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
 
+class InstanceSetting(Base):
+    """Deployment-wide key/value settings (L1): the licence, later branding."""
+
+    __tablename__ = "instance_settings"
+
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    value: Mapped[str] = mapped_column(Text, default="")
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, onupdate=_utcnow)
+
+
 class SessionJoin(Base):
     """A participant who joined a session via its join code (D4). One row per
     (session, user); the cell they picked drives their fog-of-war view."""

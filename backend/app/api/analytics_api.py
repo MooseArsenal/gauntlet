@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from .. import analytics, audit, benchmark, models, schemas
 from ..database import get_db
+from ..entitlements import require_feature
 from ..security import require_evaluator, require_role
 
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
@@ -32,7 +33,8 @@ def sector_benchmark(user: models.User = Depends(require_evaluator), db: Session
 
 @router.post("/benchmark/opt-in", response_model=schemas.BenchmarkOptInOut)
 def set_benchmark_opt_in(payload: schemas.BenchmarkOptInIn, request: Request,
-                         admin: models.User = Depends(require_role("admin")), db: Session = Depends(get_db)):
+                         admin: models.User = Depends(require_role("admin")), db: Session = Depends(get_db),
+                         _feature: models.User = Depends(require_feature("benchmark_cohort"))):
     """Admin: contribute this organisation's figures to the instance cohort (and see it)."""
     org = db.get(models.Organization, admin.org_id)
     org.benchmark_opt_in = bool(payload.opt_in)

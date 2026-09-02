@@ -973,3 +973,7 @@ class ProposeIn(BaseModel):
 class ProposalAcceptIn(BaseModel):
     inject: dict
     fire: bool = True
+
+
+class LicenseIn(BaseModel):
+    token: str = Field(max_length=8000)
