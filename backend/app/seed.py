@@ -133,6 +133,14 @@ def _injects() -> list[models.Inject]:
                               "Check whether other users received it"],
             attack_techniques=["T1566.001"], target_asset="WKS-FINANCE",
             objective_code="OBJ-1",
+            meta={"decision": {"prompt": "The clerk's report is in the SOC mailbox. What happens in the next fifteen minutes?",
+                               "options": [
+                                   {"key": "a", "label": "Triage against the phishing playbook and check who else received it", "score": 1.0},
+                                   {"key": "b", "label": "Reply to the clerk that it is probably spam and close the ticket", "score": 0.0},
+                                   {"key": "c", "label": "Block the sender domain and move on", "score": 0.5,
+                                    "note": "Stops the next one; misses the clerk who already clicked."},
+                                   {"key": "d", "label": "Escalate straight to the CISO", "score": 0.3}],
+                               "time_limit_sec": 180}},
             branches=[
                 {"when": "action_taken", "trigger": "investigate_and_block", "goto": "INJ-02a",
                  "label": "SOC investigates and blocks the sender"},
@@ -179,6 +187,14 @@ def _injects() -> list[models.Inject]:
                               "Check whether the host is a crown-jewel dependency"],
             attack_techniques=["T1003.001"], target_asset="FIN-APP-02",
             objective_code="OBJ-2",
+            meta={"decision": {"prompt": "A medium EDR alert on the finance application host. Your call?",
+                               "options": [
+                                   {"key": "a", "label": "Isolate FIN-APP-02 now and tell finance why", "score": 1.0},
+                                   {"key": "b", "label": "Collect more evidence for an hour before acting", "score": 0.3,
+                                    "note": "An hour is how long the pivot to the domain controller takes."},
+                                   {"key": "c", "label": "Suppress the alert; medium severity is noise", "score": 0.0},
+                                   {"key": "d", "label": "Reset the affected user's password only", "score": 0.4}],
+                               "time_limit_sec": 180}},
             branches=[
                 {"when": "action_taken", "trigger": "isolate_host", "goto": "INJ-04a",
                  "label": "Blue cell isolates FIN-APP-02"},
@@ -224,6 +240,15 @@ def _injects() -> list[models.Inject]:
                               "Engage the comms lead"],
             attack_techniques=["T1486", "T1490"], target_asset="BACKUP-01",
             objective_code="OBJ-4",
+            meta={"decision": {"prompt": "Encryption is spreading and someone is deleting snapshots. First three actions?",
+                               "options": [
+                                   {"key": "a", "label": "Invoke the ransomware playbook, protect the immutable vault, engage comms", "score": 1.0},
+                                   {"key": "b", "label": "Pay quickly to limit the outage", "score": 0.0},
+                                   {"key": "c", "label": "Shut down every server in the estate", "score": 0.4,
+                                    "note": "Contains, but takes the finance application down with it and loses volatile evidence."},
+                                   {"key": "d", "label": "Restore from last night's backup immediately", "score": 0.3,
+                                    "note": "Restoring before containment re-infects the restore."}],
+                               "time_limit_sec": 240}},
             branches=[
                 {"when": "action_taken", "trigger": "isolate_and_recover", "goto": "INJ-06a",
                  "label": "Team isolates and recovers from immutable backups"},

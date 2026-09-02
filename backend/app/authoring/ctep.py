@@ -147,6 +147,8 @@ def build_from_pack(env: models.Environment, pack: dict, name: str | None = None
             expected_actions=list(m.get("discussion_questions") or []),
             attack_techniques=list(m.get("techniques") or []),
             target_asset="", objective_code=obj_code,
+            meta={"decision": {"prompt": (m.get("discussion_questions") or ["What does your team do first?"])[0],
+                               "free_text": True}},
             branches=[{"when": "proctor_choice", "goto": nxt,
                        "label": "Facilitator: move to the next module"}],
         ))

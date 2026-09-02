@@ -465,6 +465,10 @@ class CellSessionView(BaseModel):
     current_inject: Optional[InjectOut] = None
     timeline: list[TimelineEventOut] = Field(default_factory=list)
     objectives: list[ObjectiveOut] = Field(default_factory=list)
+    # P1: the decision card for the current inject (scores stripped) and what
+    # this user already answered, if anything.
+    decision: Optional[dict] = None
+    my_response: Optional[dict] = None
 
 
 class SessionRollupRow(BaseModel):
@@ -925,3 +929,11 @@ class BenchmarkOptInIn(BaseModel):
 
 class BenchmarkOptInOut(BaseModel):
     opt_in: bool
+
+
+class RespondIn(BaseModel):
+    """A participant's answer to a decision card (P1)."""
+    inject_code: Optional[str] = Field(default=None, max_length=40)
+    option: Optional[str] = Field(default=None, max_length=8)
+    text: str = Field(default="", max_length=4000)
+    cell: Optional[str] = Field(default=None, max_length=40)  # staff only
