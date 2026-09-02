@@ -136,6 +136,7 @@ def export_org(db: Session, org_id: int) -> dict:
         "observations": [dump(o) for sid in ses_ids for o in rows(models.Observation, session_id=sid)],
         "reports": [dump(r) for sid in ses_ids for r in rows(models.Report, session_id=sid)],
         "cohorts": [dump(c) for c in rows(models.Cohort, org_id=org_id)],
+        "content_packs": [dump(c) for c in rows(models.ContentPack, org_id=org_id)],
         "cohort_members": [dump(m) for c in rows(models.Cohort, org_id=org_id) for m in rows(models.CohortMember, cohort_id=c.id)],
         "audit_logs": [dump(a) for a in rows(models.AuditLog, org_id=org_id)],
     }
@@ -173,6 +174,7 @@ def erase_org(db: Session, org_id: int) -> dict:
     cohort_ids = [c.id for c in db.execute(select(models.Cohort).where(models.Cohort.org_id == org_id)).scalars()]
     counts["cohort_members"] = wipe(models.CohortMember, cohort_ids, col="cohort_id") + wipe(models.CohortMember, user_ids, col="user_id")
     counts["cohorts"] = wipe(models.Cohort, [org_id], col="org_id")
+    counts["content_packs"] = wipe(models.ContentPack, [org_id], col="org_id")
     counts["certificates"] = wipe(models.Certificate, [org_id], col="org_id")
     counts["attachments"] = wipe(models.Attachment, [org_id], col="org_id")
     counts["improvement_items"] = wipe(models.ImprovementItem, [org_id], col="org_id")

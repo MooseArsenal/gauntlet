@@ -1032,3 +1032,12 @@ class CohortSeatIn(BaseModel):
 class RewindIn(BaseModel):
     seq: int
     name: Optional[str] = Field(default=None, max_length=300)
+
+
+# --- content packs (L5) --- #
+class PackTokenIn(BaseModel):
+    token: str = Field(max_length=4 * 1024 * 1024)
+
+
+class PackInstallIn(PackTokenIn):
+    environment_id: Optional[int] = None  # scenario packs: bind every scenario here instead of the library environment
