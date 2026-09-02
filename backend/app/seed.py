@@ -289,10 +289,12 @@ def seed_if_empty(db: Session) -> bool:
     # A few more systems under test, so the environment picker is a choice on
     # day one (E1). The worked scenario below stays on Northwind.
     from .authoring.environments import build_from_template
+    extras = {}
     for key in ("hospital", "water_utility", "saas"):
         extra = build_from_template(key)
         extra.org_id = org.id
         db.add(extra)
+        extras[key] = extra
     db.flush()
 
     scenario = models.Scenario(
@@ -315,5 +317,19 @@ def seed_if_empty(db: Session) -> bool:
     scenario.objectives = _objectives()
     scenario.injects = _injects()
     db.add(scenario)
+    db.flush()
+    # Two more runnable scenarios on the other environments, so the Run picker
+    # is a choice across sectors and entry points from day one: a generated
+    # espionage intrusion on the hospital and a CTEP pack on the water utility.
+    from .authoring import ctep, generator
+    espionage = generator.build_scenario(
+        extras["hospital"], "apt_espionage", template_key="apt_intrusion",
+        name="Operation Nightshade — Healthcare Espionage Tabletop")
+    espionage.org_id = org.id
+    db.add(espionage)
+    ics = ctep.build_from_pack(extras["water_utility"], ctep.CTEP_PACKS["ics_ot"],
+                               name="Clearwater ICS/OT — CTEP Tabletop")
+    ics.org_id = org.id
+    db.add(ics)
     db.commit()
     return True
