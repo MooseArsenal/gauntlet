@@ -20,26 +20,26 @@
   </header>
 
   <main class="empty">
-    <div class="empty-card">
+    <div class="empty-card narrow">
       <p class="eyebrow">Join code</p>
       <h1>Join the exercise</h1>
-      <p class="sub">Enter the code your facilitator shared, choose your side, and you're in.</p>
+      <p class="sub">Enter the code your facilitator issued and choose your cell.</p>
       <div class="setup">
         <label>Join code
           <input id="joinCode" type="text" inputmode="latin" autocapitalize="characters"
-                 maxlength="6" placeholder="ABC123" style="text-transform:uppercase;letter-spacing:.2em;font-family:'IBM Plex Mono',monospace">
+                 maxlength="6" placeholder="ABC123" style="text-transform:uppercase;letter-spacing:.2em;font-family:var(--mono)">
         </label>
         <label>Your side
           <select id="joinCell">
-            <option value="blue_cell">🛡️ Blue cell (defender)</option>
-            <option value="red_cell">🗡️ Red cell (adversary)</option>
-            <option value="white_cell">⚪ White cell (observer)</option>
+            <option value="blue_cell">Blue cell — defenders</option>
+            <option value="red_cell">Red cell — adversary</option>
+            <option value="white_cell">White cell — control and observers</option>
           </select>
         </label>
         <label>Display name <span class="hint">(optional)</span>
           <input id="joinName" type="text" placeholder="e.g. SOC analyst 2">
         </label>
-        <button class="btn primary" id="btnJoin">Join →</button>
+        <button class="btn primary" id="btnJoin">Join exercise</button>
         <p class="loginerr" id="joinErr" hidden></p>
       </div>
     </div>
