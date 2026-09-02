@@ -17,6 +17,8 @@ follow SemVer. Container images are published as
   anonymous grading, gradebook with CSV export.
 - **Session replay** — the record as scenes with the roads not taken; rewind
   forks a new run from any scene without touching the original.
+- **Content packs and intel feed** — signed scenario and adversary-intel packs,
+  verified offline, installed from the Members page; a publisher tool.
 
 ## [0.2.0] — 2026-09-02
 
