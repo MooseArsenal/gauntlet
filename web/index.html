@@ -276,6 +276,13 @@
           </div>
         </div>
 
+        <div class="panel" id="evidencePanel">
+          <p class="eyebrow">Evidence <span class="hint" id="evidenceState"></span></p>
+          <ul class="ev-list" id="evidenceList"><li class="muted">Nothing attached yet.</li></ul>
+          <div class="row" style="margin-top:.4rem"><input type="file" id="evFile" style="flex:1"><button class="btn ghost small" id="btnEvidence" title="Attach a screenshot, export or photo; its digest is written to the signed record">Attach</button></div>
+          <input id="evNote" placeholder="What does this show? (optional)" style="margin-top:.4rem;width:100%">
+        </div>
+
         <div class="panel timeline-panel">
           <p class="eyebrow">Record <span class="hint" id="chainState"></span></p>
           <ol class="timeline" id="timeline"></ol>

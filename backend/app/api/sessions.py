@@ -364,5 +364,8 @@ def verify_timeline(
 ):
     s = _get_session(db, session_id, user)
     valid = verify_chain(list(s.events), s)
-    return {"session_id": s.id, "events": len(s.events), "chain_valid": valid,
-            "head": {"seq": s.head_seq, "hash": s.head_hash, "signed": s.head_seq is not None}}
+    from .. import evidence as _evidence  # P3: stored files must match their recorded digests
+    ev = _evidence.verify(db, s)
+    return {"session_id": s.id, "events": len(s.events), "chain_valid": valid and ev["valid"],
+            "head": {"seq": s.head_seq, "hash": s.head_hash, "signed": s.head_seq is not None},
+            "evidence": ev}

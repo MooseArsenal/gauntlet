@@ -452,3 +452,6 @@ table.grid tbody tr:hover{background:var(--surface-2)}
 /* P2 — delivery */
 .dl-send{border-top:1.5px solid var(--ink);margin-top:1rem;padding-top:.7rem}
 .btn.ghost.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}.btn.chip[disabled]{opacity:.45;cursor:not-allowed}
+
+/* P3 — evidence */
+.ev-list{list-style:none;padding:0;margin:0}.ev-list li{padding:.25rem 0;border-bottom:1px dotted var(--rule);font-size:.86rem}
