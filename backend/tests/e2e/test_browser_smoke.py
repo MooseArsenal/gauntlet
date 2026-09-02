@@ -19,6 +19,19 @@ import pytest
 pw = pytest.importorskip("playwright.sync_api")
 
 
+def _wait_until(pred, seconds: float) -> None:
+    """Poll a Python predicate; the console's CSP forbids Playwright's string eval."""
+    deadline = time.time() + seconds
+    while time.time() < deadline:
+        try:
+            if pred():
+                return
+        except Exception:  # noqa: BLE001 - element not ready yet
+            pass
+        time.sleep(0.2)
+    raise AssertionError("condition not met in time")
+
+
 def _free_port() -> int:
     with socket.socket() as s:
         s.bind(("127.0.0.1", 0))
@@ -77,7 +90,7 @@ def test_console_runs_an_exercise_end_to_end(server):
         page.fill("#sessInput", "e2e run")
         page.click("#btnStart")
         page.wait_for_selector("#console:not([hidden])", timeout=15000)
-        page.wait_for_function("document.querySelector('#injTitle').textContent.trim() !== '—'", timeout=15000)
+        _wait_until(lambda: page.locator("#injTitle").inner_text().strip() not in ("", "—"), 15)
         assert page.locator("#injCode").text_content().strip().startswith("INJ")
         # rule on an action, then complete
         page.fill("#adjTech", "T1003")
