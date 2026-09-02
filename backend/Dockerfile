@@ -17,6 +17,7 @@ COPY --chown=gauntlet:gauntlet scenarios/ /srv/gauntlet/scenarios/
 USER gauntlet
 WORKDIR /srv/gauntlet/backend
 ENV GAUNTLET_ENV=production GAUNTLET_USE_ALEMBIC=1 GAUNTLET_SEED=0 \
+    GAUNTLET_CORS_ORIGINS="" \
     GAUNTLET_DB_URL=sqlite:////srv/gauntlet/data/gauntlet.db
 VOLUME ["/srv/gauntlet/data"]
 EXPOSE 8000

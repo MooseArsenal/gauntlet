@@ -40,6 +40,7 @@ interfaces: `throttle.py`, `ws_ticket.py`, `oidc.py` state, `scheduler.py`).
 - [ ] Postgres, not SQLite, for anything beyond a single facilitator.
 - [ ] `GAUNTLET_SEED=0` — the demo organisation and its account do not exist.
 - [ ] TLS at the proxy; `GAUNTLET_TRUST_PROXY=1`; proxy overwrites `X-Forwarded-For`.
+- [ ] `GAUNTLET_CORS_ORIGINS` empty (the console is same-origin) or an explicit list — the wildcard default is refused in production.
 - [ ] `GAUNTLET_ENCRYPT_AT_REST=1` with an explicit `GAUNTLET_DATA_KEYS` keyring if environments hold real asset inventories.
 - [ ] `GAUNTLET_RETENTION_DAYS` set to the policy value; purge is admin-initiated.
 - [ ] Backups of the Postgres volume; the timeline's signed heads make restores verifiable.
