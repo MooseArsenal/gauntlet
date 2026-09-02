@@ -1,0 +1,42 @@
+/* Run-day mode (M3): a pre-brief for the room and a projector view of the
+ * current scene. Large type, few controls, the same paper-and-ink system. */
+body.runday{min-height:100vh}
+.rd-bar .bar-mid{display:flex;align-items:center;gap:.8rem}
+.rd-brief{max-width:1180px;margin:0 auto;padding:2rem 2rem 3rem}
+.rd-hero h1{font-size:clamp(2.2rem,4.6vw,3.6rem);letter-spacing:-.03em;line-height:1.02;margin:.2rem 0 .4rem}
+.rd-hero .sub{font-size:1.15rem}
+.rd-cols{display:grid;grid-template-columns:1.3fr 1fr;gap:2.4rem;margin-top:1.6rem}
+.rd-col h2{font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin:1.4rem 0 .5rem;padding-bottom:.3rem;border-bottom:1.5px solid var(--ink)}
+.rd-col h2:first-child{margin-top:0}
+.rd-roe{font-size:1.15rem;border-left:4px solid var(--accent2);padding:.4rem .9rem;background:var(--surface)}
+.rd-objs{padding-left:1.3rem;font-size:1.05rem}.rd-objs li{margin:.35rem 0}.rd-objs b{font-family:var(--mono);font-weight:500;margin-right:.4rem}
+.rd-cells{list-style:none;padding:0;margin:0}.rd-cells li{display:flex;justify-content:space-between;border-bottom:1px dotted var(--rule);padding:.4rem 0;font-size:1.02rem}
+.rd-cells .kind{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft)}
+.rd-join{border:1.5px solid var(--ink);padding:1rem 1.2rem;box-shadow:var(--ink-shadow);background:var(--surface);text-align:center}
+.rd-code{font-family:var(--mono);font-size:clamp(2rem,4.2vw,3.4rem);letter-spacing:.18em;font-weight:500;line-height:1.1;white-space:nowrap}
+.rd-joinurl{font-family:var(--mono);font-size:.9rem;color:var(--ink-soft);margin:.4rem 0 .7rem;word-break:break-all}
+.rd-lobby{max-height:14rem;overflow:auto}
+.rd-actions{margin-top:2.2rem;display:flex;align-items:center;gap:1.2rem;flex-wrap:wrap}
+.btn.big{font-size:1.15rem;padding:.8rem 1.6rem}
+/* projector */
+.rd-proj{display:grid;grid-template-columns:1fr 340px;grid-template-rows:auto 1fr;gap:1.4rem;padding:1.4rem 2rem 2rem;min-height:calc(100vh - 118px);position:relative}
+.rd-kc{grid-column:1/-1}
+.rd-scene{background:var(--surface);border:2px solid var(--ink);padding:2rem 2.4rem;box-shadow:6px 6px 0 var(--ink)}
+.rd-scene .scene-head{margin-bottom:1rem}
+.rd-scene h2{font-size:clamp(2rem,4vw,3.4rem);letter-spacing:-.03em;line-height:1.05;margin:0 0 1rem}
+.rd-scene .narrative{font-size:clamp(1.2rem,2vw,1.6rem);line-height:1.45;max-width:none;margin-bottom:1.4rem}
+.rd-scene .lbl{font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
+.rd-scene ul{font-size:1.15rem;margin:.4rem 0 0;padding-left:1.3rem}.rd-scene li{margin:.3rem 0}
+.rd-scene .muted{font-size:1.3rem}
+.rd-side{display:flex;flex-direction:column;gap:1rem;min-height:0}
+.rd-tally{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem}
+.rd-num{border-top:2px solid var(--ink);padding:.5rem .2rem .3rem}
+.rd-num .v{display:block;font-family:var(--display);font-weight:800;font-size:2rem;line-height:1;color:var(--good)}
+.rd-num.crit .v{color:var(--crit)}
+.rd-num .k{font-family:var(--mono);font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft)}
+.rd-feed{flex:1;overflow:auto;font-size:.9rem}
+.rd-paused,.rd-done{position:absolute;left:0;right:0;top:0;text-align:center;font-family:var(--mono);letter-spacing:.14em;padding:.6rem;font-size:.85rem}
+.rd-paused{background:var(--warn);color:#fff}.rd-done{background:var(--good);color:#fff}
+body.rd-full .strip,body.rd-full .bar{display:none}
+body.rd-full .rd-proj{min-height:100vh}
+@media(max-width:900px){.rd-cols{grid-template-columns:1fr}.rd-proj{grid-template-columns:1fr}.rd-side{order:2}}
