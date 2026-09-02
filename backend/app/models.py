@@ -36,6 +36,8 @@ class Organization(Base):
     # SCIM provisioning (M5): sha256 of the bearer token the identity provider
     # presents; null until an admin mints one.
     scim_token_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    # White-label branding (L2): name, accent, tagline, logo data URL, report footer.
+    branding: Mapped[dict] = mapped_column(JSON, default=dict)
     # Sector benchmarking (M7): contribute this organisation's completed-exercise
     # figures to the instance cohort, and see the cohort in return.
     benchmark_opt_in: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -64,6 +66,8 @@ class User(Base):
     mfa_pending_secret: Mapped[str | None] = mapped_column(String(64), nullable=True)
     # Set when the account is linked to an external OIDC identity provider (M9).
     oidc_subject: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+    # Partner mode (L2): this account is a partner user's shadow inside a client organisation.
+    partner_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
     # The identity provider's id for this user when provisioned over SCIM (M5).
     scim_external_id: Mapped[str | None] = mapped_column(String(200), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
@@ -441,6 +445,18 @@ class Attachment(Base):
     note: Mapped[str] = mapped_column(Text, default="")
     uploaded_by: Mapped[str] = mapped_column(String(320), default="")
     data: Mapped[bytes] = mapped_column(LargeBinary)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+
+class OrgLink(Base):
+    """A partner organisation runs exercises for a client organisation (L2)."""
+
+    __tablename__ = "org_links"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    partner_org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id"), index=True)
+    client_org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id"), index=True)
+    created_by: Mapped[str] = mapped_column(String(320), default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
 

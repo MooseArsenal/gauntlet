@@ -293,6 +293,19 @@ def get_current_user(
     return user
 
 
+def get_current_user_optional(
+    creds: HTTPAuthorizationCredentials | None = Depends(_bearer),
+    db: Session = Depends(get_db),
+) -> models.User | None:
+    """The caller if signed in, else None (for the branding endpoint)."""
+    if creds is None or not creds.credentials:
+        return _default_user(db) if AUTH_OPTIONAL else None
+    try:
+        return get_current_user(creds, db)
+    except HTTPException:
+        return None
+
+
 def require_role(*roles: str):
     """Dependency factory: allow only users whose role is in ``roles``."""
 

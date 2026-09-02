@@ -137,6 +137,14 @@
     $("licState").textContent = "— " + state;
     $("licGrid").innerHTML = lic.all_features.map((f) =>
       `<span class="lic-feat ${lic.features.includes(f) ? "on" : ""}">${lic.features.includes(f) ? "✓" : "○"} ${esc(lic.labels[f] || f)}</span>`).join("");
+    const brandOn = lic.features.includes("white_label");
+    $("brandPanel").hidden = false;
+    $("brandPanel").querySelector(".eyebrow").innerHTML = `Branding ${brandOn ? '<span class="hint">— your name, colour and logo on the console and every PDF</span>' : '<span class="pill">Team</span> <span class="hint">— not in this deployment\'s tier</span>'}`;
+    $("brandPanel").querySelectorAll("input,button").forEach((el) => { el.disabled = !brandOn; });
+    if (brandOn) {
+      try { const b = await api("/api/branding"); if (b.custom) { $("brName").value = b.name; $("brTag").value = b.tagline || ""; $("brAccent").value = b.accent || "#d9480f"; $("brFooter").value = b.footer || ""; } } catch (e) { /* noop */ }
+    }
+    const lnk = $("lnkPartner"); if (lnk) lnk.hidden = !lic.features.includes("partner_mode");
     const scimOn = lic.features.includes("scim");
     const scimPanel = $("scimPanel");
     if (scimPanel) scimPanel.querySelector(".eyebrow").innerHTML = `SCIM provisioning ${scimOn ? '<span class="hint">— let the identity provider create and deactivate members</span>' : '<span class="pill">Enterprise</span> <span class="hint">— not in this deployment\'s tier</span>'}`;
@@ -147,6 +155,21 @@
     if (!token()) { location.href = "/"; return; }
     $("btnAdd").addEventListener("click", add);
     // M5: SCIM token lifecycle — shown once, hash-only at rest.
+    $("btnBrandSave").addEventListener("click", async () => {
+      let logo = "";
+      const f = $("brLogo").files[0];
+      if (f) {
+        if (f.size > 64 * 1024) { toast("Logo must be under 64 KB."); return; }
+        logo = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(f); });
+      }
+      try {
+        await api("/api/admin/branding", "PUT", { name: $("brName").value.trim(), tagline: $("brTag").value.trim(), accent: $("brAccent").value, footer: $("brFooter").value.trim(), logo });
+        toast("Branding saved."); if (window.GauntletBrand) window.GauntletBrand.apply();
+      } catch (e) { toast(e.message); }
+    });
+    $("btnBrandClear").addEventListener("click", async () => {
+      try { await api("/api/admin/branding", "DELETE"); toast("Branding reset."); location.reload(); } catch (e) { toast(e.message); }
+    });
     $("btnLicInstall").addEventListener("click", async () => {
       const token = $("licToken").value.trim(); if (!token) { toast("Paste a licence token."); return; }
       try { await api("/api/admin/license", "POST", { token }); $("licToken").value = ""; toast("Licence installed."); loadLicense(); }

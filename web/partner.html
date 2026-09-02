@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gauntlet — Clients</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="strip"><span>Exercise control · Partner</span><span>Facilitated exercise — no production access — all actions are simulated</span></div>
+  <header class="bar">
+    <div class="brand"><span class="mark"><span>G</span></span><b>Gauntlet</b><small>Clients</small></div>
+    <div class="bar-actions">
+      <a class="btn ghost" href="/">Console</a>
+      <a class="btn ghost" href="/members.html">Members</a>
+      <button class="btn toggle" id="btnTheme" aria-label="Toggle theme">◑</button>
+    </div>
+  </header>
+  <main class="mat">
+    <p class="eyebrow">Partner mode</p>
+    <h1 style="font-size:1.6rem;margin:.1rem 0 .3rem">Client organisations</h1>
+    <p class="muted" id="lead">Loading…</p>
+    <div class="panel" id="addPanel" hidden>
+      <p class="eyebrow">New client</p>
+      <div class="row"><input id="clientName" placeholder="Client organisation name" style="flex:1"><button class="btn primary" id="btnAdd">Create client</button></div>
+      <p class="hint">A client is a separate organisation with its own environments, exercises, members and records. Entering it issues you an admin session inside it; the client's audit log records that you acted via your partner account.</p>
+    </div>
+    <div class="panel" id="listPanel" hidden>
+      <p class="eyebrow">Clients <span class="hint" id="count"></span></p>
+      <div class="mem-table" id="clients"></div>
+    </div>
+  </main>
+  <div class="toast" id="toast" hidden></div>
+  <script src="/brand.js"></script>
+  <script src="/partner.js"></script>
+</body>
+</html>

@@ -72,14 +72,14 @@ def verify_attendee(db: Session, session: models.Session, cert: models.Certifica
     return None
 
 
-def render_attendance_pdf(rec: dict, verify_path: str, brand: str | None = None) -> bytes:
-    pdf = _BrandedPDF(brand or BRAND_NAME)
+def render_attendance_pdf(rec: dict, verify_path: str, brand: str | None = None, accent=None, footer: str = "") -> bytes:
+    pdf = _BrandedPDF(brand or BRAND_NAME, accent, footer)
     pdf.set_title(f"Attendance {rec['attendee_code']}")
     pdf.alias_nb_pages()
     pdf.set_auto_page_break(auto=False)
     pdf.add_page()
     ink, grey = (21, 25, 28), (91, 100, 105)
-    r, g, b = _accent_rgb()
+    r, g, b = accent or _accent_rgb()
     pdf.set_font("Courier", "B", 8); pdf.set_text_color(*grey)
     pdf.cell(0, 5, "CERTIFICATE OF PARTICIPATION", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.ln(6)

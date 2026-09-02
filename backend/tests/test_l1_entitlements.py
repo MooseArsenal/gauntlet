@@ -115,6 +115,8 @@ def test_community_gates_paid_features_and_keeps_data(community):
         sid = c.post("/api/sessions", headers=ha, json={"scenario_id": scn, "name": "r"}).json()["id"]
         c.post(f"/api/sessions/{sid}/start", headers=ha)
         assert c.post(f"/api/sessions/{sid}/telemetry", headers=ha, json={"alert": "x"}).status_code == 402
+        item = c.post("/api/improvements", headers=ha, json={"title": "fix", "severity": "low", "description": "d"}).json()
+        assert c.post(f"/api/improvements/{item['id']}/push", headers=ha).status_code == 402
         # the engine, the record, reports, the certificate and the benchmark reference stay open
         assert c.post(f"/api/sessions/{sid}/adjudicate", headers=ha, json={"techniques": ["T1003"], "target_asset": "A", "description": "m"}).status_code == 200
         assert c.get("/api/analytics/benchmark", headers=ha).status_code == 200

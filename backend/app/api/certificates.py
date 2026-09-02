@@ -73,7 +73,9 @@ def certificate_pdf(session_id: int, request: Request,
     audit.record(db, "certificate.export", request=request, user=user,
                  detail={"session_id": s.id, "serial": cert.serial, "format": "pdf"})
     verify_path = f"{request.base_url.scheme}://{request.base_url.netloc}/verify.html?serial={cert.serial}"
-    return Response(content=certificates.render_pdf(cert, verify_path), media_type="application/pdf",
+    from .. import branding  # L2
+    bk = branding.pdf_args(db, s.org_id)
+    return Response(content=certificates.render_pdf(cert, verify_path, bk["brand"], bk["accent"], bk["footer"]), media_type="application/pdf",
                     headers={"Content-Disposition": f'attachment; filename="certificate-{cert.serial}.pdf"'})
 
 
