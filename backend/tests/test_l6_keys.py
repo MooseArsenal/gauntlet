@@ -175,6 +175,9 @@ def test_tools_keygen_issue_revoke_with_key_file(tmp_path, monkeypatch):
     bad = subprocess.run([sys.executable, tool, "issue", "--key-file", key, "--tier", "team", "--customer", "A", "--exp", "2027-01-01"],
                          capture_output=True, text=True, env={**env, "GAUNTLET_SIGNING_PASSPHRASE": "not the passphrase"})
     assert bad.returncode != 0 and "passphrase" in (bad.stderr + bad.stdout)
+    # show names the key inside a key file
+    sh = subprocess.run([sys.executable, tool, "show", "--key-file", key], capture_output=True, text=True, check=True, env=env)
+    assert f"KID: {kid}" in sh.stdout and f"PUBLIC: {pub}" in sh.stdout
     # inspect decodes without a key
     ins = subprocess.run([sys.executable, tool, "inspect", tok], capture_output=True, text=True, check=True, env=env)
     assert json.loads(ins.stdout)["customer"] == "Acme"
