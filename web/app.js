@@ -79,7 +79,7 @@
   // ---- theme ------------------------------------------------------------- //
   function initTheme() {
     let t = "dark";
-    try { t = localStorage.getItem("gauntlet-theme") || "dark"; } catch (e) { /* noop */ }
+    try { t = localStorage.getItem("gauntlet-theme") || "light"; } catch (e) { /* noop */ }
     document.documentElement.setAttribute("data-theme", t);
     $("btnTheme").addEventListener("click", () => {
       const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
@@ -233,10 +233,10 @@
     });
 
     if (scenarios.length) {
-      $("emptySub").textContent = "Pick a scenario and brief the room, or resume a run below.";
+      $("emptySub").textContent = "Choose a scenario and start, or pick up a recent exercise.";
       $("setupForm").hidden = false;
     } else {
-      $("emptySub").textContent = "No scenarios found. Seed the database or author one via the API.";
+      $("emptySub").textContent = "No scenarios yet. Build one on the right, or import a pack.";
     }
 
     const list = $("sessList");
@@ -617,7 +617,6 @@
       `<div class="verdict"><span class="${r.detected ? "v-detected" : "v-missed"}">${r.detected ? "DETECTED" : "MISSED"}</span>` +
       `<span>${r.time_to_detect_min != null ? r.time_to_detect_min + " min" : "—"}</span></div>` +
       `<div class="rationale">${escapeHtml(r.rationale)}</div>` +
-      (r.asset_known === false ? `<div class="rationale warn">⚠ "${escapeHtml(r.target_asset)}" is not an asset in this environment — check the code.</div>` : "") +
       (controls ? `<div class="controls">${controls}</div>` : "");
   }
 

@@ -1,16 +1,17 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Gauntlet — Facilitator Console</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/progressmap.css">
 </head>
 <body>
+  <div class="strip"><span>Exercise control · Facilitator</span><span>Facilitated exercise — no production access — all actions are simulated</span></div>
   <header class="bar">
     <div class="brand">
       <span class="mark"><span>G</span></span>
@@ -25,8 +26,8 @@
       <span class="pill airgap" id="airgapPill" hidden title="This deployment makes no outbound network connections">⛔ AIR-GAPPED</span>
       <button class="btn ghost" id="btnPause" hidden>Pause</button>
       <button class="btn ghost" id="btnResume" hidden>Resume</button>
-      <button class="btn ghost" id="btnVerify" hidden title="Verify the timeline hash-chain">Verify chain</button>
-      <button class="btn" id="btnNew" hidden>New exercise</button>
+      <button class="btn ghost" id="btnVerify" hidden title="Verify the signed record">Verify record</button>
+      <button class="btn ghost" id="btnNew" hidden>Home</button>
       <a class="btn ghost" id="btnGuided" href="/wizard.html" hidden title="Guided build / run / report">Guided</a>
       <a class="btn ghost" id="btnEditor" href="/editor.html" hidden title="Visual scenario editor">Editor</a>
       <a class="btn ghost" id="btnMembers" href="/members.html" hidden title="Manage the organisation's members">Members</a>
@@ -38,10 +39,10 @@
   <main id="app">
     <!-- Login -->
     <section class="empty" id="loginView" hidden>
-      <div class="empty-card">
+      <div class="empty-card narrow">
         <p class="eyebrow">Sign in</p>
         <h1>Gauntlet</h1>
-        <p class="sub">Sign in to design and run exercises.</p>
+        <p class="sub">Sign in to build and run exercises.</p>
         <div class="setup">
           <label>Email <input id="loginEmail" type="email" autocomplete="username" placeholder="you@org.example"></label>
           <label>Password <input id="loginPassword" type="password" autocomplete="current-password" placeholder="••••••••"></label>
@@ -55,7 +56,7 @@
 
     <!-- MFA second factor (shown when login returns mfa_required) -->
     <section class="empty" id="mfaView" hidden>
-      <div class="empty-card">
+      <div class="empty-card narrow">
         <p class="eyebrow">Two-factor</p>
         <h1>Enter your code</h1>
         <p class="sub">Open your authenticator app and enter the 6-digit code.</p>
@@ -67,62 +68,85 @@
       </div>
     </section>
 
-    <!-- Empty / setup state -->
+    <!-- Home: run an exercise, or build one -->
     <section class="empty" id="emptyState" hidden>
       <div class="empty-card">
-        <p class="eyebrow">Ready to run</p>
-        <h1>Start a facilitated exercise.</h1>
+        <p class="eyebrow">Exercise control</p>
+        <h1>Run an exercise, or build one.</h1>
         <p class="sub" id="emptySub">Loading scenarios…</p>
-        <div class="setup" id="setupForm" hidden>
-          <label>Scenario
-            <select id="scenarioSel"></select>
-          </label>
-          <label>Session name
-            <input id="sessInput" type="text" placeholder="Q3 ransomware drill">
-          </label>
-          <label class="rt-label"><input id="rtToggle" type="checkbox"> Real-time (auto-advance on timeout)</label>
-          <button class="btn primary" id="btnStart">Brief &amp; begin</button>
-        </div>
-
-        <div class="gen" id="genBlock" hidden>
-          <p class="eyebrow">Generate a scenario <span class="hint">— threat-actor driven, grounded in an environment</span></p>
-          <div class="setup">
-            <label>Environment
-              <select id="genEnv"></select>
-            </label>
-            <label>Threat actor or template
-              <select id="genActor"></select>
-            </label>
-            <label>Name <span class="hint">(optional)</span>
-              <input id="genName" type="text" placeholder="Generated exercise">
-            </label>
-            <button class="btn" id="btnGenerate">Generate &amp; add to scenarios</button>
-            <div class="yaml-import">
-              <span class="hint">or import a deep branching scenario</span>
-              <input id="yamlFile" type="file" accept=".yaml,.yml">
-              <button class="btn ghost small" id="btnImportYaml">Import YAML</button>
+        <div class="home-grid">
+          <div class="home-col">
+            <h2>Run</h2>
+            <div class="setup" id="setupForm" hidden>
+              <label>Scenario
+                <select id="scenarioSel"></select>
+              </label>
+              <label>Exercise name
+                <input id="sessInput" type="text" placeholder="Q3 ransomware tabletop">
+              </label>
+              <label class="rt-label"><input id="rtToggle" type="checkbox"> Real-time — timed injects advance on their own</label>
+              <button class="btn primary" id="btnStart">Start exercise</button>
             </div>
-            <div class="yaml-import">
-              <span class="hint">or start from a CISA CTEP pack</span>
-              <div style="display:flex;gap:.4rem">
-                <select id="ctepSel" style="flex:1"></select>
-                <button class="btn ghost small" id="btnImportCtep">Import CTEP</button>
+            <div>
+              <p class="eyebrow">Recent exercises</p>
+              <ul class="sess-list" id="sessList"></ul>
+              <label class="rt-label" id="archivedToggle" hidden><input id="showArchived" type="checkbox"> Show archived</label>
+            </div>
+          </div>
+          <div class="home-col">
+            <h2>Build</h2>
+            <div class="gen" id="genBlock" hidden>
+              <div class="source">
+                <h3>Emulate an adversary</h3>
+                <p class="hint">A threat actor or attack type, grounded in one of your environments.</p>
+                <div class="setup">
+                  <label>Environment
+                    <select id="genEnv"></select>
+                  </label>
+                  <label>Threat actor or template
+                    <select id="genActor"></select>
+                  </label>
+                  <label>Name <span class="hint">(optional)</span>
+                    <input id="genName" type="text" placeholder="Generated exercise">
+                  </label>
+                  <button class="btn" id="btnGenerate">Generate scenario</button>
+                </div>
+              </div>
+              <div class="source">
+                <h3>Start from a CISA CTEP pack</h3>
+                <p class="hint">A Cybersecurity Tabletop Exercise Package becomes a runnable, adjudicated scenario.</p>
+                <div class="row">
+                  <select id="ctepSel"></select>
+                  <button class="btn" id="btnImportCtep">Import pack</button>
+                </div>
+              </div>
+              <div class="source">
+                <h3>Import a scenario file</h3>
+                <p class="hint">A deep branching scenario in Gauntlet YAML.</p>
+                <div class="yaml-import">
+                  <input id="yamlFile" type="file" accept=".yaml,.yml">
+                  <button class="btn" id="btnImportYaml">Import YAML</button>
+                </div>
+              </div>
+              <div class="source">
+                <h3>Design it by hand</h3>
+                <div class="row">
+                  <a class="btn" href="/wizard.html">Guided build</a>
+                  <a class="btn" href="/editor.html">Scenario editor</a>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <ul class="sess-list" id="sessList"></ul>
-        <label class="rt-label" id="archivedToggle" hidden><input id="showArchived" type="checkbox"> Show archived exercises</label>
-
         <nav class="nav-links">
-          <a href="/join.html">→ Join by code</a>
-          <a href="/participant.html">→ Blue / participant view</a>
-          <a href="/red.html">→ Red cell</a>
-          <a href="/evaluator.html">→ Evaluator companion</a>
-          <a href="/rollup.html">→ Parallel roll-up</a>
-          <a href="/program.html">→ Program coverage</a>
-          <a href="/analytics.html">→ Maturity trends</a>
+          <a href="/join.html">Join by code</a>
+          <a href="/participant.html">Participant view</a>
+          <a href="/red.html">Red cell</a>
+          <a href="/evaluator.html">Evaluator</a>
+          <a href="/rollup.html">Parallel roll-up</a>
+          <a href="/program.html">Program coverage</a>
+          <a href="/analytics.html">Maturity trends</a>
         </nav>
       </div>
     </section>
@@ -146,9 +170,9 @@
           <div class="env" id="envSummary"></div>
         </div>
         <div class="panel" id="lobbyPanel">
-          <p class="eyebrow">Join lobby <span class="hint">— large-group onboarding</span></p>
-          <div class="joincode" id="joinCodeBox"><span class="muted">No code yet</span></div>
-          <button class="btn ghost small" id="btnJoinCode" style="margin-top:.5rem">Generate join code</button>
+          <p class="eyebrow">Join code</p>
+          <div class="joincode" id="joinCodeBox"><span class="muted">Not issued</span></div>
+          <button class="btn ghost small" id="btnJoinCode" style="margin-top:.5rem">Issue join code</button>
           <ul class="lobby" id="lobbyList"></ul>
         </div>
       </aside>
@@ -180,7 +204,7 @@
         </div>
 
         <div class="panel" id="branchPanel">
-          <p class="eyebrow">Choose the next move <span class="hint">— you are the dungeon master</span></p>
+          <p class="eyebrow">Next move <span class="hint">— the proctor decides</span></p>
           <div class="branches" id="branches"></div>
           <div class="override">
             <input id="overrideGoto" type="text" placeholder="…or jump to an inject code (proctor override)">
@@ -191,7 +215,7 @@
         <div class="terminal-note" id="terminalNote" hidden>
           <p class="eyebrow">Arc complete</p>
           <p>This branch has resolved. Capture final observations, then generate reports below or complete the session.</p>
-          <button class="btn" id="btnComplete">Complete exercise</button>
+          <button class="btn primary" id="btnComplete">Complete exercise</button>
         </div>
       </section>
 
@@ -199,10 +223,10 @@
       <aside class="side">
         <div class="panel">
           <p class="eyebrow">Adjudicate an action</p>
-          <p class="hint">Rule a move against the environment's defenses.</p>
+          <p class="hint">Rule a move against the environment's controls.</p>
           <input id="adjTech" type="text" placeholder="Techniques e.g. T1003.001, T1021">
           <input id="adjAsset" type="text" placeholder="Target asset e.g. FIN-APP-02">
-          <button class="btn" id="btnAdjudicate">Rule on it</button>
+          <button class="btn accent" id="btnAdjudicate">Adjudicate</button>
           <div class="ruling" id="rulingOut" hidden></div>
         </div>
 
@@ -243,7 +267,7 @@
         </div>
 
         <div class="panel timeline-panel">
-          <p class="eyebrow">Timeline <span class="hint" id="chainState"></span></p>
+          <p class="eyebrow">Record <span class="hint" id="chainState"></span></p>
           <ol class="timeline" id="timeline"></ol>
         </div>
       </aside>

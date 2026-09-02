@@ -414,7 +414,7 @@
     const wrap = $("paletteList");
     wrap.innerHTML = bank.map((b) => `
       <div class="pal-item" draggable="true" data-key="${esc(b.key)}" style="--phase:${phaseColor(b.phase)}">
-        <div><div class="pal-ch">${esc(b.channel || "")}</div><div class="pal-t">${esc(b.title || b.key)}</div></div>
+        <div><div class="pal-ch">${esc(b.channel || "")}</div><div class="pal-t">${esc(String(b.title || b.key).replace(/\{asset_name\}/g, "the target asset").replace(/\{[a-z_]+\}/g, "…"))}</div></div>
       </div>`).join("") || '<p class="hint">No bank entries.</p>';
     wrap.querySelectorAll(".pal-item").forEach((it) => {
       it.addEventListener("dragstart", (e) => e.dataTransfer.setData("text/key", it.getAttribute("data-key")));
@@ -475,7 +475,7 @@
     if (yaml) showYaml();
   }
   function initTheme() {
-    let t = "dark"; try { t = localStorage.getItem("gauntlet-theme") || "dark"; } catch (e) { /* noop */ }
+    let t = "dark"; try { t = localStorage.getItem("gauntlet-theme") || "light"; } catch (e) { /* noop */ }
     document.documentElement.setAttribute("data-theme", t);
     $("btnTheme").addEventListener("click", () => {
       const n = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
