@@ -455,6 +455,8 @@
 
     // kill-chain progress map (how far along the exercise is)
     updateKillChain(scenario.id, current_inject, timeline);
+    // P1: what the room answered, live
+    updateResponses(current_inject);
 
     // live blue-vs-red scoreboard (detections vs adjudicated red moves)
     updateScoreboard(currentSid);
@@ -485,6 +487,28 @@
   const scenario_injects_cache = {};
   const env_cache = {};
   let injectBank = null;
+
+  // P1: the proctor's tally for the live decision card.
+  async function updateResponses(currentInject) {
+    const box = $("responses");
+    if (!box) return;
+    if (!currentInject) { box.hidden = true; return; }
+    try {
+      const t = await api(`/api/sessions/${currentSid}/responses?inject=${encodeURIComponent(currentInject.code)}`);
+      if (!t.spec) { box.hidden = true; return; }
+      const max = Math.max(1, ...t.options.map((o) => o.count));
+      const bars = t.options.map((o) =>
+        `<div class="rs-row"><span class="rs-lbl"><b>${escapeHtml(o.key.toUpperCase())}</b> ${escapeHtml(o.label)} <span class="hint">${Math.round(o.score * 100)}%</span></span>` +
+        `<span class="rs-bar"><span style="width:${Math.round(o.count / max * 100)}%"></span></span><span class="rs-n">${o.count}</span></div>`).join("");
+      const texts = t.free_text.map((f) => `<li><b>${escapeHtml(f.display_name || "")}</b>: ${escapeHtml(f.text)}</li>`).join("");
+      box.hidden = false;
+      box.innerHTML = `<p class="eyebrow">Decision <span class="hint">— ${t.responses} of ${t.expected} answered` +
+        (t.mean_score != null ? ` · score ${Math.round(t.mean_score * 100)}%` : "") +
+        (t.median_latency_sec != null ? ` · median ${t.median_latency_sec} s` : "") + `</span></p>` +
+        `<p class="rs-prompt">${escapeHtml(t.spec.prompt)}${t.spec.derived ? ' <span class="hint">(derived from expected actions)</span>' : ""}</p>` +
+        bars + (texts ? `<ul class="rs-texts">${texts}</ul>` : "");
+    } catch (e) { box.hidden = true; }
+  }
 
   async function ensureBank() {
     if (injectBank) return injectBank;
@@ -692,10 +716,17 @@
     }).join("");
     let items = [];
     try { items = (await api("/api/improvements")).filter((i) => i.session_id === currentSid); } catch (e) { /* noop */ }
+    let scores = null;
+    try { scores = await api(`/api/sessions/${currentSid}/participants/scores`); } catch (e) { /* noop */ }
+    const scoreRows = scores && scores.participants.length
+      ? `<h2>Participants</h2><table class="dfields"><thead><tr><th>Who</th><th>Cell</th><th>Answers</th><th>Score</th><th>Median time</th></tr></thead><tbody>` +
+        scores.participants.map((r) => `<tr><td>${escapeHtml(r.display_name || "")}</td><td>${escapeHtml((r.cell || "").replace("_cell", ""))}</td><td>${r.responses}</td><td>${r.mean_score == null ? "—" : Math.round(r.mean_score * 100) + "%"}</td><td>${r.median_latency_sec == null ? "—" : r.median_latency_sec + " s"}</td></tr>`).join("") +
+        `</tbody></table>` : "";
     $("modalBody").innerHTML =
       `<p class="eyebrow">Hotwash · ${escapeHtml(lastState.session.name)}</p><h1>What did we learn?</h1>` +
       `<p class="sub">Rate each objective while the room is still here. Anything the room agrees to fix goes on the improvement list now, with an owner later.</p>` +
       `<h2>Objectives</h2><table class="dfields hw-table"><tbody>${rows || '<tr><td class="muted">No objectives declared.</td></tr>'}</tbody></table>` +
+      scoreRows +
       `<h2>Improvement items</h2><ul class="hw-items" id="hwItems">${items.map((i) => `<li><span class="pill">${escapeHtml(i.severity)}</span> ${escapeHtml(i.title)}</li>`).join("") || '<li class="muted">Nothing logged yet.</li>'}</ul>` +
       `<div class="row"><input id="hwTitle" placeholder="e.g. Enforce MFA on the VPN for all contractors" style="flex:1"><select id="hwSev"><option>high</option><option selected>medium</option><option>low</option></select><button class="btn" id="hwAdd">Log item</button></div>` +
       `<p class="hint">Three questions to ask the room: What went well? What surprised us? What one control would have changed the outcome?</p>` +
@@ -929,6 +960,7 @@
       case "observation": return `Observation [${escapeHtml(p.rating)}] ${escapeHtml(truncate(p.note, 80))}`;
       case "note": return `Note — ${escapeHtml(truncate(p.text, 90))}`;
       case "status": return `Status → ${escapeHtml(p.status)}`;
+      case "response": return `Decision by <b>${escapeHtml(p.display_name || "")}</b> (${escapeHtml((p.cell || "").replace("_cell", ""))}) — ${escapeHtml(truncate(p.label || p.text || "", 70))}${p.latency_sec != null ? ` <span class="hint">${p.latency_sec} s</span>` : ""}`;
       case "telemetry": return `Alert [${escapeHtml(p.source || "tool")}] ${escapeHtml(truncate(p.alert, 70))}${(p.techniques || []).length ? " · " + escapeHtml(p.techniques.join(", ")) : ""}`;
       default: return e.kind;
     }

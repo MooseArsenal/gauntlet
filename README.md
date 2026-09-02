@@ -37,6 +37,12 @@ product with no dependency on any other system. See
 - **Product page and tour** — `/product.html` (positioning, how an exercise runs,
   indicative pricing) and a guided tour of the console (`/?tour=1`). Releases are
   tagged, published to GHCR with an SBOM, and described in `CHANGELOG.md`.
+- **Participant decisions** — every inject can carry a decision card (scored
+  options, free text, a time limit) declared as `meta.decision` in YAML or derived
+  from its expected actions. Participants answer from their own device; answers
+  land on the signed timeline with latency and score; the proctor sees the tally
+  live; scores roll up per participant and into analytics, reports and the
+  certificate.
 - **Sector benchmark** — an organisation's completed exercises against the
   library's modelled expectation for its sector and, when an admin opts in, the
   k-anonymous cohort of other organisations on the same instance. Computed

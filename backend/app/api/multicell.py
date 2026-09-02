@@ -51,14 +51,26 @@ def cell_session_view(
     visible_current = visibility.current_inject_for_cell(current, scenario, cell_key)
     visible_events = visibility.filter_timeline(s.events, scenario, cell_key)
 
+    from .. import decisions  # P1
+    spec = decisions.spec_for(visible_current) if visible_current else None
+    inject_out = schemas.InjectOut.model_validate(visible_current) if visible_current else None
+    if inject_out is not None and not visibility.is_control_cell(scenario, cell_key):
+        # Fog of war: a participant sees the scene, never the proctor's machinery —
+        # the scored decision spec and the branches that name what comes next.
+        inject_out = inject_out.model_copy(update={
+            "meta": {k: v for k, v in (inject_out.meta or {}).items() if k != "decision"},
+            "branches": [],
+        })
     return schemas.CellSessionView(
         cell_key=cell_key,
         cell_name=_cell_name(scenario, cell_key),
         can_see_all=is_staff(user) and visibility.is_control_cell(scenario, cell_key),
         session=schemas.SessionSummary.model_validate(s),
-        current_inject=schemas.InjectOut.model_validate(visible_current) if visible_current else None,
+        current_inject=inject_out,
         timeline=[schemas.TimelineEventOut.model_validate(e) for e in visible_events],
         objectives=[schemas.ObjectiveOut.model_validate(o) for o in scenario.objectives],
+        decision=decisions.public_spec(spec),
+        my_response=decisions.my_response(s, user.id, visible_current.code) if visible_current else None,
     )
 
 

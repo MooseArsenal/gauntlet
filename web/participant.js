@@ -14,9 +14,11 @@
   let socket = null;
 
   function token() { try { return localStorage.getItem("gauntlet-token") || ""; } catch (e) { return ""; } }
-  async function api(path) {
+  async function api(path, method = "GET", body) {
     const t = token();
-    const res = await fetch(path, { headers: t ? { Authorization: `Bearer ${t}` } : {} });
+    const headers = t ? { Authorization: `Bearer ${t}` } : {};
+    if (body !== undefined) headers["Content-Type"] = "application/json";
+    const res = await fetch(path, { method, headers, body: body !== undefined ? JSON.stringify(body) : undefined });
     if (res.status === 401) { location.href = "/"; throw new Error("Sign in via the console."); }
     if (!res.ok) {
       let d = res.statusText;
@@ -108,6 +110,7 @@
     try {
       const view = await api(`/api/sessions/${sid}/cell/${encodeURIComponent(cell)}`);
       renderScene(view.current_inject);
+      renderDecision(view, sid);
       renderFeed(view.timeline);
     } catch (e) {
       $("scene").innerHTML = `<p class="muted">${esc(e.message)}</p>`;
@@ -127,6 +130,49 @@
         ? `<div class="scene-meta"><div><span class="lbl">Consider</span><ul>${
             inj.expected_actions.map((a) => `<li>${esc(a)}</li>`).join("")}</ul></div></div>`
         : "");
+  }
+
+  // P1: the decision card — answer once, from your own device; the proctor
+  // sees the tally and still makes the ruling.
+  let decisionTimer = null;
+  function renderDecision(view, sid) {
+    const box = $("decision"); if (!box) return;
+    clearInterval(decisionTimer);
+    const d = view.decision, inj = view.current_inject, mine = view.my_response;
+    if (!d || !inj) { box.hidden = true; box.innerHTML = ""; return; }
+    box.hidden = false;
+    if (mine) {
+      box.innerHTML = `<p class="eyebrow">Your decision · ${esc(inj.code)}</p>` +
+        `<p class="dc-done"><b>${esc(mine.label || mine.text || "")}</b>` +
+        (mine.latency_sec != null ? ` <span class="hint">recorded after ${esc(String(mine.latency_sec))} s</span>` : "") + `</p>` +
+        `<p class="hint">Recorded on the exercise timeline. The proctor decides what happens next.</p>`;
+      return;
+    }
+    const opts = (d.options || []).map((o) =>
+      `<button class="dc-opt" data-k="${esc(o.key)}"><span class="dc-key">${esc(o.key.toUpperCase())}</span>${esc(o.label)}</button>`).join("");
+    box.innerHTML = `<p class="eyebrow">Decision · ${esc(inj.code)}${d.time_limit_sec ? ` <span class="hint" id="dcClock"></span>` : ""}</p>` +
+      `<p class="dc-prompt">${esc(d.prompt)}</p><div class="dc-opts">${opts}</div>` +
+      (d.free_text ? `<textarea id="dcText" rows="3" placeholder="${opts ? "Or write what you would do…" : "What does your team do first?"}"></textarea><button class="btn primary" id="dcSend">Submit decision</button>` : "") +
+      `<p class="loginerr" id="dcErr" hidden></p>`;
+    const send = async (option, text) => {
+      try {
+        await api(`/api/sessions/${sid}/respond`, "POST", { option: option || null, text: text || "", inject_code: inj.code });
+        toast("Decision recorded."); await loadView();
+      } catch (e) { $("dcErr").textContent = e.message; $("dcErr").hidden = false; }
+    };
+    box.querySelectorAll(".dc-opt").forEach((b) => b.addEventListener("click", () => send(b.dataset.k, "")));
+    const sendBtn = $("dcSend");
+    if (sendBtn) sendBtn.addEventListener("click", () => send(null, $("dcText").value.trim()));
+    if (d.time_limit_sec) {
+      const fired = (view.timeline || []).filter((e) => e.kind === "inject_fired" && e.ref === inj.code).pop();
+      const t0 = fired ? new Date(fired.at).getTime() : Date.now();
+      const tick = () => {
+        const left = Math.max(0, Math.round(d.time_limit_sec - (Date.now() - t0) / 1000));
+        const el = $("dcClock"); if (el) el.textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")} left`;
+        if (left <= 0) clearInterval(decisionTimer);
+      };
+      tick(); decisionTimer = setInterval(tick, 1000);
+    }
   }
 
   function renderFeed(events) {
