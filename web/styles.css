@@ -429,3 +429,7 @@ table.grid tbody tr:hover{background:var(--surface-2)}
 .tl-out.surprise{border-color:var(--warn);color:var(--warn)}.tl-out.missed{color:var(--ink-soft);border-color:var(--rule)}
 .tl-form{margin-bottom:.8rem}
 .timeline li.k-telemetry b{color:var(--accent)}
+/* M3 — hotwash */
+.hw-table td{vertical-align:top}.hw-btns{white-space:nowrap;text-align:right}
+.btn.ghost.hw-rate.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.hw-items{list-style:none;padding:0;margin:.3rem 0 .6rem}.hw-items li{padding:.3rem 0;border-bottom:1px dotted var(--rule)}
