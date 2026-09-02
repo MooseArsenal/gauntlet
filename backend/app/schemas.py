@@ -991,3 +991,44 @@ class BrandingIn(BaseModel):
 
 class ClientIn(BaseModel):
     name: str = Field(max_length=200)
+
+
+# --- education edition + replay (L4) --- #
+class CohortIn(BaseModel):
+    name: str = Field(max_length=200)
+    anonymous: bool = False
+
+
+class CohortUpdateIn(BaseModel):
+    name: Optional[str] = Field(default=None, max_length=200)
+    anonymous: Optional[bool] = None
+    open: Optional[bool] = None
+
+
+class CohortJoinIn(BaseModel):
+    code: str = Field(max_length=300)
+
+
+class CohortEnrolIn(BaseModel):
+    """A student creating their account from the cohort code alone."""
+    code: str = Field(max_length=300)
+    email: str = Field(max_length=200)
+    password: str = Field(max_length=300)
+    name: str = Field(default="", max_length=160)
+
+    @field_validator("email")
+    @classmethod
+    def _email(cls, v: str) -> str:
+        v = (v or "").strip()
+        if "@" not in v[1:-1] or " " in v or v.count("@") != 1 or "." not in v.split("@")[1]:
+            raise ValueError("enter a valid email address")
+        return v
+
+
+class CohortSeatIn(BaseModel):
+    cell: str = Field(default="auto", max_length=300)  # auto = round-robin over participant cells
+
+
+class RewindIn(BaseModel):
+    seq: int
+    name: Optional[str] = Field(default=None, max_length=300)

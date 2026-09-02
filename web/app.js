@@ -101,8 +101,9 @@
     $("btnGuided").hidden = true;
     $("btnEditor").hidden = true;
     $("btnMembers").hidden = true;
+    $("btnClassroom").hidden = true;
     $("btnTour").hidden = true;
-    ["btnPause", "btnResume", "btnVerify", "btnCertificate", "btnHotwash", "btnRunday"].forEach((id) => ($(id).hidden = true));
+    ["btnPause", "btnResume", "btnVerify", "btnCertificate", "btnHotwash", "btnRunday", "btnReplay"].forEach((id) => ($(id).hidden = true));
   }
 
   async function finishLogin(data) {
@@ -215,8 +216,9 @@
     $("btnGuided").hidden = false;
     $("btnEditor").hidden = false;
     $("btnMembers").hidden = !(currentUser && currentUser.role === "admin");  // U-1: admins manage members
+    $("btnClassroom").hidden = !(currentUser && ["admin", "facilitator"].includes(currentUser.role));  // L4: instructors
     $("btnTour").hidden = false;
-    ["btnPause", "btnResume", "btnVerify", "btnCertificate", "btnHotwash", "btnRunday"].forEach((id) => ($(id).hidden = true));
+    ["btnPause", "btnResume", "btnVerify", "btnCertificate", "btnHotwash", "btnRunday", "btnReplay"].forEach((id) => ($(id).hidden = true));
 
     const showArchived = $("showArchived") && $("showArchived").checked;
     const [scenarios, sessions] = await Promise.all([
@@ -416,6 +418,9 @@
     $("btnRunday").hidden = false;
     $("btnRunday").href = `/runday.html?session=${currentSid}&view=${session.status === "setup" ? "brief" : "projector"}`;
     $("btnHotwash").hidden = session.status === "setup";
+    // L4: replay the record scene by scene, rewind to any branch.
+    $("btnReplay").hidden = session.status === "setup";
+    $("btnReplay").href = `/replay.html?session=${currentSid}`;
     lastState = state;
 
     // left rail

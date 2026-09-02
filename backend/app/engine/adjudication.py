@@ -112,7 +112,6 @@ def adjudicate(environment, techniques: list[str], target_asset: str) -> dict:
         "probability": round(probability, 3),  # the modelled odds; the game mode rolls a die consistent with them
         "detected": detected,
         "asset_known": asset_known,
-        "probability": probability,
         "time_to_detect_min": time_to_detect,
         "deception_tripped": bool(tripped),
         "controls_hit": controls_hit,

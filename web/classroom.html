@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gauntlet — Classroom</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/game.css">
+</head>
+<body>
+  <div class="strip"><span>Exercise control · Classroom</span><span>Facilitated exercise — no production access — all actions are simulated</span></div>
+  <header class="bar">
+    <div class="brand"><span class="mark"><span>G</span></span><b>Gauntlet</b><small>Classroom</small></div>
+    <div class="bar-actions">
+      <a class="btn ghost" href="/" id="lnkConsole">Console</a>
+      <a class="btn ghost" href="/participant.html" id="lnkPlay" hidden>Play</a>
+      <button class="btn toggle" id="btnTheme" aria-label="Toggle theme">◑</button>
+    </div>
+  </header>
+  <main class="mat">
+    <p class="eyebrow">Education edition</p>
+    <h1 style="font-size:1.6rem;margin:.1rem 0 .3rem" id="title">Classroom</h1>
+    <p class="muted" id="lead">Loading…</p>
+
+    <!-- signed out: a student creating their account from the cohort code -->
+    <div class="panel" id="enrolPanel" hidden>
+      <p class="eyebrow">Enrol with your class code</p>
+      <div class="row"><input id="enCode" placeholder="Class code (e.g. K7PQ2ND)" style="flex:1;text-transform:uppercase"><input id="enName" placeholder="Your name" style="flex:1"></div>
+      <div class="row"><input id="enEmail" placeholder="Email" type="email" style="flex:1"><input id="enPass" placeholder="Password (12+ characters)" type="password" style="flex:1"><button class="btn primary" id="btnEnrol">Create my account</button></div>
+      <p class="hint">Your account is a participant in your instructor's organisation: you see the exercises you are seated in and your own standing, nothing else. Already have an account? <a href="/">Sign in</a>, then join with the code below.</p>
+    </div>
+
+    <!-- student -->
+    <div id="studentView" hidden>
+      <div class="panel">
+        <p class="eyebrow">Join a class</p>
+        <div class="row"><input id="joinCode" placeholder="Class code" style="flex:1;text-transform:uppercase"><button class="btn primary" id="btnJoin">Join</button></div>
+      </div>
+      <div class="panel"><p class="eyebrow">My standing</p><div id="mine"><p class="muted">Not in a class yet.</p></div></div>
+    </div>
+
+    <!-- instructor -->
+    <div id="instructorView" hidden>
+      <div class="panel">
+        <p class="eyebrow">New cohort</p>
+        <div class="row"><input id="newName" placeholder="Class name, e.g. CS-401 Incident Response" style="flex:1"><label class="hint"><input type="checkbox" id="newAnon" checked> anonymous grading</label><button class="btn primary" id="btnCreate">Create</button></div>
+        <p class="hint">Anonymous grading shows students to you and to the room by alias (S-01, S-02…) until you reveal names.</p>
+      </div>
+      <div class="panel"><p class="eyebrow">Cohorts <span class="hint" id="count"></span></p><div class="mem-table" id="cohorts"></div></div>
+      <div id="detail" hidden>
+        <div class="panel">
+          <p class="eyebrow">Class code</p>
+          <div class="row" style="align-items:center"><div class="code-big" id="dCode"></div><span class="hint" id="dEnrolUrl"></span></div>
+          <div class="row">
+            <button class="btn small" id="btnRotate">Rotate code</button>
+            <button class="btn small" id="btnOpen"></button>
+            <button class="btn small" id="btnAnon"></button>
+            <button class="btn ghost small" id="btnArchive">Archive cohort</button>
+          </div>
+        </div>
+        <div class="panel"><p class="eyebrow">Students <span class="hint" id="dCount"></span></p><div class="mem-table" id="members"></div></div>
+        <div class="panel">
+          <p class="eyebrow">Runs</p>
+          <div class="row"><select id="attachSel" style="flex:1"></select><button class="btn small" id="btnAttach">Attach run</button></div>
+          <div class="mem-table" id="runs"></div>
+          <p class="hint">Attach an exercise, then seat the class: every student gets a seat (round-robin across the scenario's participant cells, or one cell you choose) — no join code to read aloud. Start it from the console as usual.</p>
+        </div>
+        <div class="panel">
+          <p class="eyebrow">Gradebook <span class="hint" id="gbNote"></span></p>
+          <div class="row"><label class="hint"><input type="checkbox" id="gbReveal"> reveal names</label><button class="btn small" id="btnCsv">Download CSV</button></div>
+          <div class="grade-wrap" id="gradebook"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="gatePanel" hidden>
+      <p class="eyebrow">Not in this deployment's tier</p>
+      <p class="muted" id="gateMsg"></p>
+      <p class="hint">The education edition is in the Education and Enterprise tiers. See <a href="/product.html">packaging</a>, or add a licence on the <a href="/members.html">Members</a> page.</p>
+    </div>
+  </main>
+  <div class="toast" id="toast" hidden></div>
+  <script src="/brand.js"></script>
+  <script src="/game.js"></script>
+  <script src="/classroom.js"></script>
+</body>
+</html>
