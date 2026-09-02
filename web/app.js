@@ -101,7 +101,7 @@
     $("btnGuided").hidden = true;
     $("btnEditor").hidden = true;
     $("btnMembers").hidden = true;
-    ["btnPause", "btnResume", "btnVerify", "btnCertificate"].forEach((id) => ($(id).hidden = true));
+    ["btnPause", "btnResume", "btnVerify", "btnCertificate", "btnHotwash", "btnRunday"].forEach((id) => ($(id).hidden = true));
   }
 
   async function finishLogin(data) {
@@ -214,7 +214,7 @@
     $("btnGuided").hidden = false;
     $("btnEditor").hidden = false;
     $("btnMembers").hidden = !(currentUser && currentUser.role === "admin");  // U-1: admins manage members
-    ["btnPause", "btnResume", "btnVerify", "btnCertificate"].forEach((id) => ($(id).hidden = true));
+    ["btnPause", "btnResume", "btnVerify", "btnCertificate", "btnHotwash", "btnRunday"].forEach((id) => ($(id).hidden = true));
 
     const showArchived = $("showArchived") && $("showArchived").checked;
     const [scenarios, sessions] = await Promise.all([
@@ -408,6 +408,11 @@
     $("btnVerify").hidden = false;
     // M1: a completed exercise can be certified — the number, signed.
     $("btnCertificate").hidden = session.status !== "complete";
+    // M3: run-day second screen, and the hotwash once play has started.
+    $("btnRunday").hidden = false;
+    $("btnRunday").href = `/runday.html?session=${currentSid}&view=${session.status === "setup" ? "brief" : "projector"}`;
+    $("btnHotwash").hidden = session.status === "setup";
+    lastState = state;
 
     // left rail
     $("scnName").textContent = scenario.name;
@@ -665,6 +670,68 @@
       ? `<span class="chainok">✓ chain intact · ${v.events} events</span>`
       : `<span class="chainbad">✗ chain broken</span>`;
     toast(v.chain_valid ? "Timeline verified — hash-chain intact." : "Timeline verification FAILED.");
+  }
+
+  let lastState = null;
+
+  // M3: the hotwash — every objective gets a rating, and what the room agreed
+  // to fix becomes an improvement item, before anyone leaves.
+  async function hotwash() {
+    if (!lastState) return;
+    const obs = lastState.observations || [];
+    const rated = {};
+    obs.forEach((o) => { if (["met", "partial", "missed"].includes(o.rating)) rated[o.objective_code] = o.rating; });
+    const rows = objectives.map((o) => {
+      const r = rated[o.code];
+      const btn = (v, label) => `<button class="btn ghost small hw-rate ${r === v ? "on" : ""}" data-obj="${escapeHtml(o.code)}" data-rate="${v}">${label}</button>`;
+      return `<tr><td><b>${escapeHtml(o.code)}</b> ${escapeHtml(o.title)}<br><span class="hint">${escapeHtml(o.success_criteria || "")}</span></td>` +
+        `<td class="hw-btns">${btn("met", "Met")}${btn("partial", "Partial")}${btn("missed", "Missed")}</td></tr>`;
+    }).join("");
+    let items = [];
+    try { items = (await api("/api/improvements")).filter((i) => i.session_id === currentSid); } catch (e) { /* noop */ }
+    $("modalBody").innerHTML =
+      `<p class="eyebrow">Hotwash · ${escapeHtml(lastState.session.name)}</p><h1>What did we learn?</h1>` +
+      `<p class="sub">Rate each objective while the room is still here. Anything the room agrees to fix goes on the improvement list now, with an owner later.</p>` +
+      `<h2>Objectives</h2><table class="dfields hw-table"><tbody>${rows || '<tr><td class="muted">No objectives declared.</td></tr>'}</tbody></table>` +
+      `<h2>Improvement items</h2><ul class="hw-items" id="hwItems">${items.map((i) => `<li><span class="pill">${escapeHtml(i.severity)}</span> ${escapeHtml(i.title)}</li>`).join("") || '<li class="muted">Nothing logged yet.</li>'}</ul>` +
+      `<div class="row"><input id="hwTitle" placeholder="e.g. Enforce MFA on the VPN for all contractors" style="flex:1"><select id="hwSev"><option>high</option><option selected>medium</option><option>low</option></select><button class="btn" id="hwAdd">Log item</button></div>` +
+      `<p class="hint">Three questions to ask the room: What went well? What surprised us? What one control would have changed the outcome?</p>` +
+      (lastState.session.status !== "complete" ? `<div class="modal-actions"><button class="btn primary" id="hwComplete">Complete exercise</button></div>` : "");
+    $("modal").hidden = false;
+    $("modalBody").querySelectorAll(".hw-rate").forEach((b) => b.addEventListener("click", async () => {
+      try {
+        await api(`/api/sessions/${currentSid}/observe`, "POST", { objective_code: b.dataset.obj, rating: b.dataset.rate, note: "hotwash rating" });
+        b.parentElement.querySelectorAll(".hw-rate").forEach((x) => x.classList.remove("on")); b.classList.add("on");
+        await loadState();
+      } catch (e) { toast(e.message); }
+    }));
+    $("hwAdd").addEventListener("click", async () => {
+      const title = $("hwTitle").value.trim();
+      if (!title) return;
+      try {
+        const it = await api("/api/improvements", "POST", { title, severity: $("hwSev").value, session_id: currentSid, description: "Raised at the hotwash." });
+        const li = document.createElement("li"); li.innerHTML = `<span class="pill">${escapeHtml(it.severity)}</span> ${escapeHtml(it.title)}`;
+        const ul = $("hwItems"); if (ul.querySelector(".muted")) ul.innerHTML = ""; ul.appendChild(li); $("hwTitle").value = "";
+        toast("Improvement item logged.");
+      } catch (e) { toast(e.message); }
+    });
+    const done = $("hwComplete");
+    if (done) done.addEventListener("click", async () => { closeModal(); await setStatus("complete"); toast("Exercise complete — issue the certificate when ready."); });
+  }
+
+  // M3: keyboard for the facilitator. Space / → takes the first proctor choice,
+  // P pauses or resumes, A focuses the adjudication box, H opens the hotwash.
+  function keys(e) {
+    if (!currentSid || ($("modal") && !$("modal").hidden)) return;
+    if (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+    if (e.key === " " || e.key === "ArrowRight") {
+      const avail = (lastState && lastState.available_branches) || [];
+      const b = avail.find((x) => x.when === "proctor_choice") || avail[0];
+      if (b) { e.preventDefault(); advance(b.when, b.trigger || null, null); }
+    } else if (e.key === "p" || e.key === "P") {
+      if (!$("btnPause").hidden) setStatus("pause"); else if (!$("btnResume").hidden) setStatus("resume");
+    } else if (e.key === "a" || e.key === "A") { e.preventDefault(); $("adjTech").focus(); }
+    else if (e.key === "h" || e.key === "H") { if (!$("btnHotwash").hidden) hotwash(); }
   }
 
   // M1: issue (idempotent) and show the signed certificate for a completed exercise.
@@ -1086,6 +1153,8 @@
     $("btnComplete").addEventListener("click", () => setStatus("complete"));
     $("btnVerify").addEventListener("click", verify);
     $("btnCertificate").addEventListener("click", certificate);
+    $("btnHotwash").addEventListener("click", hotwash);
+    document.addEventListener("keydown", keys);
     $("modalX").addEventListener("click", () => ($("modal").hidden = true));
     $("modal").addEventListener("click", (e) => { if (e.target === $("modal")) $("modal").hidden = true; });
 

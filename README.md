@@ -38,6 +38,10 @@ product with no dependency on any other system. See
   hand, or a JSON/CSV export from the SIEM/EDR) and every adjudicated action
   becomes confirmed, a silent gap, a surprise, or missed. The comparison lands in
   the technical and executive reports and on the certificate.
+- **Run-day mode** — a pre-brief the room reads (rules of engagement, cells,
+  objectives, a large join code) and a projector view of the current scene with
+  the kill chain and the live tally; a hotwash that rates every objective and logs
+  improvement items before anyone leaves; keyboard-driven facilitation.
 - **Exercise certificate** — one signed page per completed exercise: detection
   rate, mean time-to-detect, objectives met, techniques exercised and the signed
   timeline head, frozen at issue. Anyone holding the serial can verify the figures
