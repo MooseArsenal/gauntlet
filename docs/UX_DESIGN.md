@@ -205,24 +205,52 @@ The bar: a professional would leave it turned on. Mechanics, all opt-in per org:
 Everything here is cosmetic over data we already compute; none of it changes
 adjudication or the record.
 
-## 9. Visual language
+## 9. Visual language — "Exercise Control"
 
-- **Tone:** clean, confident, a little playful. Generous spacing, rounded cards,
-  soft depth. Motion is purposeful and quick (120–200ms), always
-  `prefers-reduced-motion`-aware.
-- **Colour:** a professional neutral base with a small, meaningful accent set —
-  kill-chain phases get a consistent ordered palette (initial-access → actions-
-  on-objective), reused on nodes, the phase rail, and the scoreboard so colour
-  *means* the same thing everywhere. Blue-team / red-team get their two team
-  colours, used sparingly. All defined as theme tokens on `:root`, redefined for
-  dark.
-- **Type:** the existing system stack; a clear type scale; numerals tabular in
-  the scoreboard.
-- **Iconography:** channel and technique icons as simple line glyphs (inline
-  SVG), never emoji-as-UI.
-- **Accessibility:** WCAG AA contrast in both themes; full keyboard operation of
-  the canvas and wizards; visible focus; colour never the sole signal (icons +
-  labels back it up).
+Every product in this category is a dark card grid with a glowing accent. Gauntlet
+deliberately leaves that genre: it reads like the exercise documents its users
+already produce (MSEL, OPORD, hotwash), and the exported report is the same
+document as the screen.
+
+**Ground and ink.** Bond-paper ground (`#EEF0EE`) with a faint 28 px rule, surfaces
+one step lighter (`#F7F8F6`), ink `#15191C`. *Paper* is the default theme; *night*
+(`#14181A` ground, `#EDEFEA` ink) is the secondary for dark rooms and is the same
+document under a lamp, not a different product.
+
+**One signal colour.** Orange `#D9480F` is reserved for the red cell, critical
+states, and the one action that rules (Adjudicate). The blue cell is steel
+`#2F5D7C`. Green `#1E7A4B` and ochre `#9A6700` carry outcomes. No gradients, no
+glow, no coloured card washes.
+
+**Type.** Bricolage Grotesque for display (800 for the current inject, 700 for
+section titles), Public Sans for body, JetBrains Mono for anything a proctor reads
+aloud or copies: codes, clocks, technique ids, join codes, labels. Labels are mono,
+small, upper-case, letter-spaced — the eyebrow is the system's structural device.
+
+**Rules, not cards.** Sections are separated by dotted ink rules and a 1.5 px ink
+top rule, not by boxes. Exactly one element on a page earns a box with a hard
+offset shadow (`4px 4px 0 ink`): the current inject on the console, the scene on the
+participant and evaluator views, the card on sign-in and join. Radius is 2 px
+everywhere.
+
+**Stamps.** Status is a stamp — mono caps in a coloured outline, rotated −2°
+(RUNNING, PAUSED, COMPLETE). The banner strip at the very top of every page
+(`EXERCISE CONTROL · <role>` / `FACILITATED EXERCISE — NO PRODUCTION ACCESS`) is
+the document's classification line and names the viewer's cell on participant
+pages.
+
+**Masthead.** Two tiers on every page: identity and live status above, the
+toolbar below. Nothing wraps by accident; at phone widths the toolbar wraps
+deliberately and the page never scrolls sideways.
+
+**Vocabulary.** Copy uses exercise-control terms the buyer already speaks: Start
+exercise, Adjudicate, Next move — the proctor decides, Issue join code, Record,
+Verify record, Submit move. No emoji anywhere; icons are 1.6 px stroke SVG.
+
+**Exports.** The PDF header is the same ink banner strip in Courier caps, a signal
+tick and a hard rule; the footer is a hairline, the brand, the generation stamp
+and the page number. `GAUNTLET_BRAND_NAME` / `GAUNTLET_BRAND_ACCENT` white-label
+both.
 
 ## 10. Delivery roadmap (small, rolling PRs)
 
