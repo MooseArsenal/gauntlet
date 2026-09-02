@@ -164,8 +164,8 @@ APP_TAGLINE = "Security exercise design & proctoring"
 # --- Branding (F1) --------------------------------------------------------- #
 # Shown in exported PDF headers/footers. Override for white-labelled output.
 BRAND_NAME = os.environ.get("GAUNTLET_BRAND_NAME", "Gauntlet")
-# Accent colour for the header rule, as "R,G,B" (0-255). Default is a slate blue.
-BRAND_ACCENT = os.environ.get("GAUNTLET_BRAND_ACCENT", "37,99,235")
+# Signal colour used sparingly on exports, as "R,G,B" (0-255). Default is the console's orange.
+BRAND_ACCENT = os.environ.get("GAUNTLET_BRAND_ACCENT", "217,72,15")
 
 
 def startup_problems() -> list[str]:

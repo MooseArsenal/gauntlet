@@ -43,7 +43,7 @@ def _accent_rgb() -> tuple[int, int, int]:
         r, g, b = (int(x) for x in BRAND_ACCENT.split(",")[:3])
         return r, g, b
     except (ValueError, TypeError):
-        return 37, 99, 235
+        return 217, 72, 15
 
 
 class _BrandedPDF(FPDF):
@@ -57,21 +57,35 @@ class _BrandedPDF(FPDF):
         self._stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
     def header(self) -> None:
+        # The banner strip from the console, in print: ink bar, mono caps.
+        self.set_fill_color(21, 25, 28)
+        self.rect(0, 0, self.w, 7, style="F")
+        self.set_y(1.6)
+        self.set_font("Courier", "B", 7)
+        self.set_text_color(238, 240, 238)
+        self.cell(self.epw / 2, 4, _san(f"EXERCISE CONTROL - {self._brand.upper()}"), align="L")
+        self.cell(self.epw / 2, 4, "FACILITATED EXERCISE - NO PRODUCTION ACCESS", align="R",
+                  new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        self.set_y(11)
+        # Signal-colour tick, then a hard ink rule: the page reads as a document.
         r, g, b = _accent_rgb()
-        self.set_font("Helvetica", "B", 8)
-        self.set_text_color(r, g, b)
-        self.cell(0, 5, _san(self._brand), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-        self.set_draw_color(r, g, b)
-        self.set_line_width(0.5)
-        self.line(self.l_margin, self.get_y(), self.w - self.r_margin, self.get_y())
+        self.set_fill_color(r, g, b)
+        self.rect(self.l_margin, self.get_y(), 3, 3, style="F")
+        self.set_draw_color(21, 25, 28)
+        self.set_line_width(0.6)
+        self.line(self.l_margin, self.get_y() + 5, self.w - self.r_margin, self.get_y() + 5)
         self.set_text_color(0)
-        self.ln(3)
+        self.set_y(self.get_y() + 9)
 
     def footer(self) -> None:
         self.set_y(-12)
-        self.set_font("Helvetica", "I", 7)
-        self.set_text_color(120)
-        self.cell(0, 5, _san(f"{self._brand} · generated {self._stamp}"), align="L")
+        self.set_draw_color(21, 25, 28)
+        self.set_line_width(0.3)
+        self.line(self.l_margin, self.get_y(), self.w - self.r_margin, self.get_y())
+        self.set_y(-10)
+        self.set_font("Courier", "", 7)
+        self.set_text_color(91, 100, 105)
+        self.cell(0, 5, _san(f"{self._brand} - generated {self._stamp}"), align="L")
         self.cell(0, 5, f"Page {self.page_no()}/{{nb}}", align="R")
         self.set_text_color(0)
 
