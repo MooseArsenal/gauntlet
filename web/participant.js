@@ -92,6 +92,11 @@
       $("cellSel").innerHTML = `<option value="${esc(cell)}">${esc(label)} cell (you)</option>`;
       $("cellSel").disabled = true;
     }
+    const strip = document.querySelector(".strip span");
+    if (strip) {
+      const cell = $("cellSel").value || "";
+      strip.textContent = `Exercise control · Participant view · ${cell.replace("_cell", "").replace(/^\w/, (c) => c.toUpperCase())} cell`;
+    }
     subscribe(sid);
     await loadView();
   }
