@@ -4,7 +4,11 @@ All notable changes to Gauntlet. The format follows Keep a Changelog; versions
 follow SemVer. Container images are published as
 `ghcr.io/moose11b/gauntlet:<version>` on each tag.
 
-## [Unreleased]
+## [0.3.1] — 2026-09-02
+
+The first build that carries the vendor signing key: production deployments
+trust licences, revocation lists and packs signed by it, with no environment
+configuration.
 
 ### Security
 - **Signing keys** — vendor public keys are compiled into the release by key id
