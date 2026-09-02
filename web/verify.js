@@ -31,6 +31,11 @@
     } catch (e) { $("err").textContent = e.message; $("err").hidden = false; return; }
     const r = v.record || {};
     const obj = r.objectives || {};
+    const attendee = new URLSearchParams(location.search).get("attendee");
+    let att = null;
+    if (v.valid && attendee) {
+      try { const ra = await fetch(`/api/certificates/${encodeURIComponent(serial)}/attendance/${encodeURIComponent(attendee.toUpperCase())}`); att = await ra.json(); } catch (e) { att = null; }
+    }
     if (!v.valid) {
       $("result").innerHTML =
         `<div class="cert-verdict bad"><span class="rc-vtag">NOT VERIFIED</span><span>${esc(v.reason)}</span></div>` +
@@ -43,7 +48,10 @@
       ["Objectives met", pct(obj.met_rate)],
       ["Techniques exercised", String((r.techniques_exercised || []).length)],
     ].map(([k, x]) => `<div class="stile info"><span class="v">${esc(x)}</span><span class="k">${esc(k)}</span></div>`).join("");
-    $("result").innerHTML =
+    const attHtml = att ? (att.valid
+      ? `<div class="cert-verdict good"><span class="rc-vtag">ATTENDEE VERIFIED</span><span><b>${esc(att.record.display_name)}</b> · ${esc((att.record.cell || "").replace("_cell", ""))} cell · ${att.record.hours != null ? att.record.hours + " h" : ""} · ${att.record.responses} decisions · ${esc(att.record.attendee_code)}</span></div>`
+      : `<div class="cert-verdict bad"><span class="rc-vtag">ATTENDEE NOT VERIFIED</span><span>${esc(att.reason)}</span></div>`) : "";
+    $("result").innerHTML = attHtml +
       `<div class="cert-verdict good"><span class="rc-vtag">VERIFIED</span><span>signature recomputed · issued ${esc(date(v.issued_at))}</span></div>` +
       `<h2 class="cert-org">${esc(r.organization)}</h2>` +
       `<p class="sub">completed <b>${esc(r.exercise)}</b> (${esc(r.scenario)}) against ${esc(r.environment)}${r.sector ? " · " + esc(r.sector) : ""} on ${esc(date(r.completed_at))}.</p>` +

@@ -112,6 +112,7 @@
       renderScene(view.current_inject);
       renderDecision(view, sid);
       renderFeed(view.timeline);
+      renderAttendance(view, sid);
     } catch (e) {
       $("scene").innerHTML = `<p class="muted">${esc(e.message)}</p>`;
       $("feed").innerHTML = "";
@@ -177,6 +178,23 @@
       };
       tick(); decisionTimer = setInterval(tick, 1000);
     }
+  }
+
+  // P6: once the exercise is complete and certified, your own certificate.
+  function renderAttendance(view, sid) {
+    const box = $("attendance"); if (!box) return;
+    if (view.session.status !== "complete") { box.hidden = true; return; }
+    box.hidden = false;
+    box.innerHTML = `<p class="eyebrow">Your participation</p><p class="hint">When the facilitator has issued the exercise certificate, download your own certificate of participation.</p><button class="btn" id="btnMyCert">My certificate (PDF)</button>`;
+    $("btnMyCert").addEventListener("click", async () => {
+      try {
+        const t = token();
+        const res = await fetch(`/api/sessions/${sid}/my-attendance.pdf`, { headers: t ? { Authorization: `Bearer ${t}` } : {} });
+        if (!res.ok) { let d = "Not available yet."; try { d = (await res.json()).detail || d; } catch (e) { /* noop */ } throw new Error(d); }
+        const url = URL.createObjectURL(await res.blob()); const a = document.createElement("a");
+        a.href = url; a.download = "my-certificate.pdf"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 4000);
+      } catch (e) { toast(e.message); }
+    });
   }
 
   function renderFeed(events) {
