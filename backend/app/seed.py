@@ -197,9 +197,11 @@ def _injects() -> list[models.Inject]:
                                "time_limit_sec": 180}},
             branches=[
                 {"when": "action_taken", "trigger": "isolate_host", "goto": "INJ-04a",
-                 "label": "Blue cell isolates FIN-APP-02"},
+                 "label": "Blue cell isolates FIN-APP-02",
+                 "impact": {"cost": 25000, "downtime_hours": 2, "label": "Finance application isolated for two hours"}},
                 {"when": "timeout", "after": "PT10M", "goto": "INJ-04b",
-                 "label": "No containment — attacker pivots to the DC"},
+                 "label": "No containment — attacker pivots to the DC",
+                 "impact": {"cost": 180000, "downtime_hours": 6, "label": "Domain compromise: forced credential reset, IR retainer engaged"}},
                 {"when": "proctor_choice", "goto": "INJ-04a",
                  "label": "Proctor: team contains the host"},
             ],
@@ -251,9 +253,12 @@ def _injects() -> list[models.Inject]:
                                "time_limit_sec": 240}},
             branches=[
                 {"when": "action_taken", "trigger": "isolate_and_recover", "goto": "INJ-06a",
-                 "label": "Team isolates and recovers from immutable backups"},
+                 "label": "Team isolates and recovers from immutable backups",
+                 "impact": {"cost": 140000, "downtime_hours": 10, "records": 0, "label": "Restore from the vault; file shares down for a working day"}},
                 {"when": "timeout", "after": "PT20M", "goto": "INJ-06b",
-                 "label": "Slow response — widespread encryption"},
+                 "label": "Slow response — widespread encryption",
+                 "impact": {"cost": 1900000, "downtime_hours": 96, "records": 42000, "customers": 1200,
+                            "label": "Widespread encryption, extended outage, disclosure to customers"}},
                 {"when": "proctor_choice", "goto": "INJ-06a",
                  "label": "Proctor: team executes recovery"},
             ],
@@ -261,11 +266,20 @@ def _injects() -> list[models.Inject]:
         models.Inject(
             code="INJ-06a", sequence=8,
             title="Recovery from immutable backups (resolution)",
-            channel="briefing", clock="T+01:40",
+            channel="media", clock="T+01:40",
             narrative=("The immutable vault survives the deletion attempt. Systems are "
-                       "restored from clean backups and the comms plan runs. The exercise "
-                       "resolves with limited impact."),
-            visible_to=["blue_cell", "white_cell"],
+                       "restored from clean backups and the comms plan runs. A reporter from "
+                       "Sector Wire has heard 'the bank was hit by ransomware' and wants a "
+                       "statement within the hour. The exercise resolves with limited impact."),
+            visible_to=["blue_cell", "white_cell", "exec_cell"],
+            meta={"decision": {"kind": "comms", "prompt": "A reporter has the story and a 45-minute deadline. What is the bank's position, and what do you say?",
+                               "options": [
+                                   {"key": "a", "label": "Confirm a contained security incident; no customer data affected; services restored", "score": 1.0},
+                                   {"key": "b", "label": "No comment until the investigation is complete", "score": 0.4,
+                                    "note": "Silence reads as concealment once the story runs."},
+                                   {"key": "c", "label": "Deny any incident", "score": 0.0},
+                                   {"key": "d", "label": "Holding statement: aware of an issue, more to follow at a fixed time", "score": 0.8}],
+                               "free_text": True, "time_limit_sec": 300}},
             expected_actions=["Confirm restoration", "Run the hotwash"],
             attack_techniques=[], target_asset="BACKUP-01", objective_code="OBJ-4",
             branches=[],
@@ -273,11 +287,22 @@ def _injects() -> list[models.Inject]:
         models.Inject(
             code="INJ-06b", sequence=9,
             title="Widespread encryption and extended outage (resolution)",
-            channel="briefing", clock="T+02:10",
+            channel="regulator", clock="T+02:10",
             narrative=("Encryption spreads before containment. Some backups were reachable "
-                       "and hit, forcing a longer outage and a public-disclosure decision. "
-                       "The exercise resolves with major impact."),
-            visible_to=["blue_cell", "white_cell"],
+                       "and hit, forcing a longer outage and a public-disclosure decision. The "
+                       "supervisory authority has asked for the bank's position within 72 hours "
+                       "and customers are asking on social media. The exercise resolves with "
+                       "major impact."),
+            visible_to=["blue_cell", "white_cell", "exec_cell"],
+            meta={"decision": {"kind": "comms", "prompt": "Customers, the regulator and the press all want a position today. What do you commit to, and what do you say?",
+                               "options": [
+                                   {"key": "a", "label": "Notify the regulator now, publish a customer notice with what is known and a next update time", "score": 1.0},
+                                   {"key": "b", "label": "Notify the regulator; say nothing publicly until the scope is final", "score": 0.5,
+                                    "note": "Meets the legal clock, loses the customers."},
+                                   {"key": "c", "label": "Publish a reassuring statement before the scope is known", "score": 0.2,
+                                    "note": "The correction later costs more than the silence would have."},
+                                   {"key": "d", "label": "Wait for legal to finish reviewing", "score": 0.1}],
+                               "free_text": True, "time_limit_sec": 300}},
             expected_actions=["Capture the decision timeline", "Run the hotwash"],
             attack_techniques=[], target_asset="FILE-SRV-01", objective_code="OBJ-4",
             branches=[],
@@ -336,6 +361,7 @@ def seed_if_empty(db: Session) -> bool:
         cells=[
             {"key": "white_cell", "name": "White Cell / Control", "kind": "control"},
             {"key": "blue_cell", "name": "Blue Cell (SOC + IR)", "kind": "participant"},
+            {"key": "exec_cell", "name": "Executive Cell (leadership + comms)", "kind": "participant"},
             {"key": "observers", "name": "Observers", "kind": "observer"},
         ],
     )

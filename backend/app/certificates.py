@@ -127,6 +127,7 @@ def build_payload(org: models.Organization, session: models.Session, scenario: m
         "objectives": _objectives(scenario, list(session.observations)),
         "telemetry": _telemetry_block(session),
         "participant_decisions": _decisions_block(session),
+        "impact": (__import__("app.impact", fromlist=["summary"]).summary(events, session.state)["totals"] or None),
         "timeline_events": len(events),
         "timeline_head": {"seq": session.head_seq, "hash": session.head_hash},
         "chain_verified": verify_chain(events, session),
@@ -161,7 +162,7 @@ def public_record(cert: models.Certificate) -> dict:
         "organization", "exercise", "scenario", "exercise_type", "environment", "sector", "cells",
         "participants", "started_at", "completed_at", "injects", "adversary_actions", "detected",
         "missed", "detection_rate", "mean_time_to_detect_min", "techniques_exercised",
-        "objectives", "telemetry", "participant_decisions", "timeline_events", "timeline_head", "chain_verified")}
+        "objectives", "telemetry", "participant_decisions", "impact", "timeline_events", "timeline_head", "chain_verified")}
 
 
 # --------------------------------------------------------------------------- #

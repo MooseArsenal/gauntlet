@@ -455,3 +455,7 @@ table.grid tbody tr:hover{background:var(--surface-2)}
 
 /* P3 — evidence */
 .ev-list{list-style:none;padding:0;margin:0}.ev-list li{padding:.25rem 0;border-bottom:1px dotted var(--rule);font-size:.86rem}
+
+/* P4 — impact */
+.impact-line{border-top:1px dotted var(--rule);margin-top:.6rem;padding-top:.5rem;font-size:.95rem}.impact-line b{font-family:var(--display);font-size:1.2rem}
+.dc-opt.on{border-color:var(--ink);background:var(--surface);box-shadow:inset 3px 0 0 var(--accent2)}

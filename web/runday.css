@@ -40,3 +40,5 @@ body.runday{min-height:100vh}
 body.rd-full .strip,body.rd-full .bar{display:none}
 body.rd-full .rd-proj{min-height:100vh}
 @media(max-width:900px){.rd-cols{grid-template-columns:1fr}.rd-proj{grid-template-columns:1fr}.rd-side{order:2}}
+.rd-impact{border:1.5px solid var(--ink);padding:.6rem .8rem;margin-bottom:.8rem;font-size:1.05rem}
+.rd-impact .k{display:block;font-family:var(--mono);font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:.2rem}

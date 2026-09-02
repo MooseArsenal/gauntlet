@@ -73,12 +73,17 @@ def advance(db: Session, s: models.Session, current, when: str, trigger=None, go
         new_state = dict(s.state or {})
         new_state.update(mutations)
         s.state = new_state
+    # P4: what this branch costs, accumulated on the session and written with the decision.
+    from . import impact as _impact
+    new_state, step = _impact.apply(s.state, branch)
+    if step is not None:
+        s.state = new_state
 
     append_event(
         db, s.id, kind="decision", ref=current.code, game_clock=current.clock,
         payload={"when": when, "trigger": trigger, "goto": branch.get("goto"),
                  "label": branch.get("label", ""), "note": note,
-                 "set": mutations, "state": dict(s.state or {})},
+                 "set": mutations, "state": dict(s.state or {}), "impact": step},
     )
     nxt = db.execute(
         select(models.Inject).where(

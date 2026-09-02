@@ -40,6 +40,17 @@ def render(inject) -> dict:
         fields = {"Caller": "Unknown / withheld", "Line": "SOC hotline", "Time": clock}
     elif channel == "news":
         fields = {"Outlet": "Sector Wire", "Headline": title, "Filed": clock}
+    elif channel == "media":
+        fields = {"From": "Reporter, Sector Wire", "Deadline": "45 minutes", "Asking about": title, "Time": clock}
+    elif channel == "regulator":
+        fields = {"From": "Supervisory authority", "Reference": f"REG-{abs(hash(inject.code)) % 900 + 100}",
+                  "Subject": title, "Response due": "72 hours", "Time": clock}
+    elif channel == "customer":
+        fields = {"From": "Key account, procurement", "Subject": title, "Tone": "Concerned", "Time": clock}
+    elif channel == "social":
+        fields = {"Platform": "Public social feed", "Post": title, "Reach": "Climbing", "Time": clock}
+    elif channel == "board":
+        fields = {"From": "Chair of the board", "Subject": title, "Wants": "A position, in one page", "Time": clock}
     else:  # briefing
         fields = {"Presenter": "White Cell", "Time": clock}
 

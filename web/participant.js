@@ -150,9 +150,9 @@
     }
     const opts = (d.options || []).map((o) =>
       `<button class="dc-opt" data-k="${esc(o.key)}"><span class="dc-key">${esc(o.key.toUpperCase())}</span>${esc(o.label)}</button>`).join("");
-    box.innerHTML = `<p class="eyebrow">Decision · ${esc(inj.code)}${d.time_limit_sec ? ` <span class="hint" id="dcClock"></span>` : ""}</p>` +
+    box.innerHTML = `<p class="eyebrow">${d.kind === "comms" ? "Communications decision" : "Decision"} · ${esc(inj.code)}${d.time_limit_sec ? ` <span class="hint" id="dcClock"></span>` : ""}</p>` +
       `<p class="dc-prompt">${esc(d.prompt)}</p><div class="dc-opts">${opts}</div>` +
-      (d.free_text ? `<textarea id="dcText" rows="3" placeholder="${opts ? "Or write what you would do…" : "What does your team do first?"}"></textarea><button class="btn primary" id="dcSend">Submit decision</button>` : "") +
+      (d.free_text ? `<textarea id="dcText" rows="${d.kind === "comms" ? 5 : 3}" placeholder="${d.kind === "comms" ? "Draft the statement you would issue (required)…" : opts ? "Or write what you would do…" : "What does your team do first?"}"></textarea><button class="btn primary" id="dcSend">${d.kind === "comms" ? "Issue statement" : "Submit decision"}</button>` : "") +
       `<p class="loginerr" id="dcErr" hidden></p>`;
     const send = async (option, text) => {
       try {
@@ -160,9 +160,13 @@
         toast("Decision recorded."); await loadView();
       } catch (e) { $("dcErr").textContent = e.message; $("dcErr").hidden = false; }
     };
-    box.querySelectorAll(".dc-opt").forEach((b) => b.addEventListener("click", () => send(b.dataset.k, "")));
+    let picked = null;
+    box.querySelectorAll(".dc-opt").forEach((b) => b.addEventListener("click", () => {
+      if (d.kind !== "comms") { send(b.dataset.k, ""); return; }
+      picked = b.dataset.k; box.querySelectorAll(".dc-opt").forEach((x) => x.classList.toggle("on", x === b));
+    }));
     const sendBtn = $("dcSend");
-    if (sendBtn) sendBtn.addEventListener("click", () => send(null, $("dcText").value.trim()));
+    if (sendBtn) sendBtn.addEventListener("click", () => send(picked, $("dcText").value.trim()));
     if (d.time_limit_sec) {
       const fired = (view.timeline || []).filter((e) => e.kind === "inject_fired" && e.ref === inj.code).pop();
       const t0 = fired ? new Date(fired.at).getTime() : Date.now();
