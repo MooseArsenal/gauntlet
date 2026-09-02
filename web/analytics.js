@@ -110,7 +110,10 @@
           `<td>${b.opt_in ? cell(r.cohort, "detection_rate", "%") + (r.vs_cohort ? fmtDelta(r.vs_cohort.detection_rate, "%", "up") : "") + " · " + cell(r.cohort, "mean_time_to_detect_min", "min") : '<span class="muted">opt in to see</span>'}</td></tr>`).join("") +
         `</tbody></table><p class="hint">Detection rate · mean time-to-detect. Deltas are yours minus the comparison.</p>`
       : '<p class="muted">Complete an exercise with adjudicated moves to see how it compares.</p>';
-    if (me && me.role === "admin") {
+    let lic = null; try { lic = await api("/api/license"); } catch (e) { /* noop */ }
+    if (me && me.role === "admin" && lic && !lic.features.includes("benchmark_cohort")) {
+      $("benchOpt").hidden = false; $("benchOpt").innerHTML = '<span class="pill">Enterprise</span> <span class="hint">The instance cohort is an Enterprise feature; the modelled expectation above is included in every tier.</span>';
+    } else if (me && me.role === "admin") {
       $("benchOpt").hidden = false; $("benchOptIn").checked = !!b.opt_in;
       $("benchOptIn").onchange = async () => {
         try {

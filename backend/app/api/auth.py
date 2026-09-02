@@ -198,6 +198,8 @@ def create_user(
     """Admins add users to their own organisation."""
     if payload.role not in models.ROLES:
         raise HTTPException(422, f"role must be one of {list(models.ROLES)}")
+    from .. import entitlements  # L1: facilitator seats are the unit of sale
+    entitlements.check_seats(db, admin.org_id, payload.role)
     _enforce_password(payload.password)
     if _email_taken(db, payload.email):
         raise HTTPException(status.HTTP_409_CONFLICT, "email already registered")

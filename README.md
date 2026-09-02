@@ -72,6 +72,9 @@ product with no dependency on any other system. See
   library's modelled expectation for its sector and, when an admin opts in, the
   k-anonymous cohort of other organisations on the same instance. Computed
   locally; nothing leaves the instance.
+- **Licensing** — an offline, Ed25519-signed licence unlocks paid tiers (Team,
+  Education, Enterprise) and facilitator seats; Community runs the full engine
+  with no licence; expiry degrades, never hides. See `docs/LICENSING.md`.
 - **Enterprise ready** — OIDC SSO, SCIM 2.0 provisioning, TOTP MFA, Postgres
   row-level security on by default in production, encryption at rest, retention
   and erasure, audit log, air-gapped mode, Redis-shared throttles, CycloneDX SBOM
