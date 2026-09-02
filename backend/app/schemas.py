@@ -355,11 +355,17 @@ class CtepPackOut(BaseModel):
     threat_actor: str
     modules: int
     objectives: int
+    sector: str = ""
+    environment_key: str = ""  # library environment the pack is written against (M2)
+    environment_name: str = ""
+    description: str = ""
 
 
 class CtepImportIn(BaseModel):
-    """Import a CTEP pack: a bundled ``pack_key`` or an uploaded ``pack`` object."""
-    environment_id: int
+    """Import a CTEP pack: a bundled ``pack_key`` or an uploaded ``pack`` object.
+    Omit ``environment_id`` to import a bundled pack into its own library
+    environment, stamped into the organisation if it is not there yet (M2)."""
+    environment_id: Optional[int] = None
     pack_key: Optional[str] = None
     pack: Optional[dict] = None
     name: Optional[str] = Field(default=None, max_length=300)

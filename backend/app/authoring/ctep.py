@@ -29,6 +29,9 @@ from .. import models
 CTEP_PACKS: dict[str, dict] = {
     "ransomware": {
         "title": "Ransomware CTEP",
+        "sector": "Cross-sector",
+        "environment_key": "manufacturer",
+        "description": "The classic enterprise ransomware discussion: detection, containment, continuity, recovery.",
         "threat_actor": "Ransomware operator",
         "scope": "Discussion-based tabletop covering detection, containment, "
                  "continuity and recovery from an enterprise ransomware event.",
@@ -68,6 +71,9 @@ CTEP_PACKS: dict[str, dict] = {
     },
     "ics_ot": {
         "title": "ICS / OT disruption CTEP",
+        "sector": "Industrial / OT",
+        "environment_key": "water_utility",
+        "description": "An intrusion that threatens a physical process: IT/OT coordination, safety-first containment, degraded operation.",
         "threat_actor": "State-aligned OT intruder",
         "scope": "Tabletop for an intrusion threatening operational-technology "
                  "processes — IT/OT coordination, safety, and continuity.",
@@ -100,6 +106,11 @@ CTEP_PACKS: dict[str, dict] = {
         ],
     },
 }
+
+# M2: the sector library ships alongside the two originals.
+from .ctep_library import LIBRARY as _LIBRARY  # noqa: E402
+
+CTEP_PACKS.update(_LIBRARY)
 
 
 def _objs(items: list[dict]) -> list[models.Objective]:

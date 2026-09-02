@@ -293,8 +293,21 @@
 
       try {
         const packs = await api("/api/catalog/ctep-packs");
-        if ($("ctepSel")) $("ctepSel").innerHTML = packs.map((p) =>
-          `<option value="${escapeHtml(p.key)}">${escapeHtml(p.title)} (${p.modules} modules)</option>`).join("");
+        // M2: the pack library, grouped by sector.
+        if ($("ctepSel")) {
+          const bySector = {};
+          packs.forEach((p) => { (bySector[p.sector || "Other"] = bySector[p.sector || "Other"] || []).push(p); });
+          $("ctepSel").innerHTML = Object.keys(bySector).sort().map((sec) =>
+            `<optgroup label="${escapeHtml(sec)}">` + bySector[sec].map((p) =>
+              `<option value="${escapeHtml(p.key)}" data-env="${escapeHtml(p.environment_name || "")}" title="${escapeHtml(p.description || "")}">${escapeHtml(p.title)} (${p.modules} modules)</option>`).join("") +
+            `</optgroup>`).join("");
+          const hint = $("ctepHint");
+          const showHint = () => {
+            const o = $("ctepSel").selectedOptions[0];
+            if (hint) hint.textContent = o && o.dataset.env ? `Written for “${o.dataset.env}” — import it there, or into the environment picked above.` : "";
+          };
+          $("ctepSel").onchange = showHint; showHint();
+        }
       } catch (e) { /* noop */ }
     } catch (e) { /* generator is optional */ }
   }
@@ -316,12 +329,15 @@
     } catch (e) { toast("Generate failed: " + e.message); }
   }
 
-  async function importCtep() {
-    const envId = Number($("genEnv").value);
+  // own=true (M2): import the pack into the library environment it was written
+  // for, stamping that environment into the org if it is not there yet.
+  async function importCtep(own) {
+    const envId = own === true ? null : Number($("genEnv").value);
     const pack_key = $("ctepSel") ? $("ctepSel").value : "";
-    if (!envId || !pack_key) { toast("Pick an environment and a CTEP pack."); return; }
+    if (!pack_key || (own !== true && !envId)) { toast("Pick an environment and a CTEP pack."); return; }
     try {
       const scn = await api("/api/scenarios/import-ctep", "POST", { environment_id: envId, pack_key });
+      if (own === true) await populateGenerator();
       toast(`Imported "${scn.name}" — ${scn.injects.length} injects.`);
       await loadHome();
       $("scenarioSel").value = String(scn.id);
@@ -960,7 +976,8 @@
     $("btnStart").addEventListener("click", startNew);
     $("btnGenerate").addEventListener("click", generateScenario);
     $("btnImportYaml").addEventListener("click", importYaml);
-    { const b = $("btnImportCtep"); if (b) b.addEventListener("click", importCtep); }
+    { const b = $("btnImportCtep"); if (b) b.addEventListener("click", () => importCtep(false)); }
+    { const b = $("btnImportCtepOwn"); if (b) b.addEventListener("click", () => importCtep(true)); }
     $("btnCompliance").addEventListener("click", previewCompliance);
     $("btnExportCsv").addEventListener("click", () => exportTimeline("csv"));
     $("btnExportJson").addEventListener("click", () => exportTimeline("json"));
