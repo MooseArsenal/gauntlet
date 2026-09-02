@@ -114,7 +114,9 @@ def create_session(
     user: models.User = Depends(require_facilitator),
     db: Session = Depends(get_db),
 ):
-    scope_or_404(db.get(models.Scenario, payload.scenario_id), user)
+    scenario = scope_or_404(db.get(models.Scenario, payload.scenario_id), user)
+    if scenario.archived_at is not None:
+        raise HTTPException(409, "that scenario is archived; restore it to run it again")
     s = models.Session(
         org_id=user.org_id, scenario_id=payload.scenario_id, name=payload.name,
         clock_mode=payload.clock_mode, mode=payload.mode, auto_advance=payload.auto_advance,
@@ -126,11 +128,13 @@ def create_session(
 
 
 @router.get("", response_model=list[schemas.SessionSummary])
-def list_sessions(user: models.User = Depends(require_staff), db: Session = Depends(get_db)):
+def list_sessions(include_archived: bool = False,
+                  user: models.User = Depends(require_staff), db: Session = Depends(get_db)):
     return (
         db.execute(
             select(models.Session)
-            .where(models.Session.org_id == user.org_id)
+            .where(models.Session.org_id == user.org_id,
+                   *([] if include_archived else [models.Session.archived_at.is_(None)]))
             .order_by(models.Session.id.desc())
         )
         .scalars()

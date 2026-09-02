@@ -213,10 +213,12 @@
     $("btnMembers").hidden = !(me && me.role === "admin");  // U-1: admins manage members
     ["btnPause", "btnResume", "btnVerify"].forEach((id) => ($(id).hidden = true));
 
+    const showArchived = $("showArchived") && $("showArchived").checked;
     const [scenarios, sessions] = await Promise.all([
       api("/api/scenarios"),
-      api("/api/sessions"),
+      api(`/api/sessions${showArchived ? "?include_archived=1" : ""}`),
     ]);
+    $("archivedToggle").hidden = false;
 
     const sel = $("scenarioSel");
     sel.innerHTML = "";
@@ -236,14 +238,30 @@
 
     const list = $("sessList");
     list.innerHTML = "";
-    sessions.slice(0, 8).forEach((s) => {
+    sessions.slice(0, showArchived ? 40 : 8).forEach((s) => {
       const li = document.createElement("li");
-      li.innerHTML = `<span><b>${escapeHtml(s.name)}</b> · <span class="pill ${s.status}">${s.status}</span></span>`;
+      const archived = !!s.archived_at;
+      li.innerHTML = `<span><b>${escapeHtml(s.name)}</b> · <span class="pill ${escapeHtml(s.status)}">${escapeHtml(s.status)}</span>${archived ? ' <span class="pill">archived</span>' : ""}</span>`;
+      const acts = document.createElement("span");
+      acts.className = "sess-acts";
       const btn = document.createElement("button");
       btn.className = "btn ghost";
       btn.textContent = s.status === "complete" ? "Review" : "Resume";
       btn.onclick = () => openSession(s.id);
-      li.appendChild(btn);
+      acts.appendChild(btn);
+      // U-3: finished (or never started) exercises can be archived; archived ones restored.
+      if (archived || s.status === "complete" || s.status === "setup") {
+        const arc = document.createElement("button");
+        arc.className = "btn ghost";
+        arc.textContent = archived ? "Restore" : "Archive";
+        arc.title = archived ? "Show it in lists again" : "Hide it from lists; nothing is deleted";
+        arc.onclick = async () => {
+          try { await api(`/api/sessions/${s.id}/${archived ? "unarchive" : "archive"}`, "POST"); toast(archived ? "Restored." : "Archived."); await loadHome(); }
+          catch (e) { toast(e.message); }
+        };
+        acts.appendChild(arc);
+      }
+      li.appendChild(acts);
       list.appendChild(li);
     });
 
@@ -928,6 +946,7 @@
     $("loginPassword").addEventListener("keydown", (e) => { if (e.key === "Enter") login(); });
     $("btnLogout").addEventListener("click", logout);
     $("btnSecurity").addEventListener("click", openSecurity);
+    $("showArchived").addEventListener("change", () => loadHome());
     $("btnMfa").addEventListener("click", submitMfa);
     $("mfaCode").addEventListener("keydown", (e) => { if (e.key === "Enter") submitMfa(); });
     initSso();

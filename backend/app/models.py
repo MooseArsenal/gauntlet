@@ -114,6 +114,8 @@ class Environment(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id"), index=True)
+    # Soft delete (U-3): hidden from lists and pickers, kept for the record.
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     name: Mapped[str] = mapped_column(String(200))
     sector: Mapped[str] = mapped_column(String(120), default="")
     description: Mapped[str] = mapped_column(Text, default="")
@@ -143,6 +145,8 @@ class Scenario(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id"), index=True)
+    # Soft delete (U-3): hidden from lists and pickers, kept for the record.
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     environment_id: Mapped[int] = mapped_column(ForeignKey("environments.id"))
     name: Mapped[str] = mapped_column(String(200))
     threat_actor: Mapped[str] = mapped_column(String(200), default="")
@@ -222,6 +226,8 @@ class Session(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id"), index=True)
+    # Soft delete (U-3): hidden from lists and pickers, kept for the record.
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     scenario_id: Mapped[int] = mapped_column(ForeignKey("scenarios.id"))
     name: Mapped[str] = mapped_column(String(200))
     status: Mapped[str] = mapped_column(String(20), default="setup")  # setup|running|paused|complete
