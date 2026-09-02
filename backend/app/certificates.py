@@ -72,6 +72,16 @@ def _objectives(scenario: models.Scenario, observations) -> dict:
             "met_rate": round((met + 0.5 * partial) / assessed, 3) if assessed else None}
 
 
+def _telemetry_block(session: models.Session) -> dict | None:
+    """Observed detections (M4), only when real alerts were recorded."""
+    from . import telemetry
+    cmp = telemetry.compare(session)
+    if not cmp["alerts"]:
+        return None
+    return {"alerts": cmp["alerts"], "observed_rate": cmp["observed_rate"],
+            "model_agreement": cmp["model_agreement"], **cmp["counts"]}
+
+
 def build_payload(org: models.Organization, session: models.Session, scenario: models.Scenario,
                   environment: models.Environment, participants: int) -> dict:
     events = list(session.events)
@@ -108,6 +118,7 @@ def build_payload(org: models.Organization, session: models.Session, scenario: m
         "techniques_exercised": techniques,
         "coverage_gaps": gaps,
         "objectives": _objectives(scenario, list(session.observations)),
+        "telemetry": _telemetry_block(session),
         "timeline_events": len(events),
         "timeline_head": {"seq": session.head_seq, "hash": session.head_hash},
         "chain_verified": verify_chain(events, session),
@@ -142,7 +153,7 @@ def public_record(cert: models.Certificate) -> dict:
         "organization", "exercise", "scenario", "exercise_type", "environment", "sector", "cells",
         "participants", "started_at", "completed_at", "injects", "adversary_actions", "detected",
         "missed", "detection_rate", "mean_time_to_detect_min", "techniques_exercised",
-        "objectives", "timeline_events", "timeline_head", "chain_verified")}
+        "objectives", "telemetry", "timeline_events", "timeline_head", "chain_verified")}
 
 
 # --------------------------------------------------------------------------- #

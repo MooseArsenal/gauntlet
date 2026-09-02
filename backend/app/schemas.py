@@ -870,3 +870,46 @@ class CertificateVerifyOut(BaseModel):
     reason: str
     issued_at: Optional[datetime] = None
     record: dict = Field(default_factory=dict)
+
+
+# --------------------------------------------------------------------------- #
+# Telemetry loop (M4)
+# --------------------------------------------------------------------------- #
+class TelemetryIn(BaseModel):
+    """One real alert the SOC's tools raised (or a manual record of one)."""
+    alert: str = Field(max_length=300)
+    techniques: list[str] = Field(default_factory=list, max_length=100)
+    asset: str = Field(default="", max_length=120)
+    source: str = Field(default="manual", max_length=40)
+    severity: str = Field(default="", max_length=20)
+    observed_at: str = Field(default="", max_length=40)  # ISO-8601; blank = now
+    external_ref: str = Field(default="", max_length=120)
+    note: str = Field(default="", max_length=2000)
+
+    @field_validator("techniques")
+    @classmethod
+    def _techniques(cls, v):
+        return technique.validate_list(v)
+
+
+class TelemetryImportIn(BaseModel):
+    format: str = Field(default="json", max_length=10)  # json | csv
+    data: str
+
+
+class TelemetryImportOut(BaseModel):
+    recorded: int
+    skipped: int
+
+
+class TelemetryCompareOut(BaseModel):
+    session_id: int
+    actions: int
+    alerts: int
+    unmatched_alerts: list[dict] = Field(default_factory=list)
+    counts: dict
+    expected_rate: Optional[float] = None
+    observed_rate: Optional[float] = None
+    model_agreement: Optional[float] = None
+    by_technique: list[dict] = Field(default_factory=list)
+    rows: list[dict] = Field(default_factory=list)

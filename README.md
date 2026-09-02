@@ -34,6 +34,10 @@ product with no dependency on any other system. See
   hash-chained log that can be verified.
 - **Reports** — one timeline, four audience lenses: executive, technical (SOC/IR),
   GRC/audit evidence, and training gaps.
+- **Telemetry loop** — record the alerts the SOC's tools actually raised (by
+  hand, or a JSON/CSV export from the SIEM/EDR) and every adjudicated action
+  becomes confirmed, a silent gap, a surprise, or missed. The comparison lands in
+  the technical and executive reports and on the certificate.
 - **Exercise certificate** — one signed page per completed exercise: detection
   rate, mean time-to-detect, objectives met, techniques exercised and the signed
   timeline head, frozen at issue. Anyone holding the serial can verify the figures
