@@ -152,6 +152,9 @@ def compare(db: Session, org: models.Organization) -> dict:
         o = own.get(sector)
         r = ref.get(sector)
         c = cohort.get(sector)
+        if org.benchmark_opt_in and o and c is None:
+            # opted in, but nobody else in this sector has: say so rather than show nothing
+            c = {"suppressed": True, "organisations": 0, "needed": K_ANON}
         row = {"sector": sector, "own": o, "reference": r, "cohort": c}
         if o and r:
             row["vs_reference"] = {
