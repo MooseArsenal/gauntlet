@@ -937,3 +937,20 @@ class RespondIn(BaseModel):
     option: Optional[str] = Field(default=None, max_length=8)
     text: str = Field(default="", max_length=4000)
     cell: Optional[str] = Field(default=None, max_length=40)  # staff only
+
+
+class DeliverIn(BaseModel):
+    """Send an inject for real (P2)."""
+    inject_code: Optional[str] = Field(default=None, max_length=40)
+    channels: list[str] = Field(default_factory=lambda: ["email"], max_length=8)
+    cells: list[str] = Field(default_factory=lambda: ["blue_cell"], max_length=20)
+    extra_emails: list[str] = Field(default_factory=list, max_length=200)
+    include_link: bool = True
+
+
+class InviteIn(BaseModel):
+    """Send the join code (P2)."""
+    channels: list[str] = Field(default_factory=lambda: ["email"], max_length=8)
+    cells: list[str] = Field(default_factory=list, max_length=20)
+    emails: list[str] = Field(default_factory=list, max_length=200)
+    message: str = Field(default="", max_length=2000)
