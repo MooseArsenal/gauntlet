@@ -768,7 +768,7 @@
     box.className = "ruling " + (r.detected ? "detected" : "missed");
     const controls = (r.controls_hit || []).map((c) =>
       `<div class="c"><span>${escapeHtml(c.name)}${c.deception ? " ⚑" : ""}</span><span>p·eff ${c.efficacy}</span></div>`).join("");
-    box.innerHTML =
+    box.innerHTML = (window.GauntletGame ? window.GauntletGame.diceHtml(r) : "") +
       `<div class="verdict"><span class="${r.detected ? "v-detected" : "v-missed"}">${r.detected ? "DETECTED" : "MISSED"}</span>` +
       `<span>${r.time_to_detect_min != null ? r.time_to_detect_min + " min" : "—"}</span></div>` +
       `<div class="rationale">${escapeHtml(r.rationale)}</div>` +

@@ -469,6 +469,8 @@ class CellSessionView(BaseModel):
     # this user already answered, if anything.
     decision: Optional[dict] = None
     my_response: Optional[dict] = None
+    # P4/L3: the running impact totals of the path taken (author's estimates) — the party's hit points.
+    impact: dict = Field(default_factory=dict)
 
 
 class SessionRollupRow(BaseModel):

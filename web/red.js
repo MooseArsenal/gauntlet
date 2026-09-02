@@ -145,7 +145,7 @@
     box.className = "rc-verdict " + (caught ? "caught" : "through");
     const controls = (r.controls_hit || []).map((c) =>
       `<span class="rc-ctl">${esc(c.name)}${c.deception ? " ⚑" : ""}</span>`).join("");
-    box.innerHTML =
+    box.innerHTML = (window.GauntletGame ? window.GauntletGame.diceHtml(r) : "") +
       `<div class="rc-vhead"><span class="rc-vtag">${caught ? "CAUGHT" : "UNDETECTED"}</span>` +
       `<span class="rc-vsub">${caught ? (r.time_to_detect_min != null ? "detected in " + r.time_to_detect_min + " min" : "detected") : "you got through"}</span></div>` +
       `<p class="rc-vrat">${esc(r.rationale || "")}</p>` +
