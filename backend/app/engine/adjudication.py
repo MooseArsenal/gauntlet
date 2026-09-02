@@ -52,6 +52,8 @@ def adjudicate(environment, techniques: list[str], target_asset: str) -> dict:
     controls = list(environment.controls or []) + list(environment.detections or [])
     deception = list(environment.deception_assets or [])
 
+    known_codes = {str(a.get("code") or "") for a in (getattr(environment, "assets", None) or [])}
+    asset_known = (not target_asset) or (target_asset in known_codes)
     applicable = [c for c in controls if _applies(c, techniques, target_asset)]
     tripped = [d for d in deception if _applies(d, techniques, target_asset)]
 
@@ -102,8 +104,13 @@ def adjudicate(environment, techniques: list[str], target_asset: str) -> dict:
             f"{target_asset or 'the target'} — a detection gap. The action succeeds unseen."
         )
 
+    if not asset_known:
+        rationale += (f" Note: '{target_asset}' is not an asset in this environment — only "
+                      "wildcard controls applied; check the code.")
+
     return {
         "detected": detected,
+        "asset_known": asset_known,
         "probability": probability,
         "time_to_detect_min": time_to_detect,
         "deception_tripped": bool(tripped),

@@ -365,4 +365,6 @@ table.grid tbody tr:hover{background:var(--surface-2)}
 .sess-acts{display:flex;gap:.3rem}
 #archivedToggle{margin-top:.6rem;font-size:.76rem}
 
+.rationale.warn{color:var(--warn);margin-top:.3rem}
+
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}

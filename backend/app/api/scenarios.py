@@ -59,6 +59,7 @@ def create_scenario(
 @router.get("", response_model=list[schemas.ScenarioSummary])
 def list_scenarios(
     include_archived: bool = False,
+    limit: int = 100, offset: int = 0,
     user: models.User = Depends(require_staff), db: Session = Depends(get_db)
 ):
     return (
@@ -67,6 +68,7 @@ def list_scenarios(
             .where(models.Scenario.org_id == user.org_id,
                    *([] if include_archived else [models.Scenario.archived_at.is_(None)]))
             .order_by(models.Scenario.id)
+            .limit(max(1, min(limit, 500))).offset(max(0, offset))
         )
         .scalars()
         .all()
