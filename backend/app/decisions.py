@@ -57,13 +57,14 @@ def spec_for(inject) -> dict | None:
                             "score": score, "note": str(o.get("note") or "")})
         return {"prompt": str(declared.get("prompt") or DEFAULT_PROMPT), "options": options,
                 "free_text": bool(declared.get("free_text")) or not options,
-                "time_limit_sec": declared.get("time_limit_sec"), "derived": False}
+                "time_limit_sec": declared.get("time_limit_sec"), "derived": False,
+                "kind": "comms" if declared.get("kind") == "comms" else "action"}
     actions = [str(a).strip() for a in (getattr(inject, "expected_actions", None) or []) if str(a).strip()]
     if not actions:
         return None
     options = [{"key": chr(97 + i), "label": a, "score": 1.0, "note": ""} for i, a in enumerate(actions[:MAX_OPTIONS - 1])]
     options.append({"key": chr(97 + len(options)), "label": "Wait and monitor", "score": 0.2, "note": "Delay rarely helps."})
-    return {"prompt": DEFAULT_PROMPT, "options": options, "free_text": False, "time_limit_sec": None, "derived": True}
+    return {"prompt": DEFAULT_PROMPT, "options": options, "free_text": False, "time_limit_sec": None, "derived": True, "kind": "action"}
 
 
 def public_spec(spec: dict | None) -> dict | None:
@@ -71,6 +72,7 @@ def public_spec(spec: dict | None) -> dict | None:
     if not spec:
         return None
     return {"prompt": spec["prompt"], "free_text": spec["free_text"], "time_limit_sec": spec.get("time_limit_sec"),
+            "kind": spec.get("kind", "action"),
             "options": [{"key": o["key"], "label": o["label"]} for o in spec["options"]]}
 
 
@@ -121,9 +123,12 @@ def record(db: Session, session: models.Session, scenario: models.Scenario, user
         raise HTTPException(422, "choose an option or write what you would do")
     if chosen is None and not spec["free_text"]:
         raise HTTPException(422, "this decision needs one of the options")
+    if spec.get("kind") == "comms" and not text:
+        raise HTTPException(422, "a communications decision needs the statement you would issue")
     now = datetime.now(timezone.utc)
     latency = round((now - _fired_at(session, code)).total_seconds(), 1)
     payload = {"inject_code": code, "cell": cell, "user_id": user.id, "display_name": display_name or user.email,
+               "kind": spec.get("kind", "action"),
                "option": chosen["key"] if chosen else None, "label": chosen["label"] if chosen else None,
                "text": text[:4000], "score": chosen["score"] if chosen else None, "latency_sec": latency}
     return append_event(db, session.id, kind="response", ref=code, game_clock=inject.clock or "", payload=payload)

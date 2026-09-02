@@ -460,6 +460,18 @@
     updateResponses(current_inject);
     // P3: what has been attached to the record
     updateEvidence();
+    // P4: what the path taken has cost so far (author's estimates)
+    const imp = (state.state && state.state.impact) || null;
+    const ib = $("impactLine");
+    if (ib) {
+      if (imp && Object.keys(imp).length) {
+        const money = (v) => (v >= 1e6 ? "$" + (v / 1e6).toFixed(1) + "M" : v >= 1e3 ? "$" + Math.round(v / 1e3) + "k" : "$" + v);
+        ib.hidden = false;
+        ib.innerHTML = `<span class="eyebrow">Impact of the path so far <span class="hint">— author's estimates</span></span>` +
+          `<b>${imp.cost != null ? money(imp.cost) : "—"}</b>` + (imp.downtime_hours != null ? ` · ${imp.downtime_hours} h downtime` : "") +
+          (imp.records != null ? ` · ${Number(imp.records).toLocaleString()} records` : "") + (imp.customers != null ? ` · ${Number(imp.customers).toLocaleString()} customers` : "");
+      } else ib.hidden = true;
+    }
 
     // live blue-vs-red scoreboard (detections vs adjudicated red moves)
     updateScoreboard(currentSid);

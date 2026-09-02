@@ -108,6 +108,17 @@ def build_report(session, scenario, environment, events, observations, audience:
     from .. import telemetry as _telemetry  # M4: real alerts vs the ruling
     cmp = _telemetry.compare(session)
     telemetry_md = "\n".join(_telemetry.summary_lines(cmp))
+    from .. import impact as _impact  # P4
+    imp = _impact.summary(events, getattr(session, "state", None))
+    impact_md = "\n".join(_impact.lines(imp))
+    comms = [e.payload or {} for e in events if e.kind == "response" and (e.payload or {}).get("kind") == "comms"]
+    comms_md = ""
+    if comms:
+        sc = [c["score"] for c in comms if c.get("score") is not None]
+        comms_md = ("\n## Communications decisions\n\n" + (f"Position scored **{round(sum(sc) / len(sc) * 100)}%** against the modelled best response. " if sc else "")
+                    + "What the room would have said:\n\n"
+                    + "\n".join(f"- **{c.get('display_name', '')}** ({(c.get('cell') or '').replace('_cell', '')}): "
+                                 f"{c.get('label') or ''}" + (f" — “{c.get('text')}”" if c.get("text") else "") for c in comms) + "\n")
     from .. import decisions as _decisions  # P1
     dec = _decisions.summary(events)
     dec_exec = ""
@@ -169,7 +180,7 @@ def build_report(session, scenario, environment, events, observations, audience:
             f"gaps for the improvement plan below.\n\n"
             f"## Improvement commitments\n\n"
             f"{_improvement_block(observations)}\n"
-            + ref_md + dec_exec
+            + ref_md + dec_exec + (("\n" + impact_md + "\n") if impact_md else "") + comms_md
             + (f"\n## What the tools saw\n\nAgainst {cmp['alerts']} real alert(s) the SOC's tools raised, the "
                f"environment model agreed on **{round((cmp['model_agreement'] or 0) * 100)}%** of adjudicated actions; "
                f"**{cmp['counts']['silent_gap']}** expected detection(s) never fired.\n" if cmp["alerts"] else "")
