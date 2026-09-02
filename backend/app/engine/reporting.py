@@ -6,7 +6,7 @@ append-only timeline plus the evaluators' observations.
 """
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Sequence
 
 AUDIENCES = {
@@ -89,7 +89,7 @@ def build_report(session, scenario, environment, events, observations, audience:
     """Return ``(title, markdown)`` for the requested audience."""
     audience = audience if audience in AUDIENCES else "executive"
     m = _metrics(events)
-    when = datetime.utcnow().strftime("%Y-%m-%d")
+    when = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     head = f"# {scenario.name} — {AUDIENCES[audience]}\n"
     meta = (
         f"_Exercise session: **{session.name}** · Type: {scenario.exercise_type} · "

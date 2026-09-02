@@ -82,6 +82,16 @@ CORS_ORIGINS = [o.strip() for o in os.environ.get("GAUNTLET_CORS_ORIGINS", "*").
 
 # Trust X-Forwarded-For for the client IP (only enable behind a trusted proxy).
 TRUST_PROXY = _flag("GAUNTLET_TRUST_PROXY", "0")
+# Interactive API docs (/docs, /redoc, /openapi.json). On by default in dev,
+# off in production unless asked for (S-11).
+DOCS_ENABLED = _flag("GAUNTLET_DOCS", "0" if IS_PROD else "1")
+# Process count the deployment runs. Throttling, WebSocket tickets, OIDC login
+# state and real-time timers are per-process, so more than one worker silently
+# breaks them; refuse to start rather than half-work (S-12).
+WORKERS = int(os.environ.get("WEB_CONCURRENCY", os.environ.get("GAUNTLET_WORKERS", "1")) or "1")
+# Registration is open (any visitor may create an organisation); cap how many
+# one address can create in a window (S-11).
+REGISTER_MAX_PER_WINDOW = int(os.environ.get("GAUNTLET_REGISTER_MAX_PER_WINDOW", "5"))
 
 # Air-gapped mode (D2). When on, every outbound network call (OIDC discovery,
 # LLM authoring assist, tracker push, range adapter, webhook notify) is refused
@@ -170,6 +180,12 @@ def startup_problems() -> list[str]:
             problems.append("GAUNTLET_CORS_ORIGINS is '*' (wildcard) in production")
         if AUTH_OPTIONAL:
             problems.append("GAUNTLET_AUTH_OPTIONAL is enabled (auth bypass) in production")
+        if SEED_ON_START and not os.environ.get("GAUNTLET_DEMO_PASSWORD"):
+            problems.append("GAUNTLET_SEED creates the demo admin with its default password in production "
+                            "(set GAUNTLET_DEMO_PASSWORD or GAUNTLET_SEED=0)")
+    if WORKERS > 1:
+        problems.append(f"{WORKERS} workers configured but login throttling, WebSocket tickets, "
+                        "OIDC state and timers are per-process — run one worker per container")
     return problems
 
 

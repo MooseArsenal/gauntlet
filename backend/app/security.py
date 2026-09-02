@@ -284,7 +284,7 @@ def get_current_user(
         payload = _decode(creds.credentials)
     except jwt.PyJWTError:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid or expired token")
-    if payload.get("type", "access") != "access":
+    if payload.get("type") != "access":  # S-10: the claim is required, never assumed
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "not an access token")
     user = db.get(models.User, int(payload.get("sub", 0)))
     if not user or not user.is_active:
