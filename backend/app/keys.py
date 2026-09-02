@@ -87,6 +87,14 @@ def timeline_verify_keys() -> list[bytes]:
 
 
 # --------------------------------------------------------------------------- #
+# Exercise-certificate key (M1): signs the numbers a certificate attests to
+# --------------------------------------------------------------------------- #
+def certificate_key() -> bytes:
+    explicit = os.environ.get("GAUNTLET_CERTIFICATE_KEY", "")
+    return explicit.encode("utf-8") if explicit else _derive("certificate")
+
+
+# --------------------------------------------------------------------------- #
 # Data-at-rest keyring (versioned, rotatable)
 # --------------------------------------------------------------------------- #
 def data_keyring() -> list[tuple[str, bytes]]:

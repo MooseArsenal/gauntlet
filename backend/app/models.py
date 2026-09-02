@@ -394,6 +394,25 @@ class CustomAdversary(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
 
+class Certificate(Base):
+    """An exercise certificate (M1): the numbers one completed exercise
+    produced, frozen and HMAC-signed at issue so a third party can check them
+    against the serial without an account. Contains no narrative."""
+
+    __tablename__ = "certificates"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id"), index=True)
+    session_id: Mapped[int] = mapped_column(ForeignKey("sessions.id"), index=True)
+    serial: Mapped[str] = mapped_column(String(32), unique=True, index=True)
+    issued_by: Mapped[str] = mapped_column(String(320), default="")
+    payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    digest: Mapped[str] = mapped_column(String(64))
+    signature: Mapped[str] = mapped_column(String(64))
+    issued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 class SessionJoin(Base):
     """A participant who joined a session via its join code (D4). One row per
     (session, user); the cell they picked drives their fog-of-war view."""
