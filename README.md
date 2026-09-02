@@ -72,6 +72,11 @@ product with no dependency on any other system. See
   library's modelled expectation for its sector and, when an admin opts in, the
   k-anonymous cohort of other organisations on the same instance. Computed
   locally; nothing leaves the instance.
+- **Game mode** — a free skin over the same engine for students and enthusiasts:
+  encounter and action cards, a d20 that always lands consistent with the ruling,
+  XP from decision scores, party hit points from the impact of the path, quests
+  from objectives. Toggle with the die button or `?mode=game`; the record,
+  certificate and reports underneath are unchanged.
 - **White-label and partner mode** — an organisation's name, colour, logo and
   report footer on the console and every PDF (Team); a partner organisation runs
   exercises for client organisations through shadow admin accounts inside each

@@ -109,6 +109,7 @@ def adjudicate(environment, techniques: list[str], target_asset: str) -> dict:
                       "wildcard controls applied; check the code.")
 
     return {
+        "probability": round(probability, 3),  # the modelled odds; the game mode rolls a die consistent with them
         "detected": detected,
         "asset_known": asset_known,
         "probability": probability,
