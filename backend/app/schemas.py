@@ -870,3 +870,9 @@ class CertificateVerifyOut(BaseModel):
     reason: str
     issued_at: Optional[datetime] = None
     record: dict = Field(default_factory=dict)
+
+
+class ScimTokenOut(BaseModel):
+    """The SCIM bearer token, shown once (M5)."""
+    token: str
+    base_url: str

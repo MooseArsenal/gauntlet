@@ -133,7 +133,13 @@ RETENTION_DAYS = int(os.environ.get("GAUNTLET_RETENTION_DAYS", "0"))
 
 # Enable Postgres row-level security (defence in depth behind app-level scoping).
 # No-op on SQLite. See migrations and app/rls.py.
-RLS_ENABLED = _flag("GAUNTLET_RLS_ENABLED", "0")
+# On by default in production (M5): a Postgres deployment gets the database-
+# enforced tenant wall unless it is explicitly switched off. SQLite ignores it.
+RLS_ENABLED = _flag("GAUNTLET_RLS_ENABLED", "1" if IS_PROD else "0")
+
+# Shared store for login/registration/verification throttles (M5), so a
+# lockout holds across processes and restarts. Unset = in-process memory.
+REDIS_URL = os.environ.get("GAUNTLET_REDIS_URL", "")
 
 # --- Issue-tracker sync (F4) ----------------------------------------------- #
 # Improvement-plan items push to Jira or ServiceNow when configured; otherwise a

@@ -51,7 +51,7 @@
     }
     members = await api("/api/members");
     $("memLead").textContent = "Add people, set roles, deactivate leavers, and recover locked-out accounts.";
-    $("addPanel").hidden = false; $("listPanel").hidden = false;
+    $("addPanel").hidden = false; $("listPanel").hidden = false; $("scimPanel").hidden = false;
     render();
   }
 
@@ -131,6 +131,18 @@
     initTheme();
     if (!token()) { location.href = "/"; return; }
     $("btnAdd").addEventListener("click", add);
+    // M5: SCIM token lifecycle — shown once, hash-only at rest.
+    $("btnScimMint").addEventListener("click", async () => {
+      try {
+        const out = await api("/api/admin/scim-token", "POST");
+        $("scimBase").value = out.base_url; $("scimToken").value = out.token; $("scimOut").hidden = false;
+        toast("SCIM token minted — copy it now.");
+      } catch (e) { toast(e.message); }
+    });
+    $("btnScimRevoke").addEventListener("click", async () => {
+      try { await api("/api/admin/scim-token", "DELETE"); $("scimOut").hidden = true; toast("SCIM token revoked."); }
+      catch (e) { toast(e.message); }
+    });
     load().catch((e) => { $("memLead").textContent = e.message; });
   }
   document.addEventListener("DOMContentLoaded", init);

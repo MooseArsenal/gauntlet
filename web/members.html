@@ -47,6 +47,20 @@
       <p class="eyebrow">Everyone in this organisation <span class="hint" id="memCount"></span></p>
       <div class="mem-table" id="memTable"></div>
     </div>
+
+    <div class="panel" id="scimPanel" hidden>
+      <p class="eyebrow">SCIM provisioning <span class="hint">— let the identity provider create and deactivate members</span></p>
+      <p class="hint">Okta, Entra ID, OneLogin and JumpCloud provision users over SCIM 2.0. Mint a token, paste it and the base URL into the provider's SCIM connector. The token is shown once; only its hash is kept. Minting again rotates it.</p>
+      <div class="row">
+        <button class="btn" id="btnScimMint">Mint SCIM token</button>
+        <button class="btn ghost" id="btnScimRevoke">Revoke</button>
+      </div>
+      <div id="scimOut" hidden>
+        <label>Base URL <input id="scimBase" type="text" readonly></label>
+        <label>Bearer token <input id="scimToken" type="text" readonly style="font-family:var(--mono)"></label>
+        <p class="hint">Copy both now. Deprovisioning through the provider deactivates the member and ends their sessions; the record keeps its author.</p>
+      </div>
+    </div>
   </main>
 
   <div class="toast" id="toast" hidden></div>
