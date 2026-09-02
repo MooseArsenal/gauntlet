@@ -7,7 +7,7 @@ guardrail that keeps operational modes from touching anything out of scope.
 """
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -35,7 +35,7 @@ def _authorization_error(session: models.Session, target: str) -> str | None:
                 "real_time session")
     if not session.auth_expires_at:
         return "no authorization on this session — grant one via /authorize first"
-    if session.auth_expires_at <= datetime.utcnow():
+    if session.auth_expires_at <= datetime.now(timezone.utc).replace(tzinfo=None):
         return "authorization has expired — re-authorize before running live injects"
     if not _target_in_scope(session.auth_scope, target):
         return f"target '{target}' is outside the authorized scope {session.auth_scope}"
@@ -53,7 +53,7 @@ def authorize_session(
     # Keep the grant time-boxed: clamp to [1, MAX_AUTHORIZATION_TTL_MIN] so a huge
     # value can neither overflow timedelta (500) nor create a never-expiring grant.
     ttl = min(max(1, payload.ttl_minutes), MAX_AUTHORIZATION_TTL_MIN)
-    expires = datetime.utcnow() + timedelta(minutes=ttl)
+    expires = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(minutes=ttl)
     s.auth_scope = payload.scope
     s.authorized_by = payload.authorized_by
     s.auth_expires_at = expires

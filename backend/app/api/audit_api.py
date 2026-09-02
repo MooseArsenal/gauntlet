@@ -15,6 +15,7 @@ router = APIRouter(prefix="/api/audit", tags=["audit"])
 @router.get("", response_model=list[schemas.AuditLogOut])
 def list_audit(
     limit: int = 100,
+    offset: int = 0,
     admin: models.User = Depends(require_role("admin")),
     db: Session = Depends(get_db),
 ):
@@ -24,7 +25,7 @@ def list_audit(
             select(models.AuditLog)
             .where(models.AuditLog.org_id == admin.org_id)
             .order_by(models.AuditLog.id.desc())
-            .limit(limit)
+            .limit(limit).offset(max(0, offset))
         )
         .scalars()
         .all()

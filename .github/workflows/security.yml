@@ -1,5 +1,6 @@
 # SAST, supply-chain, and secret scanning. Report-only for now
-# (continue-on-error) so findings surface without blocking; flip to blocking
+# bandit and pip-audit block (they are clean); gitleaks stays report-only so a
+# test fixture cannot fail the build — review its findings in the job log
 # once the baseline is clean.
 #
 # Note: GitHub CodeQL is intentionally NOT used here — code scanning requires
@@ -26,8 +27,7 @@ jobs:
           python-version: "3.12"
       - name: Install bandit
         run: pip install "bandit>=1.7"
-      - name: Bandit SAST (report-only)
-        continue-on-error: true
+      - name: Bandit SAST
         run: bandit -r app -ll
 
   dependency-audit:
@@ -42,8 +42,7 @@ jobs:
           python-version: "3.12"
       - name: Install pip-audit
         run: pip install pip-audit
-      - name: Audit dependencies (report-only)
-        continue-on-error: true
+      - name: Audit dependencies
         run: pip-audit -r requirements.txt --desc
 
   secret-scan:

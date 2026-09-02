@@ -41,6 +41,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "Content-Security-Policy",
             _DOCS_CSP if path.startswith(_DOCS_PATHS) else _APP_CSP,
         )
+        if path.startswith("/api/"):
+            # Tokens, exports and personal data must never sit in a shared cache (S-11).
+            response.headers.setdefault("Cache-Control", "no-store")
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("X-Frame-Options", "DENY")
         response.headers.setdefault("Referrer-Policy", "no-referrer")
