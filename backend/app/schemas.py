@@ -977,3 +977,15 @@ class ProposalAcceptIn(BaseModel):
 
 class LicenseIn(BaseModel):
     token: str = Field(max_length=8000)
+
+
+class BrandingIn(BaseModel):
+    name: str = Field(default="", max_length=60)
+    accent: str = Field(default="", max_length=9)
+    tagline: str = Field(default="", max_length=80)
+    logo: str = Field(default="", max_length=90000)
+    footer: str = Field(default="", max_length=200)
+
+
+class ClientIn(BaseModel):
+    name: str = Field(max_length=200)

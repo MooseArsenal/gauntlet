@@ -51,9 +51,11 @@ class _BrandedPDF(FPDF):
     name, an export timestamp, and page numbers — a consistent, white-labelable
     template for every exported document."""
 
-    def __init__(self, brand: str) -> None:
+    def __init__(self, brand: str, accent: tuple[int, int, int] | None = None, footer: str = "") -> None:
         super().__init__(format="A4")
         self._brand = brand
+        self._accent = accent
+        self._footer = footer
         self._stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
     def header(self) -> None:
@@ -68,7 +70,7 @@ class _BrandedPDF(FPDF):
                   new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         self.set_y(11)
         # Signal-colour tick, then a hard ink rule: the page reads as a document.
-        r, g, b = _accent_rgb()
+        r, g, b = self._accent or _accent_rgb()
         self.set_fill_color(r, g, b)
         self.rect(self.l_margin, self.get_y(), 3, 3, style="F")
         self.set_draw_color(21, 25, 28)
@@ -85,13 +87,14 @@ class _BrandedPDF(FPDF):
         self.set_y(-10)
         self.set_font("Courier", "", 7)
         self.set_text_color(91, 100, 105)
-        self.cell(0, 5, _san(f"{self._brand} - generated {self._stamp}"), align="L")
+        self.cell(0, 5, _san(f"{self._brand} - generated {self._stamp}" + (f" - {self._footer}" if self._footer else "")), align="L")
         self.cell(0, 5, f"Page {self.page_no()}/{{nb}}", align="R")
         self.set_text_color(0)
 
 
-def render(title: str, markdown: str, brand: str | None = None) -> bytes:
-    pdf = _BrandedPDF(brand or BRAND_NAME)
+def render(title: str, markdown: str, brand: str | None = None, accent: tuple[int, int, int] | None = None,
+           footer: str = "") -> bytes:
+    pdf = _BrandedPDF(brand or BRAND_NAME, accent, footer)
     pdf.set_title(title[:120])
     pdf.alias_nb_pages()
     pdf.set_auto_page_break(auto=True, margin=18)

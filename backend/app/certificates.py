@@ -181,16 +181,16 @@ def _date(iso: str | None) -> str:
         return iso[:10]
 
 
-def render_pdf(cert: models.Certificate, verify_path: str, brand: str | None = None) -> bytes:
+def render_pdf(cert: models.Certificate, verify_path: str, brand: str | None = None, accent=None, footer: str = "") -> bytes:
     p = cert.payload
-    pdf = _BrandedPDF(brand or BRAND_NAME)
+    pdf = _BrandedPDF(brand or BRAND_NAME, accent, footer)
     pdf.set_title(f"Exercise certificate {cert.serial}")
     pdf.alias_nb_pages()
     pdf.set_auto_page_break(auto=False)
     pdf.add_page()
     ink = (21, 25, 28)
     grey = (91, 100, 105)
-    r, g, b = _accent_rgb()
+    r, g, b = accent or _accent_rgb()
 
     pdf.set_font("Courier", "B", 8); pdf.set_text_color(*grey)
     pdf.cell(0, 5, "EXERCISE CERTIFICATE", new_x=XPos.LMARGIN, new_y=YPos.NEXT)

@@ -34,15 +34,15 @@ TIERS = ("community", "team", "education", "enterprise")
 # Features by tier. A licence may add features beyond its tier.
 TIER_FEATURES: dict[str, set[str]] = {
     "community": set(),
-    "team": {"white_label", "content_packs", "telemetry_loop"},
-    "education": {"white_label", "content_packs", "telemetry_loop", "education", "replay"},
-    "enterprise": {"white_label", "content_packs", "telemetry_loop", "education", "replay",
+    "team": {"white_label", "content_packs", "telemetry_loop", "tracker_push"},
+    "education": {"white_label", "content_packs", "telemetry_loop", "tracker_push", "education", "replay"},
+    "enterprise": {"white_label", "content_packs", "telemetry_loop", "tracker_push", "education", "replay",
                    "partner_mode", "scim", "benchmark_cohort", "intel_feed"},
 }
 ALL_FEATURES = sorted(set().union(*TIER_FEATURES.values()))
 FEATURE_LABELS = {
     "white_label": "White-label branding", "content_packs": "Content subscription", "telemetry_loop": "Telemetry loop",
-    "education": "Education edition", "replay": "Session replay", "partner_mode": "Partner mode",
+    "tracker_push": "Jira / ServiceNow push", "education": "Education edition", "replay": "Session replay", "partner_mode": "Partner mode",
     "scim": "SCIM provisioning", "benchmark_cohort": "Instance benchmark cohort", "intel_feed": "Adversary intel feed",
 }
 GRACE_DAYS = 30
@@ -202,6 +202,7 @@ def check_seats(db: Session, org_id: int, role: str, adding: int = 1) -> None:
     from sqlalchemy import func
     used = db.execute(select(func.count()).select_from(models.User).where(
         models.User.org_id == org_id, models.User.is_active.is_(True),
+        models.User.partner_user_id.is_(None),  # a partner's shadows are the partner's seats, not the client's
         models.User.role.in_(("admin", "facilitator")))).scalar_one()
     if used + adding > limit:
         raise HTTPException(402, f"this licence allows {limit} facilitator seat(s); {used} are in use")
