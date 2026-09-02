@@ -30,6 +30,12 @@ def _cert_or_409(db: Session, s: models.Session) -> models.Certificate:
     return cert
 
 
+def _bk(db: Session, org_id: int) -> dict:
+    from .. import branding  # L2
+    b = branding.pdf_args(db, org_id)
+    return {"brand": b["brand"], "accent": b["accent"], "footer": b["footer"]}
+
+
 def _pdf(content: bytes, filename: str) -> Response:
     return Response(content=content, media_type="application/pdf",
                     headers={"Content-Disposition": f'attachment; filename="{filename}"'})
@@ -56,7 +62,7 @@ def attendance_pdf(session_id: int, join_id: int, request: Request,
     rec = attendance.record(db, s, cert, join)
     audit.record(db, "attendance.export", request=request, user=user,
                  detail={"session_id": s.id, "join_id": join.id})
-    return _pdf(attendance.render_attendance_pdf(rec, f"{_base(request)}/verify.html?serial={cert.serial}&attendee={rec['attendee_code']}"),
+    return _pdf(attendance.render_attendance_pdf(rec, **_bk(db, s.org_id), verify_path=f"{_base(request)}/verify.html?serial={cert.serial}&attendee={rec['attendee_code']}"),
                 f"attendance-{rec['attendee_code']}.pdf")
 
 
@@ -72,7 +78,7 @@ def my_attendance_pdf(session_id: int, request: Request,
         raise HTTPException(404, "you did not join this exercise by code")
     rec = attendance.record(db, s, cert, join)
     audit.record(db, "attendance.export", request=request, user=user, detail={"session_id": s.id, "join_id": join.id, "self": True})
-    return _pdf(attendance.render_attendance_pdf(rec, f"{_base(request)}/verify.html?serial={cert.serial}&attendee={rec['attendee_code']}"),
+    return _pdf(attendance.render_attendance_pdf(rec, **_bk(db, s.org_id), verify_path=f"{_base(request)}/verify.html?serial={cert.serial}&attendee={rec['attendee_code']}"),
                 f"attendance-{rec['attendee_code']}.pdf")
 
 
@@ -104,7 +110,7 @@ def board_pack(session_id: int, request: Request,
     _, md = reporting.build_report(s, scenario, env, list(s.events), list(s.observations), "executive")
     verify_path = f"{_base(request)}/verify.html?serial={cert.serial}"
     audit.record(db, "boardpack.export", request=request, user=user, detail={"session_id": s.id, "serial": cert.serial})
-    return _pdf(pdf.render(f"Board pack — {s.name}", attendance.board_pack_markdown(cert, md, verify_path)),
+    return _pdf(pdf.render(f"Board pack — {s.name}", attendance.board_pack_markdown(cert, md, verify_path), **_bk(db, s.org_id)),
                 f"board-pack-{cert.serial}.pdf")
 
 

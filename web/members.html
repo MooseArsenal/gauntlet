@@ -15,6 +15,7 @@
     <div class="brand"><span class="mark"><span>G</span></span><b>Gauntlet</b><small>Members</small></div>
     <div class="bar-actions">
       <a class="btn ghost" href="/">Console</a>
+      <a class="btn ghost" id="lnkPartner" href="/partner.html" hidden>Clients</a>
       <button class="btn toggle" id="btnTheme" aria-label="Toggle theme">◑</button>
     </div>
   </header>
@@ -55,6 +56,18 @@
       <p class="hint">No licence runs the Community tier: the full engine, the record, reports and certificates. Paid tiers add the features listed here. An expired licence keeps working for 30 days, then degrades to Community; nothing is ever hidden.</p>
     </div>
 
+    <div class="panel" id="brandPanel" hidden>
+      <p class="eyebrow">Branding <span class="hint" id="brandState"></span></p>
+      <div class="setup">
+        <label>Name <input id="brName" maxlength="60" placeholder="e.g. Northwind Security"></label>
+        <label>Tagline <input id="brTag" maxlength="80" placeholder="e.g. Exercise programme"></label>
+        <label>Accent colour <input id="brAccent" type="color" value="#d9480f"></label>
+        <label>Logo <input id="brLogo" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"> <span class="hint">PNG, JPEG, WebP or SVG, under 64 KB</span></label>
+        <label>Report footer <input id="brFooter" maxlength="200" placeholder="e.g. Prepared by Northwind Security for the client named above"></label>
+        <div class="row"><button class="btn primary" id="btnBrandSave">Save branding</button><button class="btn ghost" id="btnBrandClear">Reset to default</button></div>
+      </div>
+    </div>
+
     <div class="panel" id="scimPanel" hidden>
       <p class="eyebrow">SCIM provisioning <span class="hint">— let the identity provider create and deactivate members</span></p>
       <p class="hint">Okta, Entra ID, OneLogin and JumpCloud provision users over SCIM 2.0. Mint a token, paste it and the base URL into the provider's SCIM connector. The token is shown once; only its hash is kept. Minting again rotates it.</p>
@@ -71,6 +84,7 @@
   </main>
 
   <div class="toast" id="toast" hidden></div>
+  <script src="/brand.js"></script>
   <script src="/members.js"></script>
 </body>
 </html>
