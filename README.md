@@ -38,6 +38,10 @@ product with no dependency on any other system. See
   row-level security on by default in production, encryption at rest, retention
   and erasure, audit log, air-gapped mode, Redis-shared throttles, CycloneDX SBOM
   in CI. See `docs/ENTERPRISE.md` and `SECURITY.md`.
+- **Telemetry loop** — record the alerts the SOC's tools actually raised (by
+  hand, or a JSON/CSV export from the SIEM/EDR) and every adjudicated action
+  becomes confirmed, a silent gap, a surprise, or missed. The comparison lands in
+  the technical and executive reports and on the certificate.
 - **Run-day mode** — a pre-brief the room reads (rules of engagement, cells,
   objectives, a large join code) and a projector view of the current scene with
   the kill chain and the live tally; a hotwash that rates every objective and logs
