@@ -840,3 +840,27 @@ class AuditLogOut(BaseModel):
     detail: dict
     ip: str
     at: datetime
+
+
+# --------------------------------------------------------------------------- #
+# Exercise certificates (M1)
+# --------------------------------------------------------------------------- #
+class CertificateOut(BaseModel):
+    model_config = _orm
+    id: int
+    session_id: int
+    serial: str
+    issued_by: str
+    payload: dict
+    digest: str
+    signature: str
+    issued_at: datetime
+    revoked_at: Optional[datetime] = None
+
+
+class CertificateVerifyOut(BaseModel):
+    serial: str
+    valid: bool
+    reason: str
+    issued_at: Optional[datetime] = None
+    record: dict = Field(default_factory=dict)

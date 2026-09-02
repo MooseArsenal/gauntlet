@@ -46,7 +46,7 @@ def _delete_sessions(db: Session, session_ids: list[int]) -> None:
         select(models.ImprovementItem).where(models.ImprovementItem.session_id.in_(session_ids))
     ).scalars():
         item.session_id = None
-    for model in (models.Report, models.TimelineEvent, models.Observation):
+    for model in (models.Report, models.Certificate, models.TimelineEvent, models.Observation):
         for row in db.execute(
             select(model).where(model.session_id.in_(session_ids))
         ).scalars():
@@ -168,6 +168,7 @@ def erase_org(db: Session, org_id: int) -> dict:
         return n
 
     counts["session_joins"] = wipe(models.SessionJoin, [org_id], col="org_id")
+    counts["certificates"] = wipe(models.Certificate, [org_id], col="org_id")
     counts["improvement_items"] = wipe(models.ImprovementItem, [org_id], col="org_id")
     counts["custom_adversaries"] = wipe(models.CustomAdversary, [org_id], col="org_id")
     counts["schedules"] = wipe(models.ExerciseSchedule, [org_id], col="org_id")

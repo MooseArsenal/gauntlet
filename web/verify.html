@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gauntlet — Verify a certificate</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="strip"><span>Exercise control · Certificate verification</span><span>An exercise record — not a compliance attestation</span></div>
+  <header class="bar">
+    <div class="brand"><span class="mark"><span>G</span></span><b>Gauntlet</b><small>Verify a certificate</small></div>
+    <div class="bar-actions">
+      <a class="btn ghost" href="/">Console</a>
+      <button class="btn toggle" id="btnTheme" aria-label="Toggle theme">◑</button>
+    </div>
+  </header>
+
+  <main class="empty">
+    <div class="empty-card narrow" id="card">
+      <p class="eyebrow">Exercise certificate</p>
+      <h1>Check the number</h1>
+      <p class="sub">Enter the serial printed on the certificate. The figures it carries were frozen and signed when it was issued; this page recomputes the signature.</p>
+      <div class="setup">
+        <label>Serial
+          <input id="serial" type="text" autocapitalize="characters" maxlength="32" placeholder="GC-2026-1A2B3C4D"
+                 style="text-transform:uppercase;letter-spacing:.12em;font-family:var(--mono)">
+        </label>
+        <button class="btn primary" id="btnCheck">Verify</button>
+        <p class="loginerr" id="err" hidden></p>
+      </div>
+      <div id="result" hidden></div>
+    </div>
+  </main>
+
+  <div class="toast" id="toast" hidden></div>
+  <script src="/verify.js"></script>
+</body>
+</html>

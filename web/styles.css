@@ -412,3 +412,11 @@ table.grid tbody tr:hover{background:var(--surface-2)}
 .env-tpl-desc{grid-column:2;font-size:.78rem;color:var(--ink-soft)}
 
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* M1 — exercise certificate */
+.cert-tiles{margin:.9rem 0;display:grid;grid-template-columns:repeat(2,1fr);gap:.6rem 1rem}
+.cert-sig{font-size:.72rem;word-break:break-all}
+.cert-verdict{display:flex;align-items:center;gap:.7rem;border:1.5px solid var(--ink);padding:.55rem .75rem;margin:.9rem 0 .6rem;font-family:var(--mono);font-size:.78rem}
+.cert-verdict.good{border-color:var(--good)}.cert-verdict.good .rc-vtag{color:var(--good)}
+.cert-verdict.bad{border-color:var(--crit)}.cert-verdict.bad .rc-vtag{color:var(--crit)}
+.cert-org{margin:.4rem 0 .2rem;font-size:1.5rem}
