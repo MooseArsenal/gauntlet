@@ -158,6 +158,7 @@ def test_free_text_cards_and_seeded_content():
         try:
             frost = db.execute(select(models.Scenario).where(models.Scenario.name.like("Operation Frostbite%"))).scalars().first()
             cards = [i for i in frost.injects if (i.meta or {}).get("decision")]
-            assert len(cards) == 3 and all(len(i.meta["decision"]["options"]) == 4 for i in cards)
+            assert len(cards) == 5 and all(len(i.meta["decision"]["options"]) == 4 for i in cards)
+            assert sum(1 for i in cards if i.meta["decision"].get("kind") == "comms") == 2
         finally:
             db.close()

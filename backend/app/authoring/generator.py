@@ -85,11 +85,14 @@ def build_scenario(
         else:
             branches = [
                 {"when": "action_taken", "trigger": "contain_and_recover", "goto": good_code,
+                 "impact": {"cost": 120000, "downtime_hours": 8, "label": "Contained; restore and a working day of disruption"},
                  "label": "Team contains and recovers"},
                 {"when": "timeout", "after": "PT20M", "goto": bad_code,
+                 "impact": {"cost": 1500000, "downtime_hours": 72, "records": 25000, "customers": 800, "label": "Objective achieved: outage, disclosure, recovery from scratch"},
                  "label": "Slow response — major impact"},
                 {"when": "proctor_choice", "goto": good_code,
-                 "label": "Proctor: team resolves the incident"},
+                 "label": "Proctor: team resolves the incident",
+                 "impact": {"cost": 120000, "downtime_hours": 8, "label": "Contained; restore and a working day of disruption"}},
             ]
 
         injects.append(models.Inject(
@@ -118,14 +121,21 @@ def build_scenario(
     ))
     injects.append(models.Inject(
         code=bad_code, sequence=len(phases) + 2, is_start=False,
-        title="Objectives missed — major impact (resolution)", channel="briefing",
+        title="Objectives missed — major impact (resolution)", channel="media",
         clock=_clock(len(phases) + 1),
         narrative=("Containment came too late and the adversary achieved its objective. "
-                   "The exercise resolves with major impact. Capture the decision timeline "
-                   "and run the hotwash."),
+                   "The exercise resolves with major impact. The story is out; a reporter wants "
+                   "a statement within the hour. Capture the decision timeline and run the hotwash."),
         visible_to=["blue_cell", "white_cell"],
         expected_actions=["Capture the decision timeline", "Run the hotwash"],
         attack_techniques=[], target_asset="", objective_code=last_obj, branches=[],
+        meta={"decision": {"kind": "comms", "prompt": "The story is out. What is the organisation's position, and what do you say?",
+                           "options": [
+                               {"key": "a", "label": "Confirm the incident, say what is known, commit to a next update time", "score": 1.0},
+                               {"key": "b", "label": "Holding statement only", "score": 0.7},
+                               {"key": "c", "label": "No comment", "score": 0.3},
+                               {"key": "d", "label": "Deny", "score": 0.0}],
+                           "free_text": True, "time_limit_sec": 300}},
     ))
 
     scenario = models.Scenario(

@@ -37,6 +37,11 @@ product with no dependency on any other system. See
 - **Product page and tour** — `/product.html` (positioning, how an exercise runs,
   indicative pricing) and a guided tour of the console (`/?tour=1`). Releases are
   tagged, published to GHCR with an SBOM, and described in `CHANGELOG.md`.
+- **Executive track** — branches carry the author's impact estimates (cost,
+  downtime, records, customers) that accumulate along the path the room takes;
+  media, regulator, customer, social and board channels; communications decision
+  cards that require the statement the room would issue. The executive report
+  and the certificate carry the numbers.
 - **Evidence on the record** — attach a screenshot, a ticket export or a photo of
   the whiteboard to the exercise; its SHA-256 is written to the signed timeline,
   verification recomputes every stored file's digest, and the GRC report lists
