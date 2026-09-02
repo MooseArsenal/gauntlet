@@ -15,7 +15,7 @@ from .api import (
     compliance_api,
     environments, exports_api, improvements, join_api, live, members, multicell, program, purple,
     reports,
-    scenarios, schedules, sessions,
+    scenarios, schedules, sessions, telemetry,
 )
 from .config import (
     AIRGAPPED, APP_TAGLINE, APP_TITLE, CORS_ORIGINS, DOCS_ENABLED, IS_PROD, MAX_REQUEST_BYTES,
@@ -114,6 +114,7 @@ app.include_router(admin.router)
 app.include_router(members.router)
 app.include_router(archive.router)
 app.include_router(certificates.router)
+app.include_router(telemetry.router)
 app.include_router(ws.router)
 
 # Facilitator console (served last so it never shadows the API routes).
