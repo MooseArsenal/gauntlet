@@ -34,6 +34,10 @@ product with no dependency on any other system. See
   hash-chained log that can be verified.
 - **Reports** — one timeline, four audience lenses: executive, technical (SOC/IR),
   GRC/audit evidence, and training gaps.
+- **Exercise certificate** — one signed page per completed exercise: detection
+  rate, mean time-to-detect, objectives met, techniques exercised and the signed
+  timeline head, frozen at issue. Anyone holding the serial can verify the figures
+  at `/verify.html` without an account.
 
 A worked example — a finance-sector ransomware tabletop (*Operation Frostbite*)
 — is seeded on first run so the whole loop works immediately.
