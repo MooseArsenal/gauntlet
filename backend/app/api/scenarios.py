@@ -47,6 +47,7 @@ def create_scenario(
         rules_of_engagement=payload.rules_of_engagement,
         cells=payload.cells,
         exercise_type=payload.exercise_type,
+        variables=dict(payload.variables or {}),
     )
     scenario.objectives = [models.Objective(**o.model_dump()) for o in payload.objectives]
     scenario.injects = [models.Inject(**i.model_dump()) for i in payload.injects]

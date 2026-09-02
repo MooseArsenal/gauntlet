@@ -145,6 +145,7 @@
       try { const b = await api("/api/branding"); if (b.custom) { $("brName").value = b.name; $("brTag").value = b.tagline || ""; $("brAccent").value = b.accent || "#d9480f"; $("brFooter").value = b.footer || ""; } } catch (e) { /* noop */ }
     }
     const lnk = $("lnkPartner"); if (lnk) lnk.hidden = !lic.features.includes("partner_mode");
+    const lnkC = $("lnkClassroom"); if (lnkC) lnkC.hidden = !lic.features.includes("education");
     const scimOn = lic.features.includes("scim");
     const scimPanel = $("scimPanel");
     if (scimPanel) scimPanel.querySelector(".eyebrow").innerHTML = `SCIM provisioning ${scimOn ? '<span class="hint">— let the identity provider create and deactivate members</span>' : '<span class="pill">Enterprise</span> <span class="hint">— not in this deployment\'s tier</span>'}`;

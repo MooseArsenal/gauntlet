@@ -43,3 +43,11 @@ python tools/issue_license.py issue --key <private> --tier team --customer "Acme
 
 Keep the private key outside the repository. Rotate by issuing a new keypair,
 shipping the new public key in a release, and re-issuing licences.
+
+## What the education features do
+
+- `education` — `/api/cohorts/*`: cohorts, enrolment by code (students create
+  their own participant accounts; they never count as seats), seating a whole
+  class into a run, the gradebook and its CSV export, anonymous grading.
+- `replay` — `GET /api/sessions/{id}/replay` and `POST /api/sessions/{id}/rewind`:
+  the exercise as scenes, and a fork of a new run from any scene.
