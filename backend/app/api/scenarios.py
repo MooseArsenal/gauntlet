@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .. import models, schemas
+from .. import models, scenario_io, schemas
 from ..config import MAX_INJECTS
 from ..database import get_db
 from ..security import require_staff, require_facilitator, scope_or_404
@@ -29,6 +29,13 @@ def create_scenario(
     # The environment must exist and belong to the caller's organisation.
     scope_or_404(db.get(models.Environment, payload.environment_id), user)
     _enforce_inject_cap(payload.injects)
+    # A scenario with injects must be a runnable graph (F-3): one start, unique
+    # codes, every branch resolves, a terminal exists. An inject-less draft is
+    # allowed — the editor fills it in and the graph save validates again.
+    if payload.injects:
+        problems = scenario_io.validate(payload.model_dump())["errors"]
+        if problems:
+            raise HTTPException(422, {"graph": problems})
 
     scenario = models.Scenario(
         org_id=user.org_id,
@@ -103,6 +110,15 @@ def replace_graph(
             goto = (br or {}).get("goto")
             if goto and goto not in known:
                 problems.append(f"branch from '{inj.code}' points to unknown inject '{goto}'")
+    if payload.injects and not problems:
+        # The same structural checks the YAML path runs (terminal inject,
+        # branch conditions, objective references) — one rulebook (F-3).
+        problems.extend(scenario_io.validate({
+            "name": scenario.name,
+            "objectives": [{"code": o.code} for o in scenario.objectives],
+            "injects": [i.model_dump() for i in payload.injects],
+            "variables": payload.variables if payload.variables is not None else (scenario.variables or {}),
+        })["errors"])
     if problems:
         raise HTTPException(422, {"graph": problems})
 

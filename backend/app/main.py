@@ -5,7 +5,6 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 import asyncio
@@ -21,6 +20,7 @@ from .config import (
     AIRGAPPED, APP_TAGLINE, APP_TITLE, CORS_ORIGINS, MAX_REQUEST_BYTES, SEED_ON_START,
     USE_ALEMBIC, WEB_DIR, validate_config,
 )
+from .body_limit import BodySizeLimitMiddleware
 from .database import SessionLocal, create_all
 from .security_headers import SecurityHeadersMiddleware
 
@@ -53,6 +53,10 @@ async def lifespan(_: FastAPI):
     from .rls import install_policies
 
     install_policies(engine)
+    # Timers do not survive a restart; rebuild them from the persisted due times (F-5).
+    from . import scheduler
+
+    scheduler.rearm_all()
     yield
 
 
@@ -70,23 +74,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@app.middleware("http")
-async def limit_body_size(request, call_next):
-    """Reject oversized request bodies up front — a defence-in-depth backstop
-    against memory/storage abuse on the (schema-unbounded) JSON fields."""
-    cl = request.headers.get("content-length")
-    if cl is not None:
-        try:
-            if int(cl) > MAX_REQUEST_BYTES:
-                return JSONResponse(
-                    {"detail": f"request body exceeds the {MAX_REQUEST_BYTES}-byte limit"},
-                    status_code=413,
-                )
-        except ValueError:
-            return JSONResponse({"detail": "invalid Content-Length"}, status_code=400)
-    return await call_next(request)
+# Outermost: the body cap counts bytes as they stream in, so a chunked upload
+# without a Content-Length is stopped at the limit too (S-7).
+app.add_middleware(BodySizeLimitMiddleware, max_bytes=lambda: MAX_REQUEST_BYTES)
 
 
 @app.get("/api/health", tags=["meta"])

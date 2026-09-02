@@ -15,10 +15,10 @@ _orm = ConfigDict(from_attributes=True)
 # Environment
 # --------------------------------------------------------------------------- #
 class EnvironmentBase(BaseModel):
-    name: str
-    sector: str = ""
-    description: str = ""
-    box_type: str = "grey"
+    name: str = Field(max_length=300)
+    sector: str = Field(default="", max_length=300)
+    description: str = Field(default="", max_length=20000)
+    box_type: str = Field(default="grey", max_length=300)
     assets: list = Field(default_factory=list)
     controls: list = Field(default_factory=list)
     detections: list = Field(default_factory=list)
@@ -52,9 +52,9 @@ class EnvironmentSummary(BaseModel):
 # Objective / Inject / Scenario
 # --------------------------------------------------------------------------- #
 class ObjectiveIn(BaseModel):
-    code: str
-    title: str
-    description: str = ""
+    code: str = Field(max_length=300)
+    title: str = Field(max_length=300)
+    description: str = Field(default="", max_length=20000)
     success_criteria: str = ""
     eeg: list = Field(default_factory=list)
     meta: dict = Field(default_factory=dict)
@@ -66,22 +66,22 @@ class ObjectiveOut(ObjectiveIn):
 
 
 class InjectIn(BaseModel):
-    code: str
+    code: str = Field(max_length=300)
     sequence: int = 0
-    title: str
-    channel: str = "briefing"
-    clock: str = ""
-    narrative: str = ""
-    visible_to: list = Field(default_factory=list)
-    expected_actions: list = Field(default_factory=list)
-    attack_techniques: list = Field(default_factory=list)
+    title: str = Field(max_length=300)
+    channel: str = Field(default="briefing", max_length=300)
+    clock: str = Field(default="", max_length=300)
+    narrative: str = Field(default="", max_length=20000)
+    visible_to: list = Field(default_factory=list, max_length=500)
+    expected_actions: list = Field(default_factory=list, max_length=500)
+    attack_techniques: list = Field(default_factory=list, max_length=500)
 
     @field_validator("attack_techniques")
     @classmethod
     def _norm_techniques(cls, v):
         return technique.normalize_list(v)
-    target_asset: str = ""
-    objective_code: str = ""
+    target_asset: str = Field(default="", max_length=300)
+    objective_code: str = Field(default="", max_length=300)
     branches: list = Field(default_factory=list)
     is_start: bool = False
     act: str = ""
@@ -95,13 +95,13 @@ class InjectOut(InjectIn):
 
 class ScenarioCreate(BaseModel):
     environment_id: int
-    name: str
-    threat_actor: str = ""
-    narrative: str = ""
-    scope: str = ""
-    rules_of_engagement: str = ""
+    name: str = Field(max_length=300)
+    threat_actor: str = Field(default="", max_length=300)
+    narrative: str = Field(default="", max_length=20000)
+    scope: str = Field(default="", max_length=20000)
+    rules_of_engagement: str = Field(default="", max_length=20000)
     cells: list = Field(default_factory=list)
-    exercise_type: str = "tabletop"
+    exercise_type: str = Field(default="tabletop", max_length=300)
     variables: dict = Field(default_factory=dict)
     objectives: list[ObjectiveIn] = Field(default_factory=list)
     injects: list[InjectIn] = Field(default_factory=list)
@@ -138,9 +138,9 @@ class ScenarioOut(BaseModel):
 # --------------------------------------------------------------------------- #
 class SessionCreate(BaseModel):
     scenario_id: int
-    name: str
-    clock_mode: str = "compressed"
-    mode: str = "tabletop"  # tabletop | sandbox | real_time
+    name: str = Field(max_length=300)
+    clock_mode: str = Field(default="compressed", max_length=300)
+    mode: str = Field(default="tabletop", max_length=300)  # tabletop | sandbox | real_time
     auto_advance: bool = False
 
 
@@ -150,9 +150,9 @@ class JoinCodeOut(BaseModel):
 
 
 class JoinIn(BaseModel):
-    code: str
+    code: str = Field(max_length=300)
     cell: str = "blue_cell"      # which fog-of-war view the joiner takes
-    display_name: Optional[str] = None
+    display_name: Optional[str] = Field(default=None, max_length=300)
 
 
 class JoinOut(BaseModel):
@@ -200,9 +200,9 @@ class TimelineEventOut(BaseModel):
 
 
 class ObservationIn(BaseModel):
-    objective_code: str = ""
-    rating: str = "note"
-    note: str
+    objective_code: str = Field(default="", max_length=300)
+    rating: str = Field(default="note", max_length=300)
+    note: str = Field(max_length=20000)
     timeline_seq: Optional[int] = None
 
 
@@ -228,16 +228,16 @@ class SessionState(BaseModel):
 # Proctor actions
 # --------------------------------------------------------------------------- #
 class DecisionIn(BaseModel):
-    when: str = "proctor_choice"  # action_taken | timeout | proctor_choice
-    trigger: Optional[str] = None
-    goto: Optional[str] = None  # explicit override; wins over rules
-    note: str = ""
+    when: str = Field(default="proctor_choice", max_length=300)  # action_taken | timeout | proctor_choice
+    trigger: Optional[str] = Field(default=None, max_length=300)
+    goto: Optional[str] = Field(default=None, max_length=300)  # explicit override; wins over rules
+    note: str = Field(default="", max_length=20000)
 
 
 class AdjudicateIn(BaseModel):
-    techniques: list[str] = Field(default_factory=list)
-    target_asset: str = ""
-    description: str = ""
+    techniques: list[str] = Field(default_factory=list, max_length=500)
+    target_asset: str = Field(default="", max_length=300)
+    description: str = Field(default="", max_length=20000)
 
     @field_validator("techniques")
     @classmethod
@@ -246,7 +246,7 @@ class AdjudicateIn(BaseModel):
 
 
 class NoteIn(BaseModel):
-    text: str
+    text: str = Field(max_length=20000)
 
 
 class AdjudicationOut(BaseModel):
@@ -258,7 +258,7 @@ class AdjudicationOut(BaseModel):
 # Reports
 # --------------------------------------------------------------------------- #
 class ReportRequest(BaseModel):
-    audience: str = "executive"  # executive | technical | grc | training
+    audience: str = Field(default="executive", max_length=300)  # executive | technical | grc | training
 
 
 class ReportOut(BaseModel):
@@ -304,13 +304,13 @@ class CustomAdversaryIn(BaseModel):
     """A proctor-designed adversary (A7). ``kill_chain`` is an ordered list of
     inject-bank scene keys; objectives are optional (sensible defaults are
     derived from the chain when omitted)."""
-    name: str
-    description: str = ""
+    name: str = Field(max_length=300)
+    description: str = Field(default="", max_length=20000)
     motivation: str = ""
     is_fictitious: bool = True
-    sectors: list[str] = Field(default_factory=list)
-    techniques: list[str] = Field(default_factory=list)
-    kill_chain: list[str] = Field(default_factory=list)
+    sectors: list[str] = Field(default_factory=list, max_length=500)
+    techniques: list[str] = Field(default_factory=list, max_length=500)
+    kill_chain: list[str] = Field(default_factory=list, max_length=500)
     objectives: Optional[list[AdversaryObjective]] = None
 
 
@@ -357,7 +357,7 @@ class CtepImportIn(BaseModel):
     environment_id: int
     pack_key: Optional[str] = None
     pack: Optional[dict] = None
-    name: Optional[str] = None
+    name: Optional[str] = Field(default=None, max_length=300)
 
 
 class TemplateOut(BaseModel):
@@ -377,18 +377,18 @@ class InjectBankEntryOut(BaseModel):
 
 class GenerateRequest(BaseModel):
     environment_id: int
-    actor_key: Optional[str] = None
-    template_key: Optional[str] = None
-    name: Optional[str] = None
+    actor_key: Optional[str] = Field(default=None, max_length=300)
+    template_key: Optional[str] = Field(default=None, max_length=300)
+    name: Optional[str] = Field(default=None, max_length=300)
 
 
 class ScenarioImport(BaseModel):
     environment_id: int
-    yaml: str
+    yaml: str  # bounded by MAX_YAML_BYTES (bytes), not characters
 
 
 class ValidateRequest(BaseModel):
-    yaml: str
+    yaml: str  # bounded by MAX_YAML_BYTES (bytes), not characters
 
 
 class ValidationOut(BaseModel):
@@ -406,10 +406,10 @@ class DeliveryOut(BaseModel):
 
 
 class InjectUpdate(BaseModel):
-    title: Optional[str] = None
-    channel: Optional[str] = None
-    clock: Optional[str] = None
-    narrative: Optional[str] = None
+    title: Optional[str] = Field(default=None, max_length=300)
+    channel: Optional[str] = Field(default=None, max_length=300)
+    clock: Optional[str] = Field(default=None, max_length=300)
+    narrative: Optional[str] = Field(default=None, max_length=20000)
     visible_to: Optional[list] = None
     expected_actions: Optional[list] = None
     attack_techniques: Optional[list] = None
@@ -418,8 +418,8 @@ class InjectUpdate(BaseModel):
     @classmethod
     def _norm_techniques(cls, v):
         return technique.normalize_list(v) if v is not None else None
-    target_asset: Optional[str] = None
-    objective_code: Optional[str] = None
+    target_asset: Optional[str] = Field(default=None, max_length=300)
+    objective_code: Optional[str] = Field(default=None, max_length=300)
     branches: Optional[list] = None
     sequence: Optional[int] = None
     is_start: Optional[bool] = None
@@ -433,13 +433,13 @@ class ScenarioGraphIn(BaseModel):
 
 
 class ScenarioUpdate(BaseModel):
-    name: Optional[str] = None
-    threat_actor: Optional[str] = None
-    narrative: Optional[str] = None
-    scope: Optional[str] = None
-    rules_of_engagement: Optional[str] = None
+    name: Optional[str] = Field(default=None, max_length=300)
+    threat_actor: Optional[str] = Field(default=None, max_length=300)
+    narrative: Optional[str] = Field(default=None, max_length=20000)
+    scope: Optional[str] = Field(default=None, max_length=20000)
+    rules_of_engagement: Optional[str] = Field(default=None, max_length=20000)
     cells: Optional[list] = None
-    exercise_type: Optional[str] = None
+    exercise_type: Optional[str] = Field(default=None, max_length=300)
 
 
 # --------------------------------------------------------------------------- #
@@ -497,15 +497,15 @@ class RollupOut(BaseModel):
 # --------------------------------------------------------------------------- #
 class AuthorizeIn(BaseModel):
     scope: list[str] = Field(default_factory=list)  # allowed targets; "*" = any
-    authorized_by: str
-    note: str = ""
+    authorized_by: str = Field(max_length=300)
+    note: str = Field(default="", max_length=20000)
     ttl_minutes: int = 120
 
 
 class LiveInjectIn(BaseModel):
-    technique: str
-    target: str
-    action: str = ""
+    technique: str = Field(max_length=300)
+    target: str = Field(max_length=300)
+    action: str = Field(default="", max_length=20000)
 
 
 class LiveInjectOut(BaseModel):
@@ -555,8 +555,8 @@ class MemberOut(BaseModel):
 
 
 class MemberUpdateIn(BaseModel):
-    role: Optional[str] = None
-    name: Optional[str] = None
+    role: Optional[str] = Field(default=None, max_length=300)
+    name: Optional[str] = Field(default=None, max_length=300)
     is_active: Optional[bool] = None
 
 
@@ -565,22 +565,22 @@ class MemberPasswordIn(BaseModel):
 
 
 class RegisterIn(BaseModel):
-    org_name: str
-    email: str
+    org_name: str = Field(max_length=300)
+    email: str = Field(max_length=300)
     password: str = Field(min_length=8)
-    name: str = ""
+    name: str = Field(default="", max_length=300)
 
 
 class LoginIn(BaseModel):
-    email: str
+    email: str = Field(max_length=300)
     password: str
 
 
 class CreateUserIn(BaseModel):
-    email: str
+    email: str = Field(max_length=300)
     password: str = Field(min_length=8)
-    name: str = ""
-    role: str = "facilitator"
+    name: str = Field(default="", max_length=300)
+    role: str = Field(default="facilitator", max_length=300)
 
 
 class TokenOut(BaseModel):
@@ -621,7 +621,7 @@ class ChangePasswordIn(BaseModel):
 class MfaSetupIn(BaseModel):
     # Required when MFA is already enabled: a current TOTP code proves the
     # caller holds the second factor before a new enrolment may begin (H2).
-    code: Optional[str] = None
+    code: Optional[str] = Field(default=None, max_length=300)
 
 
 class MfaSetupOut(BaseModel):
@@ -667,16 +667,16 @@ class EraseOut(BaseModel):
 
 class ScheduleCreate(BaseModel):
     scenario_id: int
-    name: str
-    cadence: str = "once"  # once|daily|weekly|monthly|quarterly
+    name: str = Field(max_length=300)
+    cadence: str = Field(default="once", max_length=300)  # once|daily|weekly|monthly|quarterly
     next_run_at: datetime
     reminder_lead_hours: int = 24
     invitees: list = Field(default_factory=list)
 
 
 class ScheduleUpdate(BaseModel):
-    name: Optional[str] = None
-    cadence: Optional[str] = None
+    name: Optional[str] = Field(default=None, max_length=300)
+    cadence: Optional[str] = Field(default=None, max_length=300)
     next_run_at: Optional[datetime] = None
     reminder_lead_hours: Optional[int] = None
     invitees: Optional[list] = None
@@ -712,10 +712,10 @@ class ReminderOut(BaseModel):
 
 
 class AssistInjectIn(BaseModel):
-    phase: str = ""       # kill-chain phase hint (e.g. initial-access)
-    technique: str = ""   # ATT&CK technique hint (e.g. T1566.001)
+    phase: str = Field(default="", max_length=300)  # kill-chain phase hint (e.g. initial-access)
+    technique: str = Field(default="", max_length=300)  # ATT&CK technique hint (e.g. T1566.001)
     environment_id: Optional[int] = None  # pick a real target asset from this env
-    brief: str = ""       # free-text steer for the LLM path
+    brief: str = Field(default="", max_length=20000)  # free-text steer for the LLM path
 
 
 class AssistInjectOut(BaseModel):
@@ -725,10 +725,10 @@ class AssistInjectOut(BaseModel):
 
 class EnvironmentImportIn(BaseModel):
     source: str  # cmdb | edr | siem | asm | generic
-    format: str = "json"  # json | csv
+    format: str = Field(default="json", max_length=300)  # json | csv
     data: str
     environment_id: Optional[int] = None  # merge into this env, else create new
-    name: Optional[str] = None  # name for a newly created env
+    name: Optional[str] = Field(default=None, max_length=300)  # name for a newly created env
 
 
 class EnvironmentImportOut(BaseModel):
@@ -738,9 +738,9 @@ class EnvironmentImportOut(BaseModel):
 
 
 class RedActionIn(BaseModel):
-    techniques: list[str] = Field(default_factory=list)
-    target: str = ""
-    action: str = ""  # free-text description of what the red cell did
+    techniques: list[str] = Field(default_factory=list, max_length=500)
+    target: str = Field(default="", max_length=300)
+    action: str = Field(default="", max_length=20000)  # free-text description of what the red cell did
 
     @field_validator("techniques")
     @classmethod
@@ -771,17 +771,17 @@ class Scoreboard(BaseModel):
 
 
 class ImprovementCreate(BaseModel):
-    title: str
-    description: str = ""
-    severity: str = "medium"
+    title: str = Field(max_length=300)
+    description: str = Field(default="", max_length=20000)
+    severity: str = Field(default="medium", max_length=300)
     session_id: Optional[int] = None
 
 
 class ImprovementUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    severity: Optional[str] = None
-    status: Optional[str] = None
+    title: Optional[str] = Field(default=None, max_length=300)
+    description: Optional[str] = Field(default=None, max_length=20000)
+    severity: Optional[str] = Field(default=None, max_length=300)
+    status: Optional[str] = Field(default=None, max_length=300)
 
 
 class ImprovementOut(BaseModel):

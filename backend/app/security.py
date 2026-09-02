@@ -213,19 +213,43 @@ def create_mfa_challenge(user: models.User) -> str:
     now = datetime.now(timezone.utc)
     return jwt.encode(
         {"sub": str(user.id), "type": "mfa_challenge", "iat": now,
-         "exp": now + timedelta(minutes=5)},
+         "jti": secrets.token_urlsafe(9), "exp": now + timedelta(minutes=5)},
         jwt_key(), algorithm="HS256",
     )
 
 
-def read_mfa_challenge(token: str) -> int:
+def read_mfa_challenge(token: str) -> tuple[int, str]:
+    """Return (user id, challenge id). A spent challenge is rejected (S-4)."""
     try:
         payload = _decode(token)
     except jwt.PyJWTError:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid or expired challenge")
     if payload.get("type") != "mfa_challenge":
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "not an MFA challenge")
-    return int(payload.get("sub", 0))
+    jti = str(payload.get("jti") or "")
+    if _spent_challenges.is_spent(jti):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "challenge already used")
+    return int(payload.get("sub", 0)), jti
+
+
+class _SpentChallenges:
+    """Challenge ids that may no longer be exchanged — used once, or locked
+    after too many wrong codes. In-memory, single-process (like the throttle)."""
+
+    def __init__(self) -> None:
+        self._spent: dict[str, float] = {}
+
+    def spend(self, jti: str, ttl: float = 600.0) -> None:
+        now = time.time()
+        self._spent = {k: v for k, v in self._spent.items() if v > now}
+        if jti:
+            self._spent[jti] = now + ttl
+
+    def is_spent(self, jti: str) -> bool:
+        return bool(jti) and self._spent.get(jti, 0) > time.time()
+
+
+_spent_challenges = _SpentChallenges()
 
 
 # --------------------------------------------------------------------------- #

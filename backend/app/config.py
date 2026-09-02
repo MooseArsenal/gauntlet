@@ -94,6 +94,10 @@ AIRGAPPED = _flag("GAUNTLET_AIRGAPPED", "0")
 LOGIN_MAX_ATTEMPTS = int(os.environ.get("GAUNTLET_LOGIN_MAX_ATTEMPTS", "5"))
 LOGIN_WINDOW_SEC = int(os.environ.get("GAUNTLET_LOGIN_WINDOW_SEC", "300"))
 LOGIN_LOCKOUT_SEC = int(os.environ.get("GAUNTLET_LOGIN_LOCKOUT_SEC", "900"))
+# Per-account lockout regardless of source address (S-5). Higher than the
+# per-address limit so a stranger cannot trivially lock a colleague out, but
+# low enough that a password spray from rotating addresses still stops.
+LOGIN_ACCOUNT_MAX_ATTEMPTS = int(os.environ.get("GAUNTLET_LOGIN_ACCOUNT_MAX_ATTEMPTS", "20"))
 
 # Scenario-import safety caps (a huge scenario must not DoS validation).
 MAX_YAML_BYTES = int(os.environ.get("GAUNTLET_MAX_YAML_BYTES", str(256 * 1024)))
