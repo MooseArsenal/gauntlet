@@ -7,6 +7,7 @@
     python tools/issue_license.py revoke --key-file vendor-license.key --serial 1a2b… [--serial …] \
         [--previous revocations.grl] > revocations.grl
     python tools/issue_license.py inspect <token>
+    python tools/issue_license.py show --key-file vendor-license.key
 
 ``keygen`` writes the private key as a passphrase-encrypted PEM (asked for
 interactively, or GAUNTLET_SIGNING_PASSPHRASE) and prints the public key and
@@ -69,6 +70,7 @@ def main() -> int:
     rv.add_argument("--serial", action="append", default=[], required=True)
     rv.add_argument("--previous", help="an earlier revocation list to carry forward")
     ins = sub.add_parser("inspect"); ins.add_argument("token")
+    sh = sub.add_parser("show", help="the public key and kid inside an encrypted key file"); sh.add_argument("--key-file", required=True)
     a = ap.parse_args()
 
     if a.cmd == "keygen":
@@ -82,6 +84,10 @@ def main() -> int:
         else:
             sys.exit("give --out FILE to store the private key encrypted (or --print-private, discouraged)")
         print(f"PUBLIC: {pub}\nKID: {kid}\n\nAdd to backend/app/signing.py VENDOR_KEYS:\n    \"{kid}\": \"{pub}\",")
+        return 0
+    if a.cmd == "show":
+        pub = signing.public_of(signing.load_private_key(a.key_file, _passphrase()))
+        print(f"PUBLIC: {pub}\nKID: {signing.kid_for(pub)}")
         return 0
     if a.cmd == "inspect":
         parts = a.token.strip().split(".")
