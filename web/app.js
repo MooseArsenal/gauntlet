@@ -458,6 +458,8 @@
     updateKillChain(scenario.id, current_inject, timeline);
     // P1: what the room answered, live
     updateResponses(current_inject);
+    // P3: what has been attached to the record
+    updateEvidence();
 
     // live blue-vs-red scoreboard (detections vs adjudicated red moves)
     updateScoreboard(currentSid);
@@ -488,6 +490,32 @@
   const scenario_injects_cache = {};
   const env_cache = {};
   let injectBank = null;
+
+  // P3: evidence attached to the record, with its verification state.
+  async function updateEvidence() {
+    if (!currentSid || !$("evidenceList")) return;
+    try {
+      const ev = await api(`/api/sessions/${currentSid}/evidence`);
+      $("evidenceState").textContent = ev.attachments.length ? (ev.valid ? `— ${ev.attachments.length} file(s), digests verified` : `— ${ev.problems.join("; ")}`) : "";
+      $("evidenceList").innerHTML = ev.attachments.length
+        ? ev.attachments.map((a) => `<li><a href="#" data-att="${a.id}" data-name="${escapeHtml(a.filename)}">${escapeHtml(a.filename)}</a> <span class="hint">${a.size} B · ${escapeHtml(a.sha256.slice(0, 12))}…${a.note ? " · " + escapeHtml(truncate(a.note, 50)) : ""}</span></li>`).join("")
+        : '<li class="muted">Nothing attached yet.</li>';
+      $("evidenceList").querySelectorAll("[data-att]").forEach((a) => a.addEventListener("click", (e) => {
+        e.preventDefault(); downloadBlob(`/api/sessions/${currentSid}/evidence/${a.dataset.att}`, a.dataset.name);
+      }));
+    } catch (e) { /* evidence is optional */ }
+  }
+  async function attachEvidence() {
+    const f = $("evFile").files[0];
+    if (!f) { toast("Choose a file first."); return; }
+    try {
+      const b64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1] || ""); r.onerror = rej; r.readAsDataURL(f); });
+      await api(`/api/sessions/${currentSid}/evidence`, "POST", { filename: f.name, content_type: f.type || "application/octet-stream", content: b64, note: $("evNote").value.trim() });
+      $("evFile").value = ""; $("evNote").value = "";
+      toast("Evidence attached — its digest is on the record.");
+      await loadState();
+    } catch (e) { toast(e.message); }
+  }
 
   // P1: the proctor's tally for the live decision card.
   async function updateResponses(currentInject) {
@@ -1011,6 +1039,7 @@
       case "observation": return `Observation [${escapeHtml(p.rating)}] ${escapeHtml(truncate(p.note, 80))}`;
       case "note": return `Note — ${escapeHtml(truncate(p.text, 90))}`;
       case "status": return `Status → ${escapeHtml(p.status)}`;
+      case "evidence": return `Evidence — <b>${escapeHtml(p.filename || "")}</b> (${p.size || 0} bytes) <span class="hint">${escapeHtml(String(p.sha256 || "").slice(0, 12))}…</span>${p.note ? " — " + escapeHtml(truncate(p.note, 60)) : ""}`;
       case "response": return `Decision by <b>${escapeHtml(p.display_name || "")}</b> (${escapeHtml((p.cell || "").replace("_cell", ""))}) — ${escapeHtml(truncate(p.label || p.text || "", 70))}${p.latency_sec != null ? ` <span class="hint">${p.latency_sec} s</span>` : ""}`;
       case "telemetry": return `Alert [${escapeHtml(p.source || "tool")}] ${escapeHtml(truncate(p.alert, 70))}${(p.techniques || []).length ? " · " + escapeHtml(p.techniques.join(", ")) : ""}`;
       default: return e.kind;
@@ -1241,6 +1270,7 @@
     $("btnCertificate").addEventListener("click", certificate);
     $("btnHotwash").addEventListener("click", hotwash);
     $("btnInvite").addEventListener("click", inviteByCode);
+    $("btnEvidence").addEventListener("click", attachEvidence);
     $("btnTour").addEventListener("click", () => { if (window.GauntletTour) window.GauntletTour.start(); });
     document.addEventListener("keydown", keys);
     $("modalX").addEventListener("click", () => ($("modal").hidden = true));

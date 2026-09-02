@@ -37,6 +37,10 @@ product with no dependency on any other system. See
 - **Product page and tour** — `/product.html` (positioning, how an exercise runs,
   indicative pricing) and a guided tour of the console (`/?tour=1`). Releases are
   tagged, published to GHCR with an SBOM, and described in `CHANGELOG.md`.
+- **Evidence on the record** — attach a screenshot, a ticket export or a photo of
+  the whiteboard to the exercise; its SHA-256 is written to the signed timeline,
+  verification recomputes every stored file's digest, and the GRC report lists
+  what was attached.
 - **Real inject delivery** — send an inject as the email, chat message or alert
   it is pretending to be: over SMTP to the people who joined the addressed cells
   (plus named addresses), and to Slack or Teams through an incoming webhook;
