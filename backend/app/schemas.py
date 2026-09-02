@@ -728,6 +728,24 @@ class AssistInjectOut(BaseModel):
     generator: str        # "template" or the provider name
 
 
+class EnvironmentTemplateOut(BaseModel):
+    """A sector template from the environment library (E1)."""
+    key: str
+    name: str
+    sector: str
+    box_type: str
+    description: str
+    assets: int
+    controls: int
+    deception: int
+    crown_jewels: list[str] = Field(default_factory=list)
+
+
+class EnvironmentFromTemplateIn(BaseModel):
+    key: str = Field(max_length=60)
+    name: Optional[str] = Field(default=None, max_length=300)
+
+
 class EnvironmentImportIn(BaseModel):
     source: str  # cmdb | edr | siem | asm | generic
     format: str = Field(default="json", max_length=300)  # json | csv

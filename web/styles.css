@@ -397,4 +397,18 @@ table.grid tbody tr:hover{background:var(--surface-2)}
 .panel.cell-scene h2{font-size:clamp(1.4rem,2.2vw,1.9rem);font-weight:800;letter-spacing:-.02em}
 #rcTech,#rcTarget{width:min(100%,440px)}
 
+/* ---- environment library (E1) ---- */
+.setup label .row{display:flex;gap:.4rem;align-items:stretch}
+.env-sources{display:grid;gap:0}
+.env-sources .source{padding:.9rem 0}
+.env-sources .row{display:flex;gap:.5rem;flex-wrap:wrap} .env-sources .row>input[type=text],.env-sources .row>select{flex:1 1 160px}
+.env-tpls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem}
+@media(max-width:640px){.env-tpls{grid-template-columns:1fr}}
+.env-tpl{display:grid;grid-template-columns:auto 1fr;gap:.15rem .6rem;align-items:start;border:1.5px solid var(--line);padding:.6rem .7rem;cursor:pointer}
+.env-tpl:has(input:checked){border-color:var(--rule);box-shadow:0 0 0 1.5px var(--rule) inset}
+.env-tpl input{margin:.25rem 0 0;accent-color:var(--ink)}
+.env-tpl-name{font-weight:700;grid-column:2}
+.env-tpl-meta{grid-column:2;font-family:var(--mono);font-size:.64rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.env-tpl-desc{grid-column:2;font-size:.78rem;color:var(--ink-soft)}
+
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}

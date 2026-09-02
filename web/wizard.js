@@ -234,14 +234,31 @@
       title: "Ground it in your environment", lead: "Scenes are filled with real assets from the environment you choose.",
       async render(el) {
         const envs = await api("/api/environments");
-        if (!envs.length) { el.innerHTML = '<p class="hint">No environments yet — create one in the <a href="/index.html">console</a> first.</p>'; return; }
+        let tpls = [];
+        try { tpls = await api("/api/environments/templates"); } catch (e) { /* noop */ }
+        const library =
+          `<div class="wz-field"><label>${envs.length ? "Or create one from the library" : "No environments yet — create one from the library"}</label>` +
+          `<div class="wz-addrow"><select id="wzEnvTpl">${tpls.map((t) => `<option value="${esc(t.key)}">${esc(t.name)} · ${esc(t.sector)}</option>`).join("")}</select>` +
+          `<button class="btn" id="wzEnvNew" type="button">Create</button></div></div>`;
+        if (!envs.length) {
+          el.innerHTML = library;
+          $("wzEnvNew").addEventListener("click", async () => {
+            try { const env = await api("/api/environments/from-template", "POST", { key: $("wzEnvTpl").value }); data.environment_id = env.id; toast(`Created ${env.name}.`); renderStep(); }
+            catch (e) { toast(e.message); }
+          });
+          return;
+        }
         if (data.environment_id == null) data.environment_id = envs[0].id;
         const pick = data.actor_key ? `Emulating <b>${esc(data.actorName || data.actor_key)}</b>` : `Scenario type <b>${esc(data.template_key)}</b>`;
         el.innerHTML =
           `<p class="wz-pickchip">${pick}${data.actor_key && data.template_key ? ` · framed as <b>${esc(data.template_key)}</b>` : ""}</p>` +
           `<div class="wz-field"><label>Environment</label><select id="wzEnv">${envs.map((e) => `<option value="${e.id}" ${e.id === data.environment_id ? "selected" : ""}>${esc(e.name)} · ${esc(e.sector || "")}</option>`).join("")}</select></div>` +
-          `<div class="wz-field"><label>Name (optional)</label><input id="wzName" placeholder="e.g. Q3 phishing drill" value="${esc(data.name || "")}"></div>`;
+          `<div class="wz-field"><label>Name (optional)</label><input id="wzName" placeholder="e.g. Q3 phishing drill" value="${esc(data.name || "")}"></div>` + library;
         $("wzEnv").addEventListener("change", (e) => (data.environment_id = Number(e.target.value)));
+        $("wzEnvNew").addEventListener("click", async () => {
+          try { const env = await api("/api/environments/from-template", "POST", { key: $("wzEnvTpl").value }); data.environment_id = env.id; toast(`Created ${env.name}.`); renderStep(); }
+          catch (e) { toast(e.message); }
+        });
         $("wzName").addEventListener("input", (e) => (data.name = e.target.value));
       },
       nextLabel: "Generate ",

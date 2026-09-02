@@ -19,7 +19,9 @@ product with no dependency on any other system. See
 
 - **Intake** — model the environment under test: assets, controls, detections,
   playbooks, policies, personnel, deception assets, and crown jewels, with
-  per-audience visibility (white / grey / black box).
+  per-audience visibility (white / grey / black box). A library of six sector
+  environments (hospital, water utility, manufacturer, SaaS, county government,
+  university) can be stamped into an organisation in one click.
 - **Scenario + MSEL** — a scenario carries objectives and a Master Scenario
   Events List: an ordered, **branching** set of injects. Branches fire on a
   player action, a game-clock timeout, or the proctor's choice.
