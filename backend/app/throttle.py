@@ -11,7 +11,7 @@ from __future__ import annotations
 import threading
 import time
 
-from .config import LOGIN_LOCKOUT_SEC, LOGIN_MAX_ATTEMPTS, LOGIN_WINDOW_SEC
+from .config import LOGIN_LOCKOUT_SEC, LOGIN_MAX_ATTEMPTS, LOGIN_WINDOW_SEC, REDIS_URL
 
 
 class LoginThrottle:
@@ -52,4 +52,48 @@ class LoginThrottle:
                     store.pop(k, None)
 
 
-throttle = LoginThrottle()
+class RedisThrottle:
+    """The same interface on a shared store (M5), so lockouts hold across
+    processes and restarts. ``client`` is any redis-py compatible client
+    (``incr``, ``expire``, ``ttl``, ``set``, ``delete``, ``scan_iter``)."""
+
+    PREFIX = "gauntlet:throttle:"
+
+    def __init__(self, client) -> None:
+        self._r = client
+
+    def _k(self, key: str, kind: str) -> str:
+        return f"{self.PREFIX}{kind}:{key}"
+
+    def retry_after(self, key: str) -> int:
+        ttl = self._r.ttl(self._k(key, "lock"))
+        return max(0, int(ttl)) if ttl is not None and int(ttl) > 0 else 0
+
+    def record_failure(self, key: str, limit: int | None = None) -> None:
+        limit = limit or LOGIN_MAX_ATTEMPTS
+        fails = self._k(key, "fail")
+        n = int(self._r.incr(fails))
+        if n == 1:
+            self._r.expire(fails, LOGIN_WINDOW_SEC)
+        if n >= limit:
+            self._r.set(self._k(key, "lock"), "1", ex=LOGIN_LOCKOUT_SEC)
+            self._r.delete(fails)
+
+    def reset(self, key: str) -> None:
+        self._r.delete(self._k(key, "fail"), self._k(key, "lock"))
+
+    def reset_email(self, email: str) -> None:
+        suffix = f"|{email.lower()}"
+        for k in list(self._r.scan_iter(match=f"{self.PREFIX}*{suffix}")):
+            self._r.delete(k)
+
+
+def _build():
+    if REDIS_URL:
+        import redis  # optional dependency, only imported when configured
+
+        return RedisThrottle(redis.Redis.from_url(REDIS_URL, decode_responses=True))
+    return LoginThrottle()
+
+
+throttle = _build()

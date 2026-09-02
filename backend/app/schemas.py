@@ -872,6 +872,10 @@ class CertificateVerifyOut(BaseModel):
     record: dict = Field(default_factory=dict)
 
 
+class ScimTokenOut(BaseModel):
+    """The SCIM bearer token, shown once (M5)."""
+    token: str
+    base_url: str
 # --------------------------------------------------------------------------- #
 # Telemetry loop (M4)
 # --------------------------------------------------------------------------- #

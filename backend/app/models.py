@@ -33,6 +33,9 @@ class Organization(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(200))
     slug: Mapped[str] = mapped_column(String(80), unique=True, index=True)
+    # SCIM provisioning (M5): sha256 of the bearer token the identity provider
+    # presents; null until an admin mints one.
+    scim_token_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
     users: Mapped[list["User"]] = relationship(back_populates="organization")
@@ -58,6 +61,8 @@ class User(Base):
     mfa_pending_secret: Mapped[str | None] = mapped_column(String(64), nullable=True)
     # Set when the account is linked to an external OIDC identity provider (M9).
     oidc_subject: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+    # The identity provider's id for this user when provisioned over SCIM (M5).
+    scim_external_id: Mapped[str | None] = mapped_column(String(200), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
     organization: Mapped["Organization"] = relationship(back_populates="users")
