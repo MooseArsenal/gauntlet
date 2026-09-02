@@ -101,6 +101,7 @@
     $("btnGuided").hidden = true;
     $("btnEditor").hidden = true;
     $("btnMembers").hidden = true;
+    $("btnTour").hidden = true;
     ["btnPause", "btnResume", "btnVerify", "btnCertificate", "btnHotwash", "btnRunday"].forEach((id) => ($(id).hidden = true));
   }
 
@@ -214,6 +215,7 @@
     $("btnGuided").hidden = false;
     $("btnEditor").hidden = false;
     $("btnMembers").hidden = !(currentUser && currentUser.role === "admin");  // U-1: admins manage members
+    $("btnTour").hidden = false;
     ["btnPause", "btnResume", "btnVerify", "btnCertificate", "btnHotwash", "btnRunday"].forEach((id) => ($(id).hidden = true));
 
     const showArchived = $("showArchived") && $("showArchived").checked;
@@ -269,6 +271,7 @@
     });
 
     await populateGenerator();
+    if (window.GauntletTour) window.GauntletTour.maybeAuto();
   }
 
   async function populateGenerator() {
@@ -1154,6 +1157,7 @@
     $("btnVerify").addEventListener("click", verify);
     $("btnCertificate").addEventListener("click", certificate);
     $("btnHotwash").addEventListener("click", hotwash);
+    $("btnTour").addEventListener("click", () => { if (window.GauntletTour) window.GauntletTour.start(); });
     document.addEventListener("keydown", keys);
     $("modalX").addEventListener("click", () => ($("modal").hidden = true));
     $("modal").addEventListener("click", (e) => { if (e.target === $("modal")) $("modal").hidden = true; });

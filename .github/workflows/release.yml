@@ -1,0 +1,67 @@
+# Release (M6): on a version tag, build the container image, publish it to
+# GHCR with the version and "latest" tags, attach the SBOM, and open a
+# GitHub Release whose notes are the matching CHANGELOG section.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Version from tag
+        id: v
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+      - name: Tag matches the package version
+        run: |
+          pv=$(python -c "import re;print(re.search(r'__version__ = \"([^\"]+)\"', open('backend/app/__init__.py').read()).group(1))")
+          test "$pv" = "${{ steps.v.outputs.version }}" || { echo "tag ${{ steps.v.outputs.version }} != __version__ $pv"; exit 1; }
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Image name
+        id: img
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/Dockerfile
+          push: true
+          build-args: |
+            GAUNTLET_VERSION=${{ steps.v.outputs.version }}
+            GAUNTLET_REVISION=${{ github.sha }}
+          tags: |
+            ${{ steps.img.outputs.name }}:${{ steps.v.outputs.version }}
+            ${{ steps.img.outputs.name }}:latest
+          labels: |
+            org.opencontainers.image.version=${{ steps.v.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: SBOM for the release
+        run: |
+          pip install "cyclonedx-bom>=4.0"
+          cyclonedx-py requirements backend/requirements.lock.txt --of JSON -o sbom-${{ steps.v.outputs.version }}.cdx.json
+      - name: Release notes from CHANGELOG
+        run: |
+          awk -v v="${{ steps.v.outputs.version }}" '
+            $0 ~ "^## \\[" v "\\]" {p=1; next}
+            p && /^## \[/ {exit}
+            p {print}' CHANGELOG.md > notes.md
+          test -s notes.md || echo "See CHANGELOG.md." > notes.md
+      - uses: softprops/action-gh-release@v2
+        with:
+          body_path: notes.md
+          files: sbom-${{ steps.v.outputs.version }}.cdx.json
