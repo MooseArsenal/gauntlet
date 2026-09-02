@@ -34,6 +34,10 @@ product with no dependency on any other system. See
   hash-chained log that can be verified.
 - **Reports** — one timeline, four audience lenses: executive, technical (SOC/IR),
   GRC/audit evidence, and training gaps.
+- **Enterprise ready** — OIDC SSO, SCIM 2.0 provisioning, TOTP MFA, Postgres
+  row-level security on by default in production, encryption at rest, retention
+  and erasure, audit log, air-gapped mode, Redis-shared throttles, CycloneDX SBOM
+  in CI. See `docs/ENTERPRISE.md` and `SECURITY.md`.
 - **Run-day mode** — a pre-brief the room reads (rules of engagement, cells,
   objectives, a large join code) and a projector view of the current scene with
   the kill chain and the live tally; a hotwash that rates every objective and logs

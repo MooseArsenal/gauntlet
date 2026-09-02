@@ -15,7 +15,7 @@ from .api import (
     compliance_api,
     environments, exports_api, improvements, join_api, live, members, multicell, program, purple,
     reports,
-    scenarios, schedules, sessions,
+    scenarios, schedules, scim, sessions,
 )
 from .config import (
     AIRGAPPED, APP_TAGLINE, APP_TITLE, CORS_ORIGINS, DOCS_ENABLED, IS_PROD, MAX_REQUEST_BYTES,
@@ -84,6 +84,11 @@ app.add_middleware(
 app.add_middleware(BodySizeLimitMiddleware, max_bytes=lambda: MAX_REQUEST_BYTES)
 
 
+@app.exception_handler(scim.ScimError)
+async def _scim_error(_, exc: scim.ScimError):
+    return scim._error(exc)
+
+
 @app.get("/api/health", tags=["meta"])
 def health():
     # "demo" tells the sign-in page whether the seeded demo account exists (U-5).
@@ -114,6 +119,7 @@ app.include_router(admin.router)
 app.include_router(members.router)
 app.include_router(archive.router)
 app.include_router(certificates.router)
+app.include_router(scim.router)
 app.include_router(ws.router)
 
 # Facilitator console (served last so it never shadows the API routes).
