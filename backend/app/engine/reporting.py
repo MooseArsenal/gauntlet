@@ -80,6 +80,10 @@ def _timeline_lines(events: Sequence) -> list[str]:
             out.append(f"- `{clock}` Adjudication [{verdict}] — {e.payload.get('rationale', '')}")
         elif e.kind == "note":
             out.append(f"- `{clock}` Note — {e.payload.get('text', '')}")
+        elif e.kind == "evidence":
+            p_ = e.payload or {}
+            out.append(f"- `{clock}` Evidence attached — {p_.get('filename', '')} ({p_.get('size', 0)} bytes, sha256 {str(p_.get('sha256', ''))[:16]}…)"
+                       + (f" — {p_.get('note')}" if p_.get("note") else ""))
         elif e.kind == "delivery":
             p_ = e.payload or {}
             chans = ", ".join(k for k, v in (p_.get("channels") or {}).items() if v.get("ok")) or "nothing"
@@ -198,6 +202,7 @@ def build_report(session, scenario, environment, events, observations, audience:
             f"- **Adversary actions adjudicated:** {m['adjudications']}\n\n"
             f"## Objectives assessed\n\n"
             + "\n".join(_objective_lines(scenario.objectives, observations)) + "\n\n"
+            + _evidence_block(events) +
             f"## Attestation trail\n\n"
             f"The full exercise is recorded on a hash-chained, append-only timeline "
             f"({len(events)} events). This record demonstrates that an incident-response "
@@ -215,6 +220,15 @@ def build_report(session, scenario, environment, events, observations, audience:
         )
 
     return f"{scenario.name} — {AUDIENCES[audience]}", head + meta + "\n" + body
+
+
+def _evidence_block(events: Sequence) -> str:
+    rows = [e.payload or {} for e in events if e.kind == "evidence"]
+    if not rows:
+        return ""
+    return ("## Evidence attached\n\n| File | Type | Size | SHA-256 | Note |\n|---|---|---|---|---|\n"
+            + "\n".join(f"| {r.get('filename', '')} | {r.get('content_type', '')} | {r.get('size', 0)} | `{r.get('sha256', '')}` | {r.get('note', '')} |" for r in rows)
+            + "\n\n")
 
 
 def _observation_block(observations: Sequence) -> str:
