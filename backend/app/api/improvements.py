@@ -113,7 +113,8 @@ def from_gaps(session_id: int, user: models.User = Depends(require_facilitator),
 # --------------------------------------------------------------------------- #
 @router.post("/api/improvements/{item_id}/push", response_model=schemas.ImprovementOut)
 def push_to_tracker(item_id: int, request: Request,
-                    user: models.User = Depends(require_facilitator), db: Session = Depends(get_db)):
+                    user: models.User = Depends(require_facilitator), db: Session = Depends(get_db),
+                    _feature: models.User = Depends(__import__("app.entitlements", fromlist=["require_feature"]).require_feature("tracker_push"))):
     item = _get_item(db, item_id, user)
     if item.external_ref:
         raise HTTPException(status.HTTP_409_CONFLICT, "already pushed to a tracker")

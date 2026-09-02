@@ -9,7 +9,7 @@ audit, encryption and row-level security are never gated.
 | Tier | Includes |
 |---|---|
 | Community (no licence) | The full engine, environment and CTEP libraries, adversary catalog, reports, certificates, exports, SSO, MFA, audit, air-gapped mode. |
-| Team | White-label branding, the content subscription, the telemetry loop. |
+| Team | White-label branding, the content subscription, the telemetry loop, Jira/ServiceNow push. |
 | Education | Team, plus the education edition (cohorts, gradebook, anonymous grading) and session replay. |
 | Enterprise | Education, plus partner mode, SCIM provisioning, the instance benchmark cohort, the adversary intel feed. |
 
