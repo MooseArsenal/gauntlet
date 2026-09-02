@@ -236,6 +236,13 @@ class Session(Base):
     current_inject_code: Mapped[str | None] = mapped_column(String(40), nullable=True)
     # Short join code for large-group onboarding (D4); null until generated.
     join_code: Mapped[str | None] = mapped_column(String(12), nullable=True, index=True)
+    # Signed chain head (S-6): the sequence and hash of the last timeline event,
+    # HMAC-signed, so a truncated chain no longer verifies as intact.
+    head_seq: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    head_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    head_sig: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # When the armed auto-advance timer is due (F-5); re-armed on startup.
+    due_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Authorization for live/technical injects (M4). Empty until explicitly granted.
     auth_scope: Mapped[list] = mapped_column(JSON, default=list)  # allowed target codes/hosts, "*" = any

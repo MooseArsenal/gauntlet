@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from .. import audit, models, oidc, schemas, security
 from ..audit import client_ip
-from ..config import OIDC_ENABLED
+from ..config import LOGIN_ACCOUNT_MAX_ATTEMPTS, OIDC_ENABLED
 from ..database import get_db
 from ..security import (
     create_token,
@@ -82,7 +82,8 @@ def register(payload: schemas.RegisterIn, request: Request, db: Session = Depend
 def login(payload: schemas.LoginIn, request: Request, db: Session = Depends(get_db)):
     email = payload.email.lower()
     key = f"{client_ip(request)}|{email}"
-    wait = throttle.retry_after(key)
+    acct = f"acct|{email}"   # S-5: counted whatever address the attempt came from
+    wait = max(throttle.retry_after(key), throttle.retry_after(acct))
     if wait > 0:
         audit.record(db, "auth.login.locked", request=request, actor_email=email,
                      detail={"retry_after": wait})
@@ -94,10 +95,12 @@ def login(payload: schemas.LoginIn, request: Request, db: Session = Depends(get_
     ).scalar_one_or_none()
     if not user or not verify_password(payload.password, user.password_hash) or not user.is_active:
         throttle.record_failure(key)
+        throttle.record_failure(acct, limit=LOGIN_ACCOUNT_MAX_ATTEMPTS)
         audit.record(db, "auth.login.failure", request=request, actor_email=email)
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid credentials")
 
     throttle.reset(key)
+    throttle.reset(acct)
     # First factor passed. If MFA is enabled, hand back a challenge, not tokens.
     if user.mfa_enabled and user.mfa_secret:
         audit.record(db, "auth.login.mfa_challenge", request=request, user=user)
@@ -113,13 +116,30 @@ def login(payload: schemas.LoginIn, request: Request, db: Session = Depends(get_
 
 @router.post("/login/mfa", response_model=schemas.LoginResult)
 def login_mfa(payload: schemas.MfaLoginIn, request: Request, db: Session = Depends(get_db)):
-    """Second factor: exchange an MFA challenge + TOTP code for tokens."""
-    user = db.get(models.User, security.read_mfa_challenge(payload.challenge))
+    """Second factor: exchange an MFA challenge + TOTP code for tokens.
+
+    The challenge is single-use, and code guessing is throttled per account:
+    after LOGIN_MAX_ATTEMPTS wrong codes the challenge is spent and the account's
+    second factor is locked for LOGIN_LOCKOUT_SEC (S-4)."""
+    user_id, jti = security.read_mfa_challenge(payload.challenge)
+    user = db.get(models.User, user_id)
     if not user or not user.is_active or not user.mfa_enabled or not user.mfa_secret:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid challenge")
+    key = f"mfa|{user.id}"
+    wait = throttle.retry_after(key)
+    if wait > 0:
+        security._spent_challenges.spend(jti)
+        audit.record(db, "auth.mfa.locked", request=request, user=user, detail={"retry_after": wait})
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS,
+                            f"too many codes; retry in {wait}s")
     if not security.totp_verify(user.mfa_secret, payload.code):
+        throttle.record_failure(key)
+        if throttle.retry_after(key) > 0:
+            security._spent_challenges.spend(jti)
         audit.record(db, "auth.mfa.failure", request=request, user=user)
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid code")
+    throttle.reset(key)
+    security._spent_challenges.spend(jti)  # single use
     audit.record(db, "auth.login.success", request=request, user=user, detail={"mfa": True})
     t = _tokens(db, user)
     db.commit()
@@ -246,6 +266,11 @@ def _sso_user(db: Session, claims: dict) -> models.User:
         select(models.User).where(models.User.oidc_subject == sub)
     ).scalar_one_or_none() if sub else None
     if user is None and email:
+        # Linking an existing account by email is only safe when the provider
+        # vouches for that email (S-8); an unverified claim could belong to anyone.
+        if claims.get("email_verified") is not True:
+            raise HTTPException(status.HTTP_403_FORBIDDEN,
+                                "the identity provider has not verified this email address")
         user = db.execute(
             select(models.User).where(func.lower(models.User.email) == email)
         ).scalar_one_or_none()

@@ -26,13 +26,14 @@ class LoginThrottle:
             until = self._locked_until.get(key, 0)
             return max(0, int(until - time.time()))
 
-    def record_failure(self, key: str) -> None:
+    def record_failure(self, key: str, limit: int | None = None) -> None:
         now = time.time()
+        limit = limit or LOGIN_MAX_ATTEMPTS
         with self._lock:
             window = [t for t in self._fails.get(key, []) if now - t < LOGIN_WINDOW_SEC]
             window.append(now)
             self._fails[key] = window
-            if len(window) >= LOGIN_MAX_ATTEMPTS:
+            if len(window) >= limit:
                 self._locked_until[key] = now + LOGIN_LOCKOUT_SEC
                 self._fails[key] = []
 
