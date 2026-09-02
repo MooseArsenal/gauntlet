@@ -384,6 +384,7 @@
   }
 
   async function openSession(sid) {
+    if (window.GauntletTour) window.GauntletTour.end();  // the tour is for the home screen
     currentSid = sid;
     $("emptyState").hidden = true;
     $("console").hidden = false;
@@ -604,6 +605,32 @@
         || '<li class="muted">No one has joined yet.</li>';
     } catch (e) { /* noop */ }
   }
+  // P2: send the join code to people and channels.
+  async function inviteByCode() {
+    if (!currentSid) return;
+    let ch = { channels: {} };
+    try { ch = await api("/api/delivery/channels"); } catch (e) { /* noop */ }
+    const chanBoxes = ["email", "slack", "teams", "webhook"].map((k) =>
+      `<button type="button" class="btn ghost small chip ${ch.channels[k] && k === "email" ? "on" : ""}" data-ch="${k}" ${ch.channels[k] ? "" : "disabled"} title="${ch.channels[k] ? "" : "not configured on the server"}">${k}</button>`).join("");
+    $("modalBody").innerHTML = `<p class="eyebrow">Invite</p><h1>Send the join code</h1>` +
+      `<p class="sub">Participants get the code and the join link. Configure SMTP or a Slack/Teams webhook on the server to enable a channel.</p>` +
+      `<div class="setup"><label>Addresses<textarea id="invEmails" rows="3" placeholder="one per line or comma-separated"></textarea></label>` +
+      `<label>Message (optional)<input id="invMsg" placeholder="e.g. We start at 09:30 in the boardroom."></label>` +
+      `<div class="row">${chanBoxes}</div><button class="btn primary" id="invSend">Send invitations</button><p class="hint" id="invOut"></p></div>`;
+    $("modal").hidden = false;
+    $("modalBody").querySelectorAll(".chip:not([disabled])").forEach((b) => b.addEventListener("click", () => b.classList.toggle("on")));
+    $("invSend").addEventListener("click", async () => {
+      const channels = [...$("modalBody").querySelectorAll("[data-ch].on")].map((x) => x.dataset.ch);
+      const emails = $("invEmails").value.split(/[\n,;]+/).map((x) => x.trim()).filter(Boolean);
+      if (!channels.length) { toast("Pick a channel."); return; }
+      try {
+        const out = await api(`/api/sessions/${currentSid}/invite`, "POST", { channels, emails, message: $("invMsg").value.trim() });
+        $("invOut").textContent = Object.entries(out.channels).map(([k, v]) => `${k}: ${v.ok ? "sent" + (v.recipients ? ` to ${v.recipients}` : "") : "failed — " + v.error}`).join(" · ");
+        toast(out.delivered ? "Invitations sent." : "Nothing was sent — see the result line.");
+      } catch (e) { toast(e.message); }
+    });
+  }
+
   async function generateJoinCode() {
     if (!currentSid) return;
     try {
@@ -929,8 +956,32 @@
     if (!currentInjectId) return;
     try {
       const d = await api(`/api/injects/${currentInjectId}/delivery`);
-      $("modalBody").innerHTML = renderDelivery(d);
+      let ch = { channels: {}, airgapped: false };
+      try { ch = await api("/api/delivery/channels"); } catch (e) { /* noop */ }
+      const cells = ((lastState && lastState.scenario && lastState.scenario.cells) || [{ key: "blue_cell", name: "Blue cell" }]).filter((c) => c.kind !== "control");
+      const chanBoxes = ["email", "slack", "teams", "webhook"].map((k) =>
+        `<button type="button" class="btn ghost small chip ${ch.channels[k] && k === "email" ? "on" : ""}" data-ch="${k}" ${ch.channels[k] ? "" : "disabled"} title="${ch.channels[k] ? "" : "not configured on the server"}">${k}</button>`).join("");
+      const cellBoxes = cells.map((c) => `<button type="button" class="btn ghost small chip ${c.key === "blue_cell" ? "on" : ""}" data-cell="${escapeHtml(c.key)}">${escapeHtml(c.name || c.key)}</button>`).join("");
+      $("modalBody").innerHTML = renderDelivery(d) +
+        `<div class="dl-send"><p class="eyebrow">Send it for real <span class="hint">— to the people who joined the addressed cells, and to a team channel</span></p>` +
+        (ch.airgapped ? `<p class="hint">Air-gapped deployment: every send is refused and recorded as refused.</p>` : "") +
+        `<div class="row">${chanBoxes}</div><div class="row">${cellBoxes}</div>` +
+        `<div class="row"><input id="dlExtra" placeholder="extra addresses, comma-separated" style="flex:1"><button type="button" class="btn ghost small chip on" id="dlLink">answer link</button><button class="btn primary" id="dlSend">Send</button></div>` +
+        `<p class="hint" id="dlOut"></p></div>`;
       $("modal").hidden = false;
+      $("modalBody").querySelectorAll(".chip:not([disabled])").forEach((b) => b.addEventListener("click", () => b.classList.toggle("on")));
+      $("dlSend").addEventListener("click", async () => {
+        const channels = [...$("modalBody").querySelectorAll("[data-ch].on")].map((x) => x.dataset.ch);
+        const cellsSel = [...$("modalBody").querySelectorAll("[data-cell].on")].map((x) => x.dataset.cell);
+        if (!channels.length) { toast("Pick a channel."); return; }
+        try {
+          const out = await api(`/api/sessions/${currentSid}/deliver`, "POST", {
+            channels, cells: cellsSel, include_link: $("dlLink").classList.contains("on"),
+            extra_emails: $("dlExtra").value.split(",").map((x) => x.trim()).filter(Boolean) });
+          $("dlOut").textContent = Object.entries(out.channels).map(([k, v]) => `${k}: ${v.ok ? "sent" + (v.recipients ? ` to ${v.recipients}` : "") : "failed — " + v.error}`).join(" · ");
+          toast(out.delivered ? "Delivered." : "Nothing was delivered — see the result line.");
+        } catch (e) { toast(e.message); }
+      });
     } catch (e) { toast(e.message); }
   }
 
@@ -1189,6 +1240,7 @@
     $("btnVerify").addEventListener("click", verify);
     $("btnCertificate").addEventListener("click", certificate);
     $("btnHotwash").addEventListener("click", hotwash);
+    $("btnInvite").addEventListener("click", inviteByCode);
     $("btnTour").addEventListener("click", () => { if (window.GauntletTour) window.GauntletTour.start(); });
     document.addEventListener("keydown", keys);
     $("modalX").addEventListener("click", () => ($("modal").hidden = true));
