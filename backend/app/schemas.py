@@ -917,3 +917,11 @@ class TelemetryCompareOut(BaseModel):
     model_agreement: Optional[float] = None
     by_technique: list[dict] = Field(default_factory=list)
     rows: list[dict] = Field(default_factory=list)
+
+
+class BenchmarkOptInIn(BaseModel):
+    opt_in: bool
+
+
+class BenchmarkOptInOut(BaseModel):
+    opt_in: bool

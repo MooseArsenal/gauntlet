@@ -27,6 +27,8 @@ gaps a buyer would hit are closed.
 - **Enterprise** — SCIM 2.0 provisioning with a per-organisation token,
   Redis-shared throttles, row-level security on by default in production,
   CycloneDX SBOM in CI, `SECURITY.md`, `docs/ENTERPRISE.md`.
+- **Sector benchmark** — the organisation's figures against the library's
+  modelled expectation and an opt-in, k-anonymous instance cohort.
 - **Product page and tour** — `/product.html` with positioning and indicative
   pricing; a guided tour of the console for first-time facilitators.
 - **Release pipeline** — tagged versions build and publish the image to GHCR

@@ -8,6 +8,7 @@
     return String(s == null ? "" : s).replace(/[&<>"']/g, (c) =>
       ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   }
+  function toast(m) { const el = $("toast"); if (!el) return; el.textContent = m; el.hidden = false; clearTimeout(el._t); el._t = setTimeout(() => (el.hidden = true), 2600); }
   function initTheme() {
     let t = "dark"; try { t = localStorage.getItem("gauntlet-theme") || "light"; } catch (e) { /* noop */ }
     document.documentElement.setAttribute("data-theme", t);
@@ -81,6 +82,48 @@
         `<span>${pct(m.objectives_met_rate)}</span><span>${m.red_actions}</span></div>`).join("");
   }
 
+  // M7: the org's figures against the library's modelled expectation and, when
+  // opted in, the k-anonymous cohort of other organisations on this instance.
+  function fmtDelta(v, unit, goodWhen) {
+    if (v == null) return "";
+    const good = goodWhen === "up" ? v >= 0 : v <= 0;
+    const sign = v > 0 ? "+" : "";
+    return ` <span class="mat-delta ${v === 0 ? "muted" : good ? "d-good" : "d-bad"}">${sign}${unit === "%" ? Math.round(v * 100) + "%" : v + " min"}</span>`;
+  }
+  async function loadBenchmark(me) {
+    let b;
+    try { b = await api("/api/analytics/benchmark"); } catch (e) { return; }
+    const rows = b.sectors.filter((r) => r.own || r.cohort);
+    $("benchPanel").hidden = false;
+    $("benchNote").textContent = b.note;
+    const cell = (x, key, unit) => {
+      if (!x) return "—";
+      if (x.suppressed) return `<span class="muted">${x.organisations}/${x.needed} orgs</span>`;
+      const v = x[key]; if (v == null) return "—";
+      return unit === "%" ? pct(v) : mins(v);
+    };
+    $("benchTable").innerHTML = rows.length
+      ? `<table class="dfields"><thead><tr><th>Sector</th><th>You</th><th>Modelled expectation</th><th>Instance cohort</th></tr></thead><tbody>` +
+        rows.map((r) => `<tr><td>${esc(r.sector)}</td>` +
+          `<td>${cell(r.own, "detection_rate", "%")} · ${cell(r.own, "mean_time_to_detect_min", "min")}</td>` +
+          `<td>${cell(r.reference, "detection_rate", "%")}${r.vs_reference ? fmtDelta(r.vs_reference.detection_rate, "%", "up") : ""} · ${cell(r.reference, "mean_time_to_detect_min", "min")}${r.vs_reference ? fmtDelta(r.vs_reference.mean_time_to_detect_min, "min", "down") : ""}</td>` +
+          `<td>${b.opt_in ? cell(r.cohort, "detection_rate", "%") + (r.vs_cohort ? fmtDelta(r.vs_cohort.detection_rate, "%", "up") : "") + " · " + cell(r.cohort, "mean_time_to_detect_min", "min") : '<span class="muted">opt in to see</span>'}</td></tr>`).join("") +
+        `</tbody></table><p class="hint">Detection rate · mean time-to-detect. Deltas are yours minus the comparison.</p>`
+      : '<p class="muted">Complete an exercise with adjudicated moves to see how it compares.</p>';
+    if (me && me.role === "admin") {
+      $("benchOpt").hidden = false; $("benchOptIn").checked = !!b.opt_in;
+      $("benchOptIn").onchange = async () => {
+        try {
+          const t = token();
+          const res = await fetch("/api/analytics/benchmark/opt-in", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` }, body: JSON.stringify({ opt_in: $("benchOptIn").checked }) });
+          if (!res.ok) throw new Error("could not update");
+          toast($("benchOptIn").checked ? "Opted in — cohort figures appear once enough organisations contribute." : "Opted out.");
+          loadBenchmark(me);
+        } catch (e) { toast(e.message); }
+      };
+    }
+  }
+
   async function load() {
     try {
       const m = await api("/api/analytics/maturity");
@@ -90,6 +133,8 @@
       renderTiles(m);
       renderChart(active);
       renderTable(m.series);
+      let me = null; try { me = await api("/api/auth/me"); } catch (e) { /* noop */ }
+      loadBenchmark(me);
     } catch (e) { $("matLead").textContent = e.message; }
   }
 

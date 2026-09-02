@@ -37,6 +37,10 @@ product with no dependency on any other system. See
 - **Product page and tour** — `/product.html` (positioning, how an exercise runs,
   indicative pricing) and a guided tour of the console (`/?tour=1`). Releases are
   tagged, published to GHCR with an SBOM, and described in `CHANGELOG.md`.
+- **Sector benchmark** — an organisation's completed exercises against the
+  library's modelled expectation for its sector and, when an admin opts in, the
+  k-anonymous cohort of other organisations on the same instance. Computed
+  locally; nothing leaves the instance.
 - **Enterprise ready** — OIDC SSO, SCIM 2.0 provisioning, TOTP MFA, Postgres
   row-level security on by default in production, encryption at rest, retention
   and erasure, audit log, air-gapped mode, Redis-shared throttles, CycloneDX SBOM

@@ -36,6 +36,9 @@ class Organization(Base):
     # SCIM provisioning (M5): sha256 of the bearer token the identity provider
     # presents; null until an admin mints one.
     scim_token_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    # Sector benchmarking (M7): contribute this organisation's completed-exercise
+    # figures to the instance cohort, and see the cohort in return.
+    benchmark_opt_in: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
     users: Mapped[list["User"]] = relationship(back_populates="organization")
