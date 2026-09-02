@@ -135,6 +135,17 @@
     const tl = state.timeline || [];
     const adj = tl.filter((e) => e.kind === "adjudication" || e.kind === "red_action");
     $("tDetected").textContent = adj.filter((e) => e.payload && e.payload.detected).length;
+    const imp = (state.state && state.state.impact) || null;
+    const ib = $("tImpact");
+    if (ib) {
+      if (imp && Object.keys(imp).length) {
+        const money = (v) => (v >= 1e6 ? "$" + (v / 1e6).toFixed(1) + "M" : v >= 1e3 ? "$" + Math.round(v / 1e3) + "k" : "$" + v);
+        ib.hidden = false;
+        ib.innerHTML = `<span class="k">Impact of the path so far</span>` +
+          (imp.cost != null ? `<b>${money(imp.cost)}</b>` : "") + (imp.downtime_hours != null ? ` · <b>${imp.downtime_hours} h</b> downtime` : "") +
+          (imp.records != null ? ` · <b>${Number(imp.records).toLocaleString()}</b> records` : "") + (imp.customers != null ? ` · <b>${Number(imp.customers).toLocaleString()}</b> customers` : "");
+      } else ib.hidden = true;
+    }
     $("tMissed").textContent = adj.filter((e) => !(e.payload && e.payload.detected)).length;
     $("tInjects").textContent = tl.filter((e) => e.kind === "inject_fired").length;
     $("feed").innerHTML = tl.slice().reverse().slice(0, 12).map((e) => {
