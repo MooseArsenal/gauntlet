@@ -4,7 +4,11 @@ All notable changes to Gauntlet. The format follows Keep a Changelog; versions
 follow SemVer. Container images are published as
 `ghcr.io/moose11b/gauntlet:<version>` on each tag.
 
-## [Unreleased]
+## [0.3.0] — 2026-09-02
+
+The "paid surface" release: an offline licence with tiers, and the features a
+programme, a classroom or an enterprise pays for around the same free engine.
+Community keeps the full engine, the record and the game mode.
 
 ### Added
 - **Licence and entitlements** — offline Ed25519 licences, tiers (Community,
