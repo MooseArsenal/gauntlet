@@ -51,7 +51,7 @@ def test_kid_selection_and_rotation(monkeypatch):
     monkeypatch.delenv("GAUNTLET_LICENSE_PUBKEY", raising=False)  # the suite's own key
     monkeypatch.setenv("GAUNTLET_LICENSE_PUBKEYS", f"{signing.kid_for(k1)}={k1},{k2}")  # explicit and derived kids
     keys = signing.trusted_keys("license")
-    assert set(keys) == {signing.kid_for(k1), signing.kid_for(k2)}
+    assert set(keys) - set(signing.VENDOR_KEYS) == {signing.kid_for(k1), signing.kid_for(k2)}
     t1 = entitlements.issue(p1, tier="team", customer="A", exp="2999-01-01")
     t2 = entitlements.issue(p2, tier="team", customer="B", exp="2999-01-01")
     assert entitlements.parse(t1)["kid"] == signing.kid_for(k1) and entitlements.parse(t2)["kid"] == signing.kid_for(k2)
@@ -201,3 +201,13 @@ def test_no_private_key_material_in_tree():
                 bad.append(os.path.relpath(path, ROOT))
     assert not bad, f"private key material committed: {bad}"
     assert signing.VENDOR_KEYS == {} or all(len(signing.b64d(v)) == 32 for v in signing.VENDOR_KEYS.values())
+
+
+def test_vendor_keys_are_well_formed_and_named_by_their_kid():
+    """Every compiled-in vendor key is a 32-byte Ed25519 public key and its id
+    is the id the tool would print for it — a paste error would fail here."""
+    assert signing.VENDOR_KEYS, "no vendor key compiled in"
+    for kid, pub in signing.VENDOR_KEYS.items():
+        assert len(signing.b64d(pub)) == 32
+        assert signing.kid_for(pub) == kid
+    assert set(signing.VENDOR_KEYS) <= set(signing.trusted_keys("license"))
