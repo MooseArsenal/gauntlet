@@ -122,7 +122,7 @@ def test_session_state_machine_is_enforced_everywhere():
 TENANT_TABLES = {
     "users", "refresh_tokens", "audit_logs", "environments", "scenarios", "sessions",
     "timeline_events", "observations", "reports", "improvement_items",
-    "exercise_schedules", "custom_adversaries", "session_joins",
+    "exercise_schedules", "custom_adversaries", "session_joins", "certificates",
 }
 
 
@@ -132,6 +132,8 @@ def _seed_everything(c, h, org_id, scn, sid):
     c.post(f"/api/sessions/{sid}/start", headers=h)
     c.post(f"/api/sessions/{sid}/observe", headers=h, json={"note": "n"})
     c.post(f"/api/sessions/{sid}/reports", headers=h, json={"audience": "executive"})
+    c.post(f"/api/sessions/{sid}/complete", headers=h)
+    assert c.post(f"/api/sessions/{sid}/certificate", headers=h).status_code == 201
     db = SessionLocal()
     db.add(models.ImprovementItem(org_id=org_id, session_id=sid, title="fix", description="d"))
     db.add(models.CustomAdversary(org_id=org_id, key="k", name="n", description="d"))

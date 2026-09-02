@@ -101,7 +101,7 @@
     $("btnGuided").hidden = true;
     $("btnEditor").hidden = true;
     $("btnMembers").hidden = true;
-    ["btnPause", "btnResume", "btnVerify"].forEach((id) => ($(id).hidden = true));
+    ["btnPause", "btnResume", "btnVerify", "btnCertificate"].forEach((id) => ($(id).hidden = true));
   }
 
   async function finishLogin(data) {
@@ -214,7 +214,7 @@
     $("btnGuided").hidden = false;
     $("btnEditor").hidden = false;
     $("btnMembers").hidden = !(currentUser && currentUser.role === "admin");  // U-1: admins manage members
-    ["btnPause", "btnResume", "btnVerify"].forEach((id) => ($(id).hidden = true));
+    ["btnPause", "btnResume", "btnVerify", "btnCertificate"].forEach((id) => ($(id).hidden = true));
 
     const showArchived = $("showArchived") && $("showArchived").checked;
     const [scenarios, sessions] = await Promise.all([
@@ -390,6 +390,8 @@
     $("btnPause").hidden = session.status !== "running";
     $("btnResume").hidden = session.status !== "paused";
     $("btnVerify").hidden = false;
+    // M1: a completed exercise can be certified — the number, signed.
+    $("btnCertificate").hidden = session.status !== "complete";
 
     // left rail
     $("scnName").textContent = scenario.name;
@@ -647,6 +649,39 @@
       ? `<span class="chainok">✓ chain intact · ${v.events} events</span>`
       : `<span class="chainbad">✗ chain broken</span>`;
     toast(v.chain_valid ? "Timeline verified — hash-chain intact." : "Timeline verification FAILED.");
+  }
+
+  // M1: issue (idempotent) and show the signed certificate for a completed exercise.
+  async function certificate() {
+    try {
+      const cert = await api(`/api/sessions/${currentSid}/certificate`, "POST");
+      const p = cert.payload || {};
+      const pct = (v) => (v == null ? "n/a" : Math.round(v * 100) + "%");
+      const obj = p.objectives || {};
+      const verifyUrl = `${location.origin}/verify.html?serial=${encodeURIComponent(cert.serial)}`;
+      const tiles = [
+        ["Detection rate", pct(p.detection_rate)],
+        ["Mean time to detect", p.mean_time_to_detect_min == null ? "n/a" : p.mean_time_to_detect_min + " min"],
+        ["Objectives met", pct(obj.met_rate)],
+        ["Techniques exercised", String((p.techniques_exercised || []).length)],
+      ].map(([k, v]) => `<div class="stile info"><span class="v">${escapeHtml(v)}</span><span class="k">${escapeHtml(k)}</span></div>`).join("");
+      modalWithDownloads(
+        `<p class="eyebrow">Exercise certificate · ${escapeHtml(cert.serial)}</p>` +
+        `<h1>${escapeHtml(p.organization || "")}</h1>` +
+        `<p class="sub">completed <b>${escapeHtml(p.exercise || "")}</b> (${escapeHtml(p.scenario || "")}) against ${escapeHtml(p.environment || "")}.</p>` +
+        `<div class="score cert-tiles">${tiles}</div>` +
+        `<table class="dfields"><tbody>` +
+        `<tr><td>Adversary actions</td><td>${p.adversary_actions} adjudicated · ${p.detected} detected · ${p.missed} missed</td></tr>` +
+        `<tr><td>Objectives</td><td>${obj.met || 0} met · ${obj.partial || 0} partial · ${obj.missed || 0} not met · of ${obj.total || 0}</td></tr>` +
+        `<tr><td>Undetected techniques</td><td>${escapeHtml((p.coverage_gaps || []).join(", ") || "none")}</td></tr>` +
+        `<tr><td>Timeline</td><td>${p.timeline_events} signed events · chain ${p.chain_verified ? "verified intact at issue" : "NOT verified"}</td></tr>` +
+        `<tr><td>Issued</td><td>${escapeHtml(new Date(cert.issued_at).toLocaleString())} by ${escapeHtml(cert.issued_by || "")}</td></tr>` +
+        `<tr><td>Signature</td><td><code class="cert-sig">${escapeHtml(cert.signature)}</code></td></tr>` +
+        `<tr><td>Verify</td><td><a href="${escapeHtml(verifyUrl)}" target="_blank" rel="noopener">${escapeHtml(verifyUrl)}</a><br><span class="hint">Anyone with the serial can check these figures without an account.</span></td></tr>` +
+        `</tbody></table>` +
+        `<blockquote>An exercise record, not a compliance attestation. The figures were frozen and signed at issue; the verify link recomputes the signature.</blockquote>`,
+        [{ label: "Download certificate PDF", path: `/api/sessions/${currentSid}/certificate.pdf`, filename: `certificate-${cert.serial}.pdf` }]);
+    } catch (e) { toast(e.message); }
   }
 
   async function downloadBlob(path, filename) {
@@ -979,6 +1014,7 @@
     $("btnResume").addEventListener("click", () => setStatus("resume"));
     $("btnComplete").addEventListener("click", () => setStatus("complete"));
     $("btnVerify").addEventListener("click", verify);
+    $("btnCertificate").addEventListener("click", certificate);
     $("modalX").addEventListener("click", () => ($("modal").hidden = true));
     $("modal").addEventListener("click", (e) => { if (e.target === $("modal")) $("modal").hidden = true; });
 
