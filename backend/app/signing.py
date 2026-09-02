@@ -34,6 +34,7 @@ from . import config
 # built-in anchor — production trusts nothing until this is set or
 # GAUNTLET_TRUST_ENV_KEYS=1 is deliberately chosen.
 VENDOR_KEYS: dict[str, str] = {
+    "57ad1f1b7780": "bAmy5BZtr5XyCz6dmzyRj_O3AsqeNEOcGoj1pM40RcM",  # vendor licence key, 2026
 }
 
 ENV_VARS = {
@@ -79,12 +80,14 @@ def trusted_keys(purpose: str = "license") -> dict[str, ed25519.Ed25519PublicKey
     if env_keys_allowed():
         purposes = (purpose, "license") if purpose == "pack" else (purpose,)
         for p in purposes:
+            env_raw: dict[str, str] = {}
             for var in ENV_VARS[p]:
                 v = os.environ.get(var, "")
                 if v:
-                    raw.update(_parse_env(v))
-            if raw:
-                break
+                    env_raw.update(_parse_env(v))
+            if env_raw:
+                raw.update(env_raw)
+                break  # pack-specific keys, else the licence keys; not both
     keys = {}
     for kid, b64 in raw.items():
         try:
