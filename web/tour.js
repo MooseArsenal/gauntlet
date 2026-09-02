@@ -57,7 +57,8 @@
   function maybeAuto() {
     let done = "1"; try { done = localStorage.getItem(KEY) || ""; } catch (e) { /* noop */ }
     const want = new URLSearchParams(location.search).get("tour") === "1";
-    if (want || !done) setTimeout(() => { if (stops().length) start(); }, 900);
+    const inExercise = () => { const c = $("console"); return c && !c.hidden; };
+    if (want || !done) setTimeout(() => { if (stops().length && !inExercise()) start(); }, 900);
   }
   window.GauntletTour = { start, end, maybeAuto };
 })();

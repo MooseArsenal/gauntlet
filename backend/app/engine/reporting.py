@@ -80,6 +80,11 @@ def _timeline_lines(events: Sequence) -> list[str]:
             out.append(f"- `{clock}` Adjudication [{verdict}] — {e.payload.get('rationale', '')}")
         elif e.kind == "note":
             out.append(f"- `{clock}` Note — {e.payload.get('text', '')}")
+        elif e.kind == "delivery":
+            p_ = e.payload or {}
+            chans = ", ".join(k for k, v in (p_.get("channels") or {}).items() if v.get("ok")) or "nothing"
+            out.append(f"- `{clock}` Delivered {'invite' if p_.get('invite') else e.ref} via {chans}"
+                       + (f" to {p_.get('recipients')} recipient(s)" if p_.get("recipients") else ""))
         elif e.kind == "response":
             p_ = e.payload or {}
             out.append(f"- `{clock}` Decision by {p_.get('display_name', '')} ({p_.get('cell', '')}) — "
