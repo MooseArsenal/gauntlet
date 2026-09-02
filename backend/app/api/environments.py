@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
 
 from .. import audit, intake, models, schemas
+from ..authoring import environments as env_library
 from ..config import MAX_IMPORT_BYTES
 from ..database import get_db
 from ..security import require_staff, require_facilitator, scope_or_404
@@ -64,6 +65,43 @@ def import_environment(
     db.commit()
     db.refresh(env)
     return schemas.EnvironmentImportOut(environment=env, imported=summary, created=created)
+
+
+@router.get("/templates", response_model=list[schemas.EnvironmentTemplateOut])
+def list_environment_templates(user: models.User = Depends(require_staff)):
+    """The environment library: complete sector estates a proctor can stamp
+    into the organisation and then edit (E1)."""
+    return [schemas.EnvironmentTemplateOut(**s) for s in env_library.summaries()]
+
+
+@router.post("/from-template", response_model=schemas.EnvironmentOut, status_code=201)
+def create_from_template(
+    payload: schemas.EnvironmentFromTemplateIn,
+    request: Request,
+    user: models.User = Depends(require_facilitator),
+    db: Session = Depends(get_db),
+):
+    """Create an environment in the caller's organisation from a library template."""
+    try:
+        env = env_library.build_from_template(payload.key, payload.name)
+    except KeyError:
+        raise HTTPException(404, f"no environment template '{payload.key}'")
+    env.org_id = user.org_id
+    # Stamping the same template twice must not produce two identically named
+    # environments: suffix the copy so the picker stays unambiguous.
+    taken = {n for (n,) in db.execute(
+        select(models.Environment.name).where(models.Environment.org_id == user.org_id))}
+    base_name, n = env.name, 2
+    while env.name in taken:
+        env.name = f"{base_name} ({n})"
+        n += 1
+    db.add(env)
+    db.flush()
+    audit.record(db, "environment.from_template", request=request, user=user,
+                 detail={"template": payload.key, "environment_id": env.id}, commit=False)
+    db.commit()
+    db.refresh(env)
+    return env
 
 
 @router.get("", response_model=list[schemas.EnvironmentSummary])

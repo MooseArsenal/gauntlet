@@ -278,11 +278,12 @@
         api("/api/catalog/actors"),
         api("/api/catalog/templates"),
       ]);
-      if (!envs.length) return;
       $("genBlock").hidden = false;
-
-      $("genEnv").innerHTML = envs
-        .map((e) => `<option value="${e.id}">${escapeHtml(e.name)}</option>`).join("");
+      // E1: with no environment yet the picker says so and the New button is the way in.
+      $("genEnv").innerHTML = envs.length
+        ? envs.map((e) => `<option value="${e.id}">${escapeHtml(e.name)}${e.sector ? " · " + escapeHtml(e.sector) : ""}</option>`).join("")
+        : '<option value="">No environments yet — create one</option>';
+      $("btnGenerate").disabled = !envs.length;
 
       const tOpts = templates.map((t) =>
         `<option value="tpl:${t.key}">Template · ${escapeHtml(t.name)}</option>`).join("");
@@ -818,6 +819,49 @@
   // ---- security settings (change password, MFA) -------------------------- //
   function closeModal() { $("modal").hidden = true; }
 
+  // ---- E1: new environment (library / blank / import) ------------------------- //
+  async function openNewEnvironment() {
+    let templates = [];
+    try { templates = await api("/api/environments/templates"); } catch (e) { /* noop */ }
+    $("modal").hidden = false;
+    $("modalBody").innerHTML =
+      '<p class="eyebrow">New environment</p>' +
+      '<h1>The system under test</h1>' +
+      '<p class="sub">Every ruling is made against an environment: its assets, the controls that cover them, and where the deception is. Start from a sector template and edit, start blank, or import an export from a tool you already have.</p>' +
+      '<div class="env-sources">' +
+      '<div class="source"><h3>From the library</h3>' +
+      '<div class="env-tpls">' + templates.map((t) =>
+        `<label class="env-tpl"><input type="radio" name="envTpl" value="${escapeHtml(t.key)}">` +
+        `<span class="env-tpl-name">${escapeHtml(t.name)}</span><span class="env-tpl-meta">${escapeHtml(t.sector)} · ${escapeHtml(t.box_type)} box · ${t.assets} assets · ${t.controls} controls · ${t.deception} canary</span>` +
+        `<span class="env-tpl-desc">${escapeHtml(t.description)}</span></label>`).join("") + '</div>' +
+      '<div class="row" style="margin-top:.6rem"><input id="envTplName" type="text" placeholder="Name (optional — defaults to the template name)"><button class="btn primary" id="btnEnvFromTpl">Create from template</button></div></div>' +
+      '<div class="source"><h3>Blank</h3><div class="row"><input id="envBlankName" type="text" placeholder="Name, e.g. Acme Retail — Stores"><input id="envBlankSector" type="text" placeholder="Sector"><select id="envBlankBox"><option value="grey">Grey box</option><option value="white">White box</option><option value="black">Black box</option></select><button class="btn" id="btnEnvBlank">Create blank</button></div>' +
+      '<p class="hint">Add assets and controls afterwards through the API or an import; a blank environment adjudicates every action as a detection gap until it has controls.</p></div>' +
+      '<div class="source"><h3>Import an export</h3><div class="row"><select id="envImpSource"><option value="cmdb">CMDB</option><option value="edr">EDR</option><option value="siem">SIEM</option><option value="asm">Attack-surface scan</option><option value="generic">Generic</option></select><select id="envImpFormat"><option value="json">JSON</option><option value="csv">CSV</option></select><input id="envImpName" type="text" placeholder="Name (optional)"><input id="envImpFile" type="file" accept=".json,.csv,.txt"><button class="btn" id="btnEnvImport">Import</button></div></div>' +
+      '</div><p class="loginerr" id="envErr" hidden></p>';
+    const fail = (e) => { const el = $("envErr"); el.textContent = e.message; el.hidden = false; };
+    const done = async (env) => { closeModal(); toast(`Environment “${env.name}” created.`); await populateGenerator(); $("genEnv").value = String(env.id); };
+    $("btnEnvFromTpl").addEventListener("click", async () => {
+      const pick = $("modalBody").querySelector('input[name="envTpl"]:checked');
+      if (!pick) { fail(new Error("Choose a template first.")); return; }
+      try { done(await api("/api/environments/from-template", "POST", { key: pick.value, name: $("envTplName").value.trim() || null })); } catch (e) { fail(e); }
+    });
+    $("btnEnvBlank").addEventListener("click", async () => {
+      const name = $("envBlankName").value.trim();
+      if (!name) { fail(new Error("Give the environment a name.")); return; }
+      try { done(await api("/api/environments", "POST", { name, sector: $("envBlankSector").value.trim(), box_type: $("envBlankBox").value })); } catch (e) { fail(e); }
+    });
+    $("btnEnvImport").addEventListener("click", async () => {
+      const f = $("envImpFile").files[0];
+      if (!f) { fail(new Error("Choose a file to import.")); return; }
+      try {
+        const data = await f.text();
+        const out = await api("/api/environments/import", "POST", { source: $("envImpSource").value, format: $("envImpFormat").value, data, name: $("envImpName").value.trim() || null });
+        done(out.environment);
+      } catch (e) { fail(e); }
+    });
+  }
+
   async function openSecurity() {
     let me;
     try { me = await api("/api/auth/me"); } catch (e) { return; }
@@ -953,6 +997,7 @@
     $("btnLogout").addEventListener("click", logout);
     $("btnSecurity").addEventListener("click", openSecurity);
     $("showArchived").addEventListener("change", () => loadHome());
+    $("btnNewEnv").addEventListener("click", openNewEnvironment);
     $("btnMfa").addEventListener("click", submitMfa);
     $("mfaCode").addEventListener("keydown", (e) => { if (e.key === "Enter") submitMfa(); });
     initSso();
