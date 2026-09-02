@@ -113,6 +113,7 @@
       renderDecision(view, sid);
       renderFeed(view.timeline);
       renderAttendance(view, sid);
+      const sheet = $("sheet"); if (sheet) { sheet.innerHTML = window.GauntletGame ? window.GauntletGame.progressHtml(view) : ""; sheet.hidden = !sheet.innerHTML; }
     } catch (e) {
       $("scene").innerHTML = `<p class="muted">${esc(e.message)}</p>`;
       $("feed").innerHTML = "";
