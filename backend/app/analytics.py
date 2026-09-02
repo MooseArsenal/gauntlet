@@ -29,7 +29,11 @@ def _session_metrics(session: models.Session) -> dict:
     obj_met = (round(sum(_RATING_WEIGHT[o.rating] for o in rated) / len(rated), 3)
                if rated else None)
 
+    from .decisions import summary as _decisions  # P1
+    d = _decisions(session.events)
     return {
+        "decision_score": d["mean_score"],
+        "decision_latency_sec": d["median_latency_sec"],
         "session_id": session.id,
         "name": session.name,
         "date": session.created_at.isoformat() if session.created_at else None,
@@ -71,12 +75,15 @@ def maturity(sessions: list[models.Session]) -> dict:
             "detection_rate": _avg([m["detection_rate"] for m in active]),
             "mean_time_to_detect_min": _avg([m["mean_time_to_detect_min"] for m in active]),
             "objectives_met_rate": _avg([m["objectives_met_rate"] for m in series]),
+            "decision_score": _avg([m["decision_score"] for m in series]),
+            "decision_latency_sec": _avg([m["decision_latency_sec"] for m in series]),
             "unique_techniques": len(all_techs),
         },
         "trend": {
             "detection_rate": _trend(active, "detection_rate"),
             "mean_time_to_detect_min": _trend(active, "mean_time_to_detect_min"),
             "objectives_met_rate": _trend(series, "objectives_met_rate"),
+            "decision_score": _trend(series, "decision_score"),
         },
         "series": series,
     }

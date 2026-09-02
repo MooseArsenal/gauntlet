@@ -47,6 +47,8 @@ def filter_timeline(events, scenario, cell_key: str) -> list:
             out.append(e)
         elif e.kind in _PARTICIPANT_KINDS:
             out.append(e)
+        elif e.kind == "response" and (e.payload or {}).get("cell") == cell_key:
+            out.append(e)  # P1: a cell sees its own answers, never another cell's
     return out
 
 
