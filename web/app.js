@@ -688,9 +688,14 @@
       `<p class="sub">Participants get the code and the join link. Configure SMTP or a Slack/Teams webhook on the server to enable a channel.</p>` +
       `<div class="setup"><label>Addresses<textarea id="invEmails" rows="3" placeholder="one per line or comma-separated"></textarea></label>` +
       `<label>Message (optional)<input id="invMsg" placeholder="e.g. We start at 09:30 in the boardroom."></label>` +
+      `<div class="row"><label style="flex:1">Calendar file — start<input id="invStart" type="datetime-local"></label><label>Hours<input id="invHours" type="number" value="2" min="0.5" step="0.5" style="width:5rem"></label><button class="btn ghost small" id="invIcs" type="button" title="Download an .ics invite for this exercise">.ics</button></div>` +
       `<div class="row">${chanBoxes}</div><button class="btn primary" id="invSend">Send invitations</button><p class="hint" id="invOut"></p></div>`;
     $("modal").hidden = false;
     $("modalBody").querySelectorAll(".chip:not([disabled])").forEach((b) => b.addEventListener("click", () => b.classList.toggle("on")));
+    $("invIcs").addEventListener("click", () => {
+      const st = $("invStart").value; if (!st) { toast("Pick a start time."); return; }
+      downloadBlob(`/api/sessions/${currentSid}/invite.ics?start=${encodeURIComponent(new Date(st).toISOString())}&hours=${encodeURIComponent($("invHours").value || "2")}`, `exercise-${currentSid}.ics`);
+    });
     $("invSend").addEventListener("click", async () => {
       const channels = [...$("modalBody").querySelectorAll("[data-ch].on")].map((x) => x.dataset.ch);
       const emails = $("invEmails").value.split(/[\n,;]+/).map((x) => x.trim()).filter(Boolean);
@@ -896,7 +901,17 @@
         `<tr><td>Verify</td><td><a href="${escapeHtml(verifyUrl)}" target="_blank" rel="noopener">${escapeHtml(verifyUrl)}</a><br><span class="hint">Anyone with the serial can check these figures without an account.</span></td></tr>` +
         `</tbody></table>` +
         `<blockquote>An exercise record, not a compliance attestation. The figures were frozen and signed at issue; the verify link recomputes the signature.</blockquote>`,
-        [{ label: "Download certificate PDF", path: `/api/sessions/${currentSid}/certificate.pdf`, filename: `certificate-${cert.serial}.pdf` }]);
+        [{ label: "Download certificate PDF", path: `/api/sessions/${currentSid}/certificate.pdf`, filename: `certificate-${cert.serial}.pdf` },
+         { label: "Board pack PDF", path: `/api/sessions/${currentSid}/board-pack.pdf`, filename: `board-pack-${cert.serial}.pdf` }]);
+      // P6: one certificate of participation per person who joined by code
+      try {
+        const att = await api(`/api/sessions/${currentSid}/attendance`);
+        if (att.attendees.length) {
+          const rows = att.attendees.map((a) => `<tr><td>${escapeHtml(a.display_name)}</td><td>${escapeHtml((a.cell || "").replace("_cell", ""))}</td><td>${a.hours != null ? a.hours + " h" : "—"}</td><td>${a.responses}</td><td><a href="#" data-join="${a.join_id}" data-code="${escapeHtml(a.attendee_code)}">PDF</a></td></tr>`).join("");
+          $("modalBody").insertAdjacentHTML("beforeend", `<h2>Certificates of participation</h2><table class="dfields"><thead><tr><th>Who</th><th>Cell</th><th>Hours</th><th>Decisions</th><th></th></tr></thead><tbody>${rows}</tbody></table>`);
+          $("modalBody").querySelectorAll("[data-join]").forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); downloadBlob(`/api/sessions/${currentSid}/attendance/${a.dataset.join}.pdf`, `attendance-${a.dataset.code}.pdf`); }));
+        }
+      } catch (e) { /* attendance is optional */ }
     } catch (e) { toast(e.message); }
   }
 
