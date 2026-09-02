@@ -37,6 +37,11 @@ product with no dependency on any other system. See
 - **Product page and tour** — `/product.html` (positioning, how an exercise runs,
   indicative pricing) and a guided tour of the console (`/?tour=1`). Releases are
   tagged, published to GHCR with an SBOM, and described in `CHANGELOG.md`.
+- **Propose the next scene** — one button drafts the next inject from the live
+  session (current scene, last rulings, the room's decisions) through the same
+  guard-railed assist used for authoring; the proctor edits it, then adds it as a
+  branch and fires it. Deterministic by default; a language model only when
+  configured; nothing is saved until the proctor accepts.
 - **Executive track** — branches carry the author's impact estimates (cost,
   downtime, records, customers) that accumulate along the path the room takes;
   media, regulator, customer, social and board channels; communications decision
