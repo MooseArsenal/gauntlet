@@ -5,8 +5,9 @@ organisations that exercise with it.
 
 ## Reporting a vulnerability
 
-Email **security@** the domain you obtained Gauntlet from, or open a private
-security advisory on the repository. Please include the version (`/api/health`
+Email **security@moosearsenal.com**, or open a private security advisory on
+the repository. The same contact is published at `/.well-known/security.txt`
+on every Gauntlet instance. Please include the version (`/api/health`
 returns it), steps to reproduce, and impact. We acknowledge within two working
 days and aim to ship a fix for confirmed high-severity issues within fourteen.
 We do not pursue researchers who act in good faith and stay within the scope
