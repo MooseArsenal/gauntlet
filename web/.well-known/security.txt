@@ -1,0 +1,5 @@
+# Gauntlet security contact (RFC 9116)
+Contact: mailto:security@moosearsenal.com
+Expires: 2027-09-01T00:00:00.000Z
+Preferred-Languages: en
+Policy: https://github.com/Moose11b/gauntlet/blob/main/SECURITY.md

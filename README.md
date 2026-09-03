@@ -173,6 +173,12 @@ docs/                   design, deployment, enterprise, threat model, licensing,
 - [`docs/API_TOUR.md`](docs/API_TOUR.md) — per-feature API walkthroughs
 - [`docs/POSITIONING.md`](docs/POSITIONING.md) — who it is for and against what
 
+## Contact
+
+Gauntlet is made by [Moose Arsenal](https://moosearsenal.com). Sales:
+sales@moosearsenal.com. Support: support@moosearsenal.com. Security reports:
+security@moosearsenal.com (see [`SECURITY.md`](SECURITY.md)).
+
 ## Responsible use
 
 Gauntlet is for designing and running **defensive** exercises against an
