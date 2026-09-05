@@ -2,7 +2,7 @@
 (() => {
   "use strict";
   const $ = (id) => document.getElementById(id);
-  let me = null, cat = null, side = null, run = null, clock = null, pickedTech = new Set(), pickedAsset = null;
+  let me = null, cat = null, side = null, difficulty = "standard", run = null, clock = null, pickedTech = new Set(), pickedAsset = null;
   function token() { try { return localStorage.getItem("gauntlet-token") || ""; } catch (e) { return ""; } }
   function setTokens(a, r) { try { localStorage.setItem("gauntlet-token", a); if (r) localStorage.setItem("gauntlet-refresh", r); } catch (e) { /* noop */ } }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
@@ -61,9 +61,19 @@
     cat = await api("/api/solo/scenarios");
     $("sides").innerHTML = cat.sides.map((s) => `<button class="side ${side === s.key ? "on" : ""}" data-side="${s.key}"><span class="door-k">${esc(s.key)}</span><b>${esc(s.label.split(" — ")[0])}</b><span class="hint">${esc(SIDE_BLURB[s.key] || "")}</span></button>`).join("");
     $("sides").querySelectorAll("[data-side]").forEach((b) => b.addEventListener("click", () => { side = b.dataset.side; loadPick(); }));
+    $("difficulties").innerHTML = cat.difficulties.map((d) => `<button class="chip ${difficulty === d.key ? "on" : ""}" data-diff="${d.key}" style="font-family:var(--body);font-size:.85rem;padding:.35rem .7rem">${esc(d.label)}</button>`).join("");
+    $("difficulties").querySelectorAll("[data-diff]").forEach((b) => b.addEventListener("click", () => { difficulty = b.dataset.diff; loadPick(); }));
+    const lv = cat.difficulties.find((d) => d.key === difficulty) || {};
+    $("diffHint").textContent = side === "red"
+      ? `Red on ${difficulty}: ${lv.alert} detections evict you, ${lv.moves} moves, ${lv.foothold ? "a foothold before any crown jewel" : "no foothold needed"}, ${lv.deception ? "canaries live (a touch costs two alert points)" : "no canaries"}, ${lv.hints ? "technique hints on" : "no hints"}${lv.zones ? "" : ", zones hidden"}. Score weight ×${lv.weight}.`
+      : side ? `${side === "exec" ? "Executive" : "Blue"} on ${difficulty}: ${lv.clock} s per decision, ${lv.shuffle ? "options shuffled" : "options in authored order"}, ${lv.distractors ? lv.distractors + " distractor" + (lv.distractors > 1 ? "s" : "") + " mixed in" : "no distractors"}, ${lv.hints ? "hints shown" : "no hints"}, impact ×${lv.impact}. Score weight ×${lv.weight}.`
+      : "Pick a side to see what the difficulty changes.";
+    const types = side ? (cat.types[side] || []) : [];
+    $("pickHint").textContent = side ? "The engine assembles a fresh run from the library each time: a sector environment, an adversary from the pool, the attack that fits." : "Choose a side first.";
+    $("types").innerHTML = types.map((t) => `<button class="door" data-type="${esc(t.key)}"><span class="door-k">${esc(side)} · ${esc(difficulty)}</span><b>${esc(t.label)}</b><span>${esc(t.blurb)}${t.win ? " " + esc(t.win) : ""}</span></button>`).join("");
+    $("types").querySelectorAll("[data-type]").forEach((b) => b.addEventListener("click", () => startEngagement(b.dataset.type)));
     const list = side ? cat.scenarios.filter((s) => s.sides.includes(side)) : [];
-    $("pickHint").textContent = side ? (list.length ? `${list.length} scenario${list.length === 1 ? "" : "s"} for the ${side} side.` : "No scenario offers that side yet.") : "Choose a side first.";
-    $("scenarios").innerHTML = list.map((s) => `<button class="scn" data-scn="${s.id}"><span><b>${esc(s.name)}</b><br><span class="hint">${esc(s.threat_actor || "")}${s.sector ? " · " + esc(s.sector) : ""} · ${s.scenes} scenes · ${esc(s.difficulty)}</span></span><span>${s.best[side] != null ? `<span class="pill">best ${s.best[side]}</span> ` : ""}<span class="btn small">Play</span></span></button>`).join("");
+    $("scenarios").innerHTML = list.map((s) => `<button class="scn" data-scn="${s.id}"><span><b>${esc(s.name)}</b><br><span class="hint">${esc(s.threat_actor || "")}${s.sector ? " · " + esc(s.sector) : ""} · ${s.scenes} scenes</span></span><span>${s.best[side] != null ? `<span class="pill">best ${s.best[side]}</span> ` : ""}<span class="btn small">Play</span></span></button>`).join("") || (side ? "" : '<p class="hint">Choose a side first.</p>');
     $("scenarios").querySelectorAll("[data-scn]").forEach((b) => b.addEventListener("click", () => start(Number(b.dataset.scn))));
     show("pickView");
   }
@@ -71,8 +81,8 @@
     try {
       const rows = await api("/api/solo/runs");
       $("runsPanel").hidden = false;
-      $("runs").innerHTML = rows.length ? `<table class="grade"><thead><tr><th>When</th><th>Scenario</th><th>Side</th><th class="n">Score</th><th></th></tr></thead><tbody>` +
-        rows.map((r) => `<tr><td>${esc(r.started_at ? new Date(r.started_at).toLocaleDateString() : "")}</td><td>${esc(r.scenario)}</td><td>${esc(r.side)}</td><td class="n">${r.score == null ? "—" : `<span class="g">${r.score}</span> ${esc(r.badge || "")}`}</td><td>${r.status === "complete" ? `<button class="btn ghost small" data-db="${r.id}">Debrief</button>` : `<button class="btn small" data-resume="${r.id}">Resume</button>`}</td></tr>`).join("") + `</tbody></table>` : '<p class="hint">No runs yet.</p>';
+      $("runs").innerHTML = rows.length ? `<table class="grade"><thead><tr><th>When</th><th>Scenario</th><th>Side</th><th>Difficulty</th><th class="n">Score</th><th></th></tr></thead><tbody>` +
+        rows.map((r) => `<tr><td>${esc(r.started_at ? new Date(r.started_at).toLocaleDateString() : "")}</td><td>${esc(r.scenario)}</td><td>${esc(r.side)}</td><td>${esc(r.difficulty || "standard")}</td><td class="n">${r.score == null ? "—" : `<span class="g">${r.score}</span> ${esc(r.badge || "")}`}</td><td>${r.status === "complete" ? `<button class="btn ghost small" data-db="${r.id}">Debrief</button>` : `<button class="btn small" data-resume="${r.id}">Resume</button>`}</td></tr>`).join("") + `</tbody></table>` : '<p class="hint">No runs yet.</p>';
       $("runs").querySelectorAll("[data-db]").forEach((b) => b.addEventListener("click", () => showDebrief(Number(b.dataset.db))));
       $("runs").querySelectorAll("[data-resume]").forEach((b) => b.addEventListener("click", async () => { run = await api(`/api/solo/${b.dataset.resume}`); side = run.side; render(); }));
     } catch (e) { toast(e.message); }
@@ -80,14 +90,19 @@
 
   // ---- play ----
   async function start(scenarioId) {
-    try { run = await api("/api/solo/start", "POST", { scenario_id: scenarioId, side }); render(); }
+    try { run = await api("/api/solo/start", "POST", { scenario_id: scenarioId, side, difficulty }); render(); }
+    catch (e) { toast(e.message); }
+  }
+  async function startEngagement(type) {
+    toast("Assembling your engagement…");
+    try { run = await api("/api/solo/start", "POST", { side, type, difficulty }); render(); }
     catch (e) { toast(e.message); }
   }
   function render() {
     if (!run) return;
     if (run.status === "complete") { showDebrief(run.id); return; }
     show("playView");
-    $("sidePill").textContent = run.side; $("runName").textContent = run.scenario.name;
+    $("sidePill").textContent = `${run.side} · ${run.difficulty || "standard"}`; $("runName").textContent = run.scenario.name;
     $("bar").style.width = `${run.scenes_total ? Math.round(100 * run.scene_index / run.scenes_total) : 0}%`;
     $("sideLabel").textContent = run.side_label;
     $("roe").textContent = run.scenario.rules_of_engagement || "Facilitated simulation. No production access. Every action is simulated.";
@@ -153,7 +168,9 @@
     $("decision").hidden = true; $("redPanel").hidden = false; $("alertBox").hidden = false;
     const r = run.red;
     $("alert").innerHTML = Array.from({ length: r.max_alert }, (_, i) => `<i class="${i < r.alert ? "on" : ""}"></i>`).join("");
-    $("moveCount").textContent = `— ${r.max_moves - r.moves} left`;
+    $("moveCount").textContent = `— ${r.max_moves - r.moves} left${r.needs_foothold ? (r.foothold ? " · foothold gained" : " · no foothold yet") : ""}`;
+    $("redRules").textContent = `Pick the techniques and the asset. Every move is ruled against the controls in place. ${r.max_alert} detections and you are evicted; reach a crown jewel (double border) unseen and you win.` +
+      (r.needs_foothold ? " A crown jewel needs an unseen move on an outer asset first." : "") + (r.deception_live ? " Canaries are live: touching one costs two alert points." : "");
     $("techChips").innerHTML = r.techniques.map((t) => `<button class="chip ${pickedTech.has(t) ? "on" : ""}" data-t="${esc(t)}">${esc(t)}</button>`).join("") || '<span class="hint">No hints from this scenario; type technique ids below.</span>';
     $("techChips").querySelectorAll("[data-t]").forEach((b) => b.addEventListener("click", () => { pickedTech.has(b.dataset.t) ? pickedTech.delete(b.dataset.t) : pickedTech.add(b.dataset.t); b.classList.toggle("on"); }));
     $("assets").innerHTML = r.assets.map((a) => `<button class="asset ${a.crown_jewel ? "jewel" : ""} ${pickedAsset === a.code ? "on" : ""}" data-a="${esc(a.code)}" title="${a.crown_jewel ? "Crown jewel" : esc(a.zone)}">${esc(a.name)}<span class="mono">${esc(a.code)} · ${esc(a.zone || "")}${a.crown_jewel ? " · crown jewel" : ""}</span></button>`).join("");
@@ -185,7 +202,7 @@
     show("debriefView");
     $("dbScore").innerHTML = `${d.score}<small> / 100</small>`;
     $("dbTitle").textContent = `${d.badge} — ${d.scenario}`;
-    $("dbHead").textContent = `${d.side_label}. ${d.headline}`;
+    $("dbHead").textContent = `${d.side_label} · ${d.difficulty_label || d.difficulty}${d.weight && d.weight !== 1 ? ` (raw ${d.raw_score} × ${d.weight})` : ""}. ${d.headline}`;
     const s = d.summary;
     $("dbStats").innerHTML = d.side === "red"
       ? `<div class="stat"><div class="stat-v">${s.moves}</div><div class="stat-l">Moves</div></div><div class="stat"><div class="stat-v">${s.unseen}</div><div class="stat-l">Unseen</div></div><div class="stat"><div class="stat-v">${s.detected}</div><div class="stat-l">Detected</div></div><div class="stat"><div class="stat-v">${s.captured ? "Yes" : "No"}</div><div class="stat-l">Crown jewel</div></div>`

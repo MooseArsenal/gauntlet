@@ -55,8 +55,13 @@
     <section id="pickView" hidden>
       <p class="eyebrow">Step 1 · Which side are you on?</p>
       <div class="sides" id="sides"></div>
-      <p class="eyebrow" style="margin-top:1rem">Step 2 · Pick a scenario</p>
+      <p class="eyebrow" style="margin-top:1rem">Step 2 · How hard?</p>
+      <div class="chips" id="difficulties" style="margin:.4rem 0 .2rem"></div>
+      <p class="hint" id="diffHint"></p>
+      <p class="eyebrow" style="margin-top:1rem">Step 3 · Pick an engagement</p>
       <p class="hint" id="pickHint">Choose a side first.</p>
+      <div class="doors" id="types"></div>
+      <p class="eyebrow" style="margin-top:1rem">Or replay a worked example</p>
       <div class="scn-list" id="scenarios"></div>
       <div class="panel" id="runsPanel" hidden><p class="eyebrow">Your runs</p><div id="runs"></div></div>
     </section>
@@ -70,7 +75,7 @@
           <div class="dc" id="decision" hidden style="margin-top:1rem"></div>
           <div class="panel" id="redPanel" hidden>
             <p class="eyebrow">Your move <span class="hint" id="moveCount"></span></p>
-            <p class="hint">Pick the techniques and the asset. Every move is ruled against the controls in place. Three detections and you are evicted; reach a crown jewel (double border) unseen and you win.</p>
+            <p class="hint" id="redRules"></p>
             <p class="eyebrow">Techniques</p>
             <div class="chips" id="techChips"></div>
             <input id="techFree" placeholder="…or type ATT&CK ids, comma-separated (e.g. T1021, T1486)" style="width:100%;margin:.4rem 0;font-family:var(--mono)">
