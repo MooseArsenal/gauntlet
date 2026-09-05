@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gauntlet — Learn</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/game.css">
+</head>
+<body>
+  <div class="strip"><span>Exercise control · Learn</span><span>Solo practice — a simulation, not a network — nothing here touches a real system</span></div>
+  <header class="bar">
+    <div class="brand"><span class="mark"><span>G</span></span><b>Gauntlet</b><small>Learn</small></div>
+    <div class="bar-mid" id="runMeta" hidden><span class="pill running" id="sidePill"></span><span class="sess-name" id="runName"></span></div>
+    <div class="bar-actions">
+      <a class="btn ghost" href="/?door=1" id="lnkHome">Doors</a>
+      <button class="btn ghost" id="btnRuns" hidden>My runs</button>
+      <button class="btn ghost" id="btnQuit" hidden>End run</button>
+      <span class="userchip" id="userChip" hidden><span id="userLabel"></span><button class="btn ghost small" id="btnLogout">Sign out</button></span>
+      <button class="btn toggle" id="btnTheme" aria-label="Toggle theme">◑</button>
+    </div>
+  </header>
+  <main class="mat" style="max-width:1100px">
+    <!-- account -->
+    <section id="authView" hidden>
+      <p class="eyebrow">Here to learn</p>
+      <h1 style="font-size:1.8rem;margin:.1rem 0 .3rem">Play a security exercise against the engine.</h1>
+      <p class="muted">Pick a side, make the calls, get a scored debrief that says what you got right and what to work on. Free. A practice run never counts toward any organisation's readiness figures.</p>
+      <div class="home-grid">
+        <div class="home-col"><h2>Sign in</h2>
+          <div class="setup">
+            <label>Email <input id="liEmail" type="email" autocomplete="username"></label>
+            <label>Password <input id="liPass" type="password" autocomplete="current-password"></label>
+            <button class="btn primary" id="btnLogin">Sign in</button>
+            <p class="loginerr" id="liErr" hidden></p>
+          </div>
+        </div>
+        <div class="home-col"><h2>Create a free account</h2>
+          <div class="setup">
+            <label>Name <input id="rgName" placeholder="Ada Lovelace"></label>
+            <label>Email <input id="rgEmail" type="email"></label>
+            <label>Password <input id="rgPass" type="password" placeholder="12+ characters"></label>
+            <button class="btn" id="btnRegister">Create account</button>
+            <p class="hint">You get your own workspace with the bundled scenarios. Nothing to install, nothing to pay.</p>
+            <p class="loginerr" id="rgErr" hidden></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- side + scenario -->
+    <section id="pickView" hidden>
+      <p class="eyebrow">Step 1 · Which side are you on?</p>
+      <div class="sides" id="sides"></div>
+      <p class="eyebrow" style="margin-top:1rem">Step 2 · Pick a scenario</p>
+      <p class="hint" id="pickHint">Choose a side first.</p>
+      <div class="scn-list" id="scenarios"></div>
+      <div class="panel" id="runsPanel" hidden><p class="eyebrow">Your runs</p><div id="runs"></div></div>
+    </section>
+
+    <!-- play -->
+    <section id="playView" hidden>
+      <div class="solo-progress"><span id="bar" style="width:0"></span></div>
+      <div class="solo-stage">
+        <div>
+          <div class="solo-scene reveal" id="scene"></div>
+          <div class="dc" id="decision" hidden style="margin-top:1rem"></div>
+          <div class="panel" id="redPanel" hidden>
+            <p class="eyebrow">Your move <span class="hint" id="moveCount"></span></p>
+            <p class="hint">Pick the techniques and the asset. Every move is ruled against the controls in place. Three detections and you are evicted; reach a crown jewel (double border) unseen and you win.</p>
+            <p class="eyebrow">Techniques</p>
+            <div class="chips" id="techChips"></div>
+            <input id="techFree" placeholder="…or type ATT&CK ids, comma-separated (e.g. T1021, T1486)" style="width:100%;margin:.4rem 0;font-family:var(--mono)">
+            <p class="eyebrow">Target</p>
+            <div class="assets" id="assets"></div>
+            <div class="row" style="margin-top:.6rem"><button class="btn primary" id="btnMove">Make the move</button><span class="hint" id="moveErr"></span></div>
+            <div id="ruling" hidden style="margin-top:.6rem"></div>
+          </div>
+        </div>
+        <aside>
+          <div class="panel"><p class="eyebrow" id="sideLabel"></p>
+            <div class="stats" id="stats" style="grid-template-columns:1fr 1fr"></div>
+            <div id="alertBox" hidden style="margin-top:.6rem"><p class="eyebrow">Alert level</p><div class="alert-meter" id="alert"></div></div>
+          </div>
+          <div class="panel"><p class="eyebrow">Your feed</p><ul class="feed" id="feed"></ul></div>
+          <div class="panel" id="roePanel"><p class="eyebrow">Rules of engagement</p><p class="hint" id="roe"></p></div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- debrief -->
+    <section id="debriefView" hidden>
+      <p class="eyebrow">Debrief</p>
+      <div class="rp-head">
+        <div class="score-ring" id="dbScore"></div>
+        <div><h1 style="font-size:1.6rem;margin:0" id="dbTitle"></h1><p class="muted" id="dbHead"></p></div>
+      </div>
+      <div class="stats" id="dbStats"></div>
+      <div class="panel"><p class="eyebrow">Scene by scene</p><div class="grade-wrap" id="dbRows"></div></div>
+      <div class="panel"><p class="eyebrow">Work on</p><ul id="dbWork"></ul></div>
+      <div class="row" style="margin-top:.8rem">
+        <button class="btn primary" id="btnAgain">Play again</button>
+        <button class="btn" id="btnOther">Try another side</button>
+        <button class="btn ghost" id="btnPdf">Download PDF</button>
+      </div>
+    </section>
+  </main>
+  <div class="toast" id="toast" hidden></div>
+  <script src="/brand.js"></script>
+  <script src="/game.js"></script>
+  <script src="/solo.js"></script>
+</body>
+</html>

@@ -17,7 +17,7 @@ router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 def maturity(user: models.User = Depends(require_evaluator), db: Session = Depends(get_db)):
     """Readiness trended across the org's exercises over time."""
     sessions = db.execute(
-        select(models.Session).where(models.Session.org_id == user.org_id)
+        select(models.Session).where(models.Session.org_id == user.org_id, models.Session.mode != "solo")
     ).scalars().all()
     return analytics.maturity(list(sessions))
 

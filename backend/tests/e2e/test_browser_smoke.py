@@ -82,6 +82,8 @@ def test_console_runs_an_exercise_end_to_end(server):
         errors = []
         page.on("pageerror", lambda e: errors.append(str(e)))
         page.goto(server + "/")
+        page.wait_for_selector("#doorRun", timeout=15000)
+        page.click("#doorRun")  # S1: the doors come before sign-in
         page.fill("#loginEmail", "admin@demo.gauntlet")
         page.fill("#loginPassword", "gauntlet-admin")
         page.click("#btnLogin")

@@ -1041,3 +1041,25 @@ class PackTokenIn(BaseModel):
 
 class PackInstallIn(PackTokenIn):
     environment_id: Optional[int] = None  # scenario packs: bind every scenario here instead of the library environment
+
+
+# --- solo learning mode (S1) --- #
+class SoloStartIn(BaseModel):
+    scenario_id: int
+    side: str = Field(max_length=20)
+
+
+class SoloRespondIn(BaseModel):
+    option: Optional[str] = Field(default=None, max_length=40)
+    text: str = Field(default="", max_length=4000)
+
+
+class SoloMoveIn(BaseModel):
+    techniques: list[str] = Field(default_factory=list, max_length=20)
+    target: str = Field(default="", max_length=120)
+    action: str = Field(default="", max_length=2000)
+
+    @field_validator("techniques")
+    @classmethod
+    def _techs(cls, v: list[str]) -> list[str]:
+        return [str(t).strip()[:40] for t in v if str(t).strip()][:20]

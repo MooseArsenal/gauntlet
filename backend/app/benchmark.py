@@ -81,7 +81,8 @@ def _sector_of(db: Session, session: models.Session) -> str:
 
 
 def _completed(db: Session, org_ids: list[int] | None = None) -> list[models.Session]:
-    q = select(models.Session).where(models.Session.status == "complete", models.Session.archived_at.is_(None))
+    q = select(models.Session).where(models.Session.status == "complete", models.Session.archived_at.is_(None),
+                                     models.Session.mode != "solo")
     if org_ids is not None:
         q = q.where(models.Session.org_id.in_(org_ids))
     return list(db.execute(q).scalars().all())

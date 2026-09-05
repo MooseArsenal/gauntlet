@@ -133,7 +133,7 @@ def list_sessions(include_archived: bool = False, limit: int = 100, offset: int 
     return (
         db.execute(
             select(models.Session)
-            .where(models.Session.org_id == user.org_id,
+            .where(models.Session.org_id == user.org_id, models.Session.mode != "solo",
                    *([] if include_archived else [models.Session.archived_at.is_(None)]))
             .order_by(models.Session.id.desc())
             .limit(max(1, min(limit, 500))).offset(max(0, offset))
@@ -150,7 +150,7 @@ def my_sessions(user: models.User = Depends(get_current_user), db: Session = Dep
     rows = db.execute(
         select(models.SessionJoin, models.Session)
         .join(models.Session, models.Session.id == models.SessionJoin.session_id)
-        .where(models.SessionJoin.user_id == user.id, models.Session.org_id == user.org_id)
+        .where(models.SessionJoin.user_id == user.id, models.Session.org_id == user.org_id, models.Session.mode != "solo")
         .order_by(models.Session.id.desc())
     ).all()
     return [
