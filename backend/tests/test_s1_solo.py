@@ -73,7 +73,7 @@ def test_catalog_and_blue_run_with_autopilot():
         v = c.post("/api/solo/start", headers=_h(p), json={"scenario_id": scn, "side": "blue"}).json()
         sid = v["id"]
         assert v["side"] == "blue" and v["scene"]["code"] == "INJ-01" and v["decision"]["prompt"] == "First move?"
-        assert v["time_limit_sec"] == 60 and v["scene_index"] == 1 and v["scenes_total"] == 4
+        assert v["time_limit_sec"] == 120 and v["scene_index"] == 1  # the standard clock and v["scenes_total"] == 4
         assert "score" not in v["decision"]["options"][0]
         assert any(f["kind"] == "ruling" for f in v["feed"])  # the scripted adversary moved
         # the authored trigger takes the isolate branch, state changes, next scene has its own decision
@@ -124,9 +124,10 @@ def test_red_run_capture_and_eviction():
         o, admin = _org(c); ha = _h(admin)
         env, scn = _world(c, ha)
         p = _user(c, ha, o, "participant")
-        v = c.post("/api/solo/start", headers=_h(p), json={"scenario_id": scn, "side": "red"}).json()
+        v = c.post("/api/solo/start", headers=_h(p), json={"scenario_id": scn, "side": "red", "difficulty": "easy"}).json()
         sid = v["id"]
         assert v["decision"] is None and v["red"]["alert"] == 0 and v["red"]["crown_jewels"] == ["DC-01", "VAULT"]
+        assert v["red"]["needs_foothold"] is False and v["red"]["max_alert"] == 5 and v["red"]["max_moves"] == 12
         assert any(a["crown_jewel"] for a in v["red"]["assets"]) and "T1078" in v["red"]["techniques"]
         assert c.post(f"/api/solo/{sid}/respond", headers=_h(p), json={"option": "a"}).status_code == 409
         assert c.post(f"/api/solo/{sid}/move", headers=_h(p), json={"techniques": [], "target": "WKS-01"}).status_code == 422
@@ -134,9 +135,9 @@ def test_red_run_capture_and_eviction():
         r = c.post(f"/api/solo/{sid}/move", headers=_h(p), json={"techniques": ["T1021"], "target": "DC-01", "action": "lateral move"}).json()
         assert r["ruling"]["detected"] is False and r["captured"] is True and r["status"] == "complete"
         d = c.get(f"/api/solo/{sid}/debrief", headers=_h(p)).json()
-        assert d["score"] >= 90 and d["summary"]["captured"] is True and d["rows"][0]["captured"] is True
+        assert d["raw_score"] >= 90 and d["summary"]["captured"] is True and d["rows"][0]["captured"] is True
         # a second run: three detections evict
-        sid2 = c.post("/api/solo/start", headers=_h(p), json={"scenario_id": scn, "side": "red"}).json()["id"]
+        sid2 = c.post("/api/solo/start", headers=_h(p), json={"scenario_id": scn, "side": "red", "difficulty": "standard"}).json()["id"]
         for i in range(3):
             r = c.post(f"/api/solo/{sid2}/move", headers=_h(p), json={"techniques": ["T1003"], "target": "WKS-01"}).json()
             assert r["ruling"]["detected"] is True and r["alert"] == i + 1

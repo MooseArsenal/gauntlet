@@ -114,6 +114,7 @@ def list_environments(
         db.execute(
             select(models.Environment)
             .where(models.Environment.org_id == user.org_id,
+                   ~models.Environment.name.startswith("Solo arena"),  # S2: solo play copies stay out of the picker
                    *([] if include_archived else [models.Environment.archived_at.is_(None)]))
             .order_by(models.Environment.id)
             .limit(max(1, min(limit, 500))).offset(max(0, offset))

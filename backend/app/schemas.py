@@ -1045,8 +1045,10 @@ class PackInstallIn(PackTokenIn):
 
 # --- solo learning mode (S1) --- #
 class SoloStartIn(BaseModel):
-    scenario_id: int
+    scenario_id: Optional[int] = None          # a worked example…
+    type: Optional[str] = Field(default=None, max_length=40)   # …or a generated engagement of this type
     side: str = Field(max_length=20)
+    difficulty: str = Field(default="standard", max_length=20)
 
 
 class SoloRespondIn(BaseModel):

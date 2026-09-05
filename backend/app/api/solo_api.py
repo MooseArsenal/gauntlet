@@ -4,7 +4,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 
-from .. import branding, models, pdf, schemas, solo
+from .. import branding, engagements, models, pdf, schemas, solo
 from ..database import get_db
 from ..security import get_current_user, scope_or_404
 
@@ -19,7 +19,8 @@ def _run(db: Session, sid: int, user: models.User):
 
 @router.get("/scenarios")
 def scenarios(user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
-    return {"sides": [{"key": k, "label": v} for k, v in solo.SIDE_LABELS.items()], "scenarios": solo.catalog(db, user)}
+    return {"sides": [{"key": k, "label": v} for k, v in solo.SIDE_LABELS.items()], "scenarios": solo.catalog(db, user),
+            **engagements.catalogue()}
 
 
 @router.get("/runs")
@@ -29,10 +30,18 @@ def my_runs(user: models.User = Depends(get_current_user), db: Session = Depends
 
 @router.post("/start", status_code=201)
 def start(payload: schemas.SoloStartIn, user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
-    scenario = scope_or_404(db.get(models.Scenario, payload.scenario_id), user)
-    if scenario.archived_at is not None:
-        raise HTTPException(409, "that scenario is archived")
-    s = solo.start(db, user, scenario, payload.side)
+    if payload.scenario_id is not None:
+        scenario = scope_or_404(db.get(models.Scenario, payload.scenario_id), user)
+        if scenario.archived_at is not None:
+            raise HTTPException(409, "that scenario is archived")
+    else:
+        if not payload.type:
+            raise HTTPException(422, "give a scenario_id, or an engagement type")
+        try:
+            scenario = engagements.build(db, user.org_id, payload.side, payload.type, payload.difficulty)
+        except ValueError as e:
+            raise HTTPException(422, str(e))
+    s = solo.start(db, user, scenario, payload.side, payload.difficulty, payload.type)
     db.commit()
     db.refresh(s)
     return solo.view(db, s, scenario, user)
