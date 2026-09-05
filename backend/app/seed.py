@@ -332,8 +332,17 @@ def seed_if_empty(db: Session) -> bool:
         password_hash=hash_password(os.environ.get("GAUNTLET_DEMO_PASSWORD", "gauntlet-admin")),
     ))
 
+    provision_library(db, org.id)
+    db.commit()
+    return True
+
+
+def provision_library(db: Session, org_id: int) -> list[models.Scenario]:
+    """The worked example plus two more runnable scenarios on library
+    environments, for one organisation. Used on first seed and for a fresh
+    learner's workspace (S1), so there is always something to play."""
     env = _environment()
-    env.org_id = org.id
+    env.org_id = org_id
     db.add(env)
     db.flush()
     # A few more systems under test, so the environment picker is a choice on
@@ -342,13 +351,13 @@ def seed_if_empty(db: Session) -> bool:
     extras = {}
     for key in ("hospital", "water_utility", "saas"):
         extra = build_from_template(key)
-        extra.org_id = org.id
+        extra.org_id = org_id
         db.add(extra)
         extras[key] = extra
     db.flush()
 
     scenario = models.Scenario(
-        org_id=org.id,
+        org_id=org_id,
         environment_id=env.id,
         name="Operation Frostbite — Ransomware Tabletop",
         threat_actor="Financially motivated ransomware affiliate (BEC → ransomware)",
@@ -376,11 +385,11 @@ def seed_if_empty(db: Session) -> bool:
     espionage = generator.build_scenario(
         extras["hospital"], "apt_espionage", template_key="apt_intrusion",
         name="Operation Nightshade — Healthcare Espionage Tabletop")
-    espionage.org_id = org.id
+    espionage.org_id = org_id
     db.add(espionage)
     ics = ctep.build_from_pack(extras["water_utility"], ctep.CTEP_PACKS["ics_ot"],
                                name="Clearwater ICS/OT — CTEP Tabletop")
-    ics.org_id = org.id
+    ics.org_id = org_id
     db.add(ics)
-    db.commit()
-    return True
+    db.flush()
+    return [scenario, espionage, ics]

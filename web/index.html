@@ -45,6 +45,22 @@
   </header>
 
   <main id="app">
+    <!-- Doors (S1): who are you here as? Shown before sign-in until a door is chosen. -->
+    <section class="empty" id="doorsView" hidden>
+      <div class="empty-card">
+        <p class="eyebrow">Welcome</p>
+        <h1>Gauntlet</h1>
+        <p class="sub">Security exercises that produce a signed record. Pick the door that fits you.</p>
+        <div class="doors">
+          <button class="door" id="doorRun"><span class="door-k">Proctor</span><b>Run an exercise</b><span>Build, facilitate, adjudicate and report. Sign in as a facilitator.</span></button>
+          <button class="door" id="doorJoin"><span class="door-k">Blue · Red · Executive</span><b>Join an exercise</b><span>You have a join code from a facilitator. You land in your cell's view.</span></button>
+          <button class="door" id="doorClass"><span class="door-k">Student · Instructor</span><b>Classroom</b><span>Enrol with a class code, or run a cohort and grade it.</span></button>
+          <button class="door accent" id="doorLearn"><span class="door-k">Free · Solo</span><b>Here to learn</b><span>Pick a side, play a scenario against the engine, get a scored debrief.</span></button>
+        </div>
+        <p class="hint">Your choice is remembered on this device. Change it any time from the sign-in screen.</p>
+      </div>
+    </section>
+
     <!-- Login -->
     <section class="empty" id="loginView" hidden>
       <div class="empty-card narrow">
@@ -58,6 +74,7 @@
           <button class="btn ghost" id="btnSso" hidden>Sign in with SSO</button>
           <p class="loginerr" id="loginErr" hidden></p>
           <p class="hint" id="demoHint" hidden>Demo: <code>admin@demo.gauntlet</code> / <code>gauntlet-admin</code></p>
+          <p class="hint"><a href="#" id="lnkDoors">Not a facilitator? Choose another door.</a></p>
         </div>
       </div>
     </section>

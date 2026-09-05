@@ -89,7 +89,19 @@
   }
 
   // ---- auth views -------------------------------------------------------- //
+  // S1: the doors. A facilitator chooses "Run an exercise" once and lands on
+  // sign-in from then on; everyone else is sent to their own page.
+  function doorChosen() { try { return localStorage.getItem("gauntlet-door") === "run"; } catch (e) { return true; } }
+  function showDoors() {
+    $("doorsView").hidden = false;
+    $("loginView").hidden = true;
+    $("emptyState").hidden = true;
+    $("console").hidden = true;
+  }
   function showLogin() {
+    const q = new URLSearchParams(location.search);
+    if (!doorChosen() && !q.get("door") && !q.get("tour")) { showDoors(); return; }
+    $("doorsView").hidden = true;
     $("loginView").hidden = false;
     const mfaEl = $("mfaView");
     if (mfaEl) mfaEl.hidden = true;
@@ -1307,6 +1319,11 @@
     initTheme();
     checkAirgap();
     $("btnNew").addEventListener("click", loadHome);
+    $("doorRun").addEventListener("click", () => { try { localStorage.setItem("gauntlet-door", "run"); } catch (e) { /* noop */ } $("doorsView").hidden = true; showLogin(); });
+    $("doorJoin").addEventListener("click", () => { location.href = "/join.html"; });
+    $("doorClass").addEventListener("click", () => { location.href = "/classroom.html"; });
+    $("doorLearn").addEventListener("click", () => { location.href = "/solo.html"; });
+    $("lnkDoors").addEventListener("click", (e) => { e.preventDefault(); try { localStorage.removeItem("gauntlet-door"); } catch (x) { /* noop */ } showDoors(); });
     $("btnStart").addEventListener("click", startNew);
     $("btnGenerate").addEventListener("click", generateScenario);
     $("btnImportYaml").addEventListener("click", importYaml);
