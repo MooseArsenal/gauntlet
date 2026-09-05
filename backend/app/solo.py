@@ -30,7 +30,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from . import decisions, models, session_ops
+from . import decisions, engagements, models, session_ops
 from .engine import adjudication, msel, visibility
 from .timeline import append_event
 
@@ -93,7 +93,8 @@ def sides_for(scenario: models.Scenario, injects: list[models.Inject]) -> list[s
 
 def catalog(db: Session, user: models.User) -> list[dict]:
     scenarios = db.execute(select(models.Scenario).where(
-        models.Scenario.org_id == user.org_id, models.Scenario.archived_at.is_(None)).order_by(models.Scenario.id)).scalars().all()
+        models.Scenario.org_id == user.org_id, models.Scenario.archived_at.is_(None),
+        models.Scenario.exercise_type != "solo").order_by(models.Scenario.id)).scalars().all()
     if not scenarios:
         # A brand-new workspace (a learner who just created an account): give
         # it the bundled library so there is something to play right away.
@@ -123,9 +124,12 @@ def catalog(db: Session, user: models.User) -> list[dict]:
 # --------------------------------------------------------------------------- #
 # lifecycle
 # --------------------------------------------------------------------------- #
-def start(db: Session, user: models.User, scenario: models.Scenario, side: str) -> models.Session:
+def start(db: Session, user: models.User, scenario: models.Scenario, side: str, difficulty: str = "standard",
+          etype: str | None = None) -> models.Session:
     if side not in SIDES:
         raise HTTPException(422, f"side must be one of {list(SIDES)}")
+    if difficulty not in engagements.LEVERS:
+        raise HTTPException(422, f"difficulty must be one of {list(engagements.LEVERS)}")
     injects = _injects(db, scenario.id)
     if side not in sides_for(scenario, injects):
         raise HTTPException(status.HTTP_409_CONFLICT, f"this scenario has nothing for the {side} side to do")
@@ -135,7 +139,8 @@ def start(db: Session, user: models.User, scenario: models.Scenario, side: str) 
     s = models.Session(org_id=user.org_id, scenario_id=scenario.id, name=f"Solo {side}: {scenario.name}"[:200],
                        mode="solo", auto_advance=False, status="running", started_at=_now(),
                        state={**dict(scenario.variables or {}),
-                              "solo": {"side": side, "user_id": user.id, "alert": 0, "moves": 0, "started": _now().isoformat()}})
+                              "solo": {"side": side, "user_id": user.id, "alert": 0, "moves": 0, "started": _now().isoformat(),
+                                       "difficulty": difficulty, "type": etype, "foothold": False}})
     db.add(s)
     db.flush()
     db.add(models.SessionJoin(org_id=user.org_id, session_id=s.id, user_id=user.id,
@@ -263,7 +268,7 @@ def skip(db: Session, s: models.Session, scenario: models.Scenario, user: models
                      payload={"inject_code": inject.code, "cell": SIDES[side], "user_id": user.id,
                               "display_name": user.name or user.email, "kind": spec.get("kind", "action"),
                               "option": None, "label": "No decision in time", "text": "", "score": 0.0,
-                              "latency_sec": float(spec.get("time_limit_sec") or DEFAULT_TIME_LIMIT), "timed_out": True})
+                              "latency_sec": float(engagements.levers(solo_state(s).get("difficulty", "standard"))["clock"]), "timed_out": True})
     _autopilot(db, s, scenario, inject, spec, None, timed_out=True)
     db.flush()
     return {"status": s.status}
@@ -278,22 +283,31 @@ def move(db: Session, s: models.Session, scenario: models.Scenario, user: models
         raise HTTPException(status.HTTP_409_CONFLICT, "only the red side makes moves")
     if not techniques:
         raise HTTPException(422, "name at least one technique")
-    env = _env(db, scenario)
+    lv = engagements.levers(solo.get("difficulty", "standard"))
+    max_alert, max_moves = int(lv["alert"]), int(lv["moves"])
+    env = engagements.scaled_environment(_env(db, scenario), solo.get("difficulty", "standard"))
     ruling = adjudication.adjudicate(env, techniques, target)
     moves = int(solo.get("moves") or 0) + 1
-    alert = int(solo.get("alert") or 0) + (1 if ruling["detected"] else 0)
+    tripped = bool(ruling.get("deception_tripped"))
+    alert = int(solo.get("alert") or 0) + (2 if tripped else 1 if ruling["detected"] else 0)
     jewels = set(env.crown_jewels or [])
-    captured = bool(target) and target in jewels and not ruling["detected"]
+    foothold = bool(solo.get("foothold")) or (not ruling["detected"] and bool(target) and target not in jewels)
+    wants_jewel = bool(target) and target in jewels and not ruling["detected"]
+    captured = wants_jewel and (foothold or not lv["foothold"])
+    if wants_jewel and not captured:
+        ruling = {**ruling, "rationale": ruling.get("rationale", "") +
+                  " You have no foothold yet: crown jewels need an unseen move on an outer asset first."}
     append_event(db, s.id, kind="red_action", ref=s.current_inject_code or "",
                  payload={**ruling, "action": action or "solo move", "actor": user.email, "solo": True,
-                          "move": moves, "alert": alert, "captured": captured})
-    _set_solo(s, moves=moves, alert=alert, captured=captured or bool(solo.get("captured")))
+                          "move": moves, "alert": alert, "captured": captured, "foothold": foothold})
+    _set_solo(s, moves=moves, alert=alert, captured=captured or bool(solo.get("captured")), foothold=foothold)
     outcome = None
     if captured:
         outcome = f"You reached {target} without being seen. Objective complete."
-    elif alert >= MAX_ALERT:
-        outcome = "Three detections: the defenders traced you and evicted you from the network."
-    elif moves >= MAX_MOVES:
+    elif alert >= max_alert:
+        outcome = (f"{max_alert} detections: the defenders traced you and evicted you from the network."
+                   if not tripped else "You touched a canary. The defenders were waiting, and evicted you.")
+    elif moves >= max_moves:
         outcome = "You ran out of moves before reaching a crown jewel."
     if outcome:
         finish(db, s, scenario, reason=outcome)
@@ -310,8 +324,8 @@ def move(db: Session, s: models.Session, scenario: models.Scenario, user: models
             except (LookupError, ValueError):
                 pass
     db.flush()
-    return {"ruling": ruling, "alert": alert, "moves": moves, "max_moves": MAX_MOVES, "max_alert": MAX_ALERT,
-            "captured": captured, "status": s.status, "outcome": outcome}
+    return {"ruling": ruling, "alert": alert, "moves": moves, "max_moves": max_moves, "max_alert": max_alert,
+            "captured": captured, "foothold": foothold, "status": s.status, "outcome": outcome}
 
 
 def finish(db: Session, s: models.Session, scenario: models.Scenario, reason: str = "") -> dict:
@@ -365,14 +379,24 @@ def view(db: Session, s: models.Session, scenario: models.Scenario, user: models
             feed.append({"kind": "branch", "clock": e.game_clock, "text": p.get("note") or f"→ {p.get('goto')}"})
     total = len(_injects(db, scenario.id))
     fired_at = _aware(fired[-1].at) if fired else None
+    difficulty = solo.get("difficulty", "standard")
+    lv = engagements.levers(difficulty)
+    pub = decisions.public_spec(spec) if (spec and side != "red") else None
+    if pub and lv["shuffle"]:
+        pub["options"] = engagements.shuffled(pub["options"], f"{s.id}:{inject.code}")
+    scene = _public_inject(inject)
+    if scene and not lv["hints"]:
+        scene["expected_actions"] = []
     out = {
         "id": s.id, "side": side, "side_label": SIDE_LABELS.get(side, side), "status": s.status,
         "scenario": {"id": scenario.id, "name": scenario.name, "threat_actor": scenario.threat_actor,
                      "narrative": scenario.narrative, "rules_of_engagement": scenario.rules_of_engagement},
         "environment": {"name": env.name if env else "", "sector": env.sector if env else ""},
-        "scene": _public_inject(inject), "scene_index": len(fired), "scenes_total": total,
-        "decision": decisions.public_spec(spec) if side != "red" else None,
-        "time_limit_sec": (spec or {}).get("time_limit_sec") or DEFAULT_TIME_LIMIT if spec and side != "red" else None,
+        "difficulty": difficulty, "difficulty_label": engagements.DIFFICULTY_LABELS.get(difficulty, difficulty),
+        "type": solo.get("type"), "levers": {"hints": lv["hints"], "zones": lv["zones"], "weight": lv["weight"]},
+        "scene": scene, "scene_index": len(fired), "scenes_total": total,
+        "decision": pub,
+        "time_limit_sec": int(lv["clock"]) if spec and side != "red" else None,
         "scene_started_at": fired_at.isoformat() if fired_at else None,
         "my_response": decisions.my_response(s, user.id, inject.code) if inject else None,
         "terminal": bool(inject and _terminal(inject, s.state)),
@@ -387,12 +411,13 @@ def view(db: Session, s: models.Session, scenario: models.Scenario, user: models
                 if t not in suggestions:
                     suggestions.append(t)
         out["red"] = {
-            "alert": int(solo.get("alert") or 0), "max_alert": MAX_ALERT,
-            "moves": int(solo.get("moves") or 0), "max_moves": MAX_MOVES, "captured": bool(solo.get("captured")),
-            "assets": [{"code": a.get("code"), "name": a.get("name"), "zone": a.get("zone", ""),
+            "alert": int(solo.get("alert") or 0), "max_alert": int(lv["alert"]),
+            "moves": int(solo.get("moves") or 0), "max_moves": int(lv["moves"]), "captured": bool(solo.get("captured")),
+            "foothold": bool(solo.get("foothold")), "needs_foothold": bool(lv["foothold"]), "deception_live": bool(lv["deception"]),
+            "assets": [{"code": a.get("code"), "name": a.get("name"), "zone": a.get("zone", "") if lv["zones"] else "",
                         "crown_jewel": a.get("code") in set(env.crown_jewels or [])} for a in (env.assets or [])] if env else [],
             "crown_jewels": list(env.crown_jewels or []) if env else [],
-            "techniques": suggestions[:16], "used": sorted(seen),
+            "techniques": suggestions[:16] if lv["hints"] else [], "used": sorted(seen),
             "intel": "The scenario's scenes hint at what this adversary tried. Controls you cannot see cover some assets; "
                      "deception assets may be waiting.",
         }
@@ -420,11 +445,13 @@ def debrief(db: Session, s: models.Session, scenario: models.Scenario) -> dict:
     ended = _aware(s.completed_at) or _aware(events[-1].at)
     duration = max(0, round((ended - started).total_seconds()))
     rows, work_on = [], []
+    difficulty = solo.get("difficulty", "standard")
+    lv = engagements.levers(difficulty)
     if side == "red":
         moves = [e.payload or {} for e in events if e.kind == "red_action"]
         unseen = [m for m in moves if not m.get("detected")]
         captured = any(m.get("captured") for m in moves)
-        evicted = int(solo.get("alert") or 0) >= MAX_ALERT
+        evicted = int(solo.get("alert") or 0) >= int(lv["alert"])
         base = (100 * len(unseen) / len(moves) * 0.6) if moves else 0
         score = int(round(min(100, max(0, base + (40 if captured else 0) - (10 if evicted else 0)))))
         caught_by = {}
@@ -474,25 +501,30 @@ def debrief(db: Session, s: models.Session, scenario: models.Scenario) -> dict:
             work_on.append(f"{row['code']} {row['title']}: you chose '{row['chosen']}'. {tip}")
         if lats and median(lats) > 90:
             work_on.append(f"Median time to decide was {median(lats):.0f} s. In a real incident the first fifteen minutes are the ones that matter; practise deciding with less certainty.")
-        impact = dict((s.state or {}).get("impact") or {})
+        impact = {k: (round(v * lv["impact"]) if isinstance(v, (int, float)) else v) for k, v in dict((s.state or {}).get("impact") or {}).items()}
         if impact.get("cost"):
             work_on.append(f"The path you took cost about ${impact['cost']:,.0f}" + (f" and {impact.get('downtime_hours')} h of downtime" if impact.get("downtime_hours") else "") + ". Earlier containment usually cuts both.")
         headline = solo.get("reason") or "Run complete"
         summary = {"decisions": len(rows), "best": sum(1 for r in rows if r["verdict"] == "best"),
                    "timed_out": sum(1 for r in rows if r["timed_out"]),
                    "median_latency_sec": round(median(lats), 1) if lats else None, "impact": impact}
+    raw = score
+    score = int(min(100, round(raw * lv["weight"])))
     badge = _badge(score, side)
     techniques = sorted({t for e in events if e.kind in ("adjudication", "red_action") for t in ((e.payload or {}).get("techniques") or [])})
     return {"id": s.id, "side": side, "side_label": SIDE_LABELS.get(side, side), "scenario": scenario.name,
             "threat_actor": scenario.threat_actor, "environment": env.name if env else "", "status": s.status,
             "started_at": started.isoformat() if started else None, "duration_sec": duration, "score": score, "badge": badge,
+            "raw_score": raw, "difficulty": difficulty, "difficulty_label": engagements.DIFFICULTY_LABELS.get(difficulty, difficulty),
+            "type": solo.get("type"), "weight": lv["weight"],
             "headline": headline, "summary": summary, "rows": rows, "work_on": work_on[:4], "techniques": techniques,
             "objectives": [{"code": o.code, "title": o.title} for o in scenario.objectives]}
 
 
 def debrief_markdown(d: dict) -> str:
     lines = [f"# Solo debrief — {d['scenario']}", "",
-             f"**Side:** {d['side_label']}  ", f"**Score:** {d['score']} / 100 — {d['badge']}  ",
+             f"**Side:** {d['side_label']}  ", f"**Difficulty:** {d['difficulty']}  ",
+             f"**Score:** {d['score']} / 100 — {d['badge']}  ",
              f"**Result:** {d['headline']}  ", f"**Duration:** {d['duration_sec'] // 60} min {d['duration_sec'] % 60} s  ", ""]
     if d["side"] == "red":
         lines += ["| # | Techniques | Target | Outcome | Why |", "|---|---|---|---|---|"]
@@ -528,6 +560,7 @@ def runs(db: Session, user: models.User) -> list[dict]:
             continue
         sc = db.get(models.Scenario, s.scenario_id)
         out.append({"id": s.id, "scenario_id": s.scenario_id, "scenario": sc.name if sc else "", "side": solo.get("side"),
+                    "difficulty": solo.get("difficulty", "standard"), "type": solo.get("type"),
                     "status": s.status, "score": solo.get("score"), "badge": solo.get("badge"),
                     "started_at": _aware(s.started_at).isoformat() if s.started_at else None})
     return out

@@ -14,6 +14,11 @@ follow SemVer. Container images are published as
   crown jewels, a scored debrief with coaching notes as a page and a PDF, run
   history, and a free workspace that comes with the bundled library. Solo runs
   are excluded from every readiness figure and the benchmark.
+- **Generated engagements** — solo runs assembled from the library by type
+  and difficulty: adversary pools per type, hidden per-organisation arenas on
+  the library environments, and levers applied at play time (red: efficacy,
+  alert threshold, move budget, foothold rule, live canaries, hints, zones;
+  blue: clock, shuffle, distractors, hints, impact; both: score weight).
 - **Company contact** — moosearsenal.com addresses and `security.txt`.
 
 ## [0.3.1] — 2026-09-02
