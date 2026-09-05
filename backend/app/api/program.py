@@ -19,7 +19,7 @@ def _all(db: Session, user: models.User):
         select(models.Scenario).where(models.Scenario.org_id == user.org_id)
     ).scalars().all()
     sessions = db.execute(
-        select(models.Session).where(models.Session.org_id == user.org_id)
+        select(models.Session).where(models.Session.org_id == user.org_id, models.Session.mode != "solo")
     ).scalars().all()
     return scenarios, sessions
 

@@ -4,6 +4,18 @@ All notable changes to Gauntlet. The format follows Keep a Changelog; versions
 follow SemVer. Container images are published as
 `ghcr.io/moose11b/gauntlet:<version>` on each tag.
 
+## [Unreleased]
+
+### Added
+- **Doors** — the console opens on a choice: run an exercise, join one, the
+  classroom, or learn. Facilitators choose once and land on sign-in after.
+- **Solo learning mode** (free) — blue, executive or red against the engine:
+  an autopilot proctor, a scripted adversary, red moves with an alert meter and
+  crown jewels, a scored debrief with coaching notes as a page and a PDF, run
+  history, and a free workspace that comes with the bundled library. Solo runs
+  are excluded from every readiness figure and the benchmark.
+- **Company contact** — moosearsenal.com addresses and `security.txt`.
+
 ## [0.3.1] — 2026-09-02
 
 The first build that carries the vendor signing key: production deployments
