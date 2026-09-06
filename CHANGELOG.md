@@ -2,7 +2,8 @@
 
 All notable changes to Gauntlet. The format follows Keep a Changelog; versions
 follow SemVer. Container images are published as
-`ghcr.io/moose11b/gauntlet:<version>` on each tag.
+`ghcr.io/moosearsenal/gauntlet:<version>` on each tag; the source is at
+https://github.com/MooseArsenal/gauntlet.
 
 ## [0.4.0] — 2026-09-05
 
