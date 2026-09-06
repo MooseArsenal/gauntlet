@@ -9,7 +9,7 @@ LABEL org.opencontainers.image.title="Gauntlet" \
       org.opencontainers.image.description="Exercise control: environment-grounded cyber tabletop and purple-team engine" \
       org.opencontainers.image.version="${GAUNTLET_VERSION}" \
       org.opencontainers.image.revision="${GAUNTLET_REVISION}" \
-      org.opencontainers.image.source="https://github.com/Moose11b/gauntlet" \
+      org.opencontainers.image.source="https://github.com/MooseArsenal/gauntlet" \
       org.opencontainers.image.licenses="Elastic-2.0"
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
 RUN useradd --create-home --uid 10001 gauntlet

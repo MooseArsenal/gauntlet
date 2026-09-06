@@ -18,6 +18,14 @@ from the **Members** page. Put a TLS-terminating reverse proxy (Caddy, nginx,
 Traefik) in front and keep `GAUNTLET_TRUST_PROXY=1` so lockouts and audit
 entries see real client addresses.
 
+## Published image
+
+Every tagged release is published to GitHub Container Registry as
+`ghcr.io/moosearsenal/gauntlet:<version>` (and `:latest`) with a CycloneDX
+SBOM attached to the GitHub release. To run the published image instead of
+building, replace the `build:` block in `docker-compose.yml` with
+`image: ghcr.io/moosearsenal/gauntlet:0.4.0` (pin a version; `latest` moves).
+
 ## Air-gapped
 
 Build the image on a connected machine, `docker save` it, move it across, and
