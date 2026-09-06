@@ -171,6 +171,7 @@ docs/                   design, deployment, enterprise, threat model, licensing,
 
 - [`docs/DESIGN.md`](docs/DESIGN.md) — the design brief (also `docs/design.html`)
 - [`docs/DEPLOY.md`](docs/DEPLOY.md) — production checklist, air-gapped procedure, scaling
+- [`docs/DEMO.md`](docs/DEMO.md) — how the public demo is hosted: Caddy, the nightly reset, hardening
 - [`docs/ENTERPRISE.md`](docs/ENTERPRISE.md) — SSO, SCIM, RLS, Redis, SBOM, pen-test readiness
 - [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) and [`SECURITY.md`](SECURITY.md) — what is defended, how to report
 - [`docs/LICENSING.md`](docs/LICENSING.md), [`docs/KEY_MANAGEMENT.md`](docs/KEY_MANAGEMENT.md), [`docs/CONTENT_PACKS.md`](docs/CONTENT_PACKS.md) — the paid surface and how it is signed
