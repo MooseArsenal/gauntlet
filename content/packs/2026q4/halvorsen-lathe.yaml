@@ -1,0 +1,326 @@
+# Autumn 2026 scenario pack — Moose Arsenal
+# Library environment: manufacturer (Halvorsen Precision — Discrete Manufacturing)
+scenario:
+  name: "Operation Lathe — Supplier-portal intrusion to design-vault extortion"
+  threat_actor: "Financially motivated extortion crew (data theft first, encryption as leverage)"
+  narrative: >
+    A crew that specialises in manufacturers finds an unpatched supplier portal,
+    drops a web shell, and walks from the perimeter to the design vault where the
+    firm's next product line lives. The exercise turns on three calls: whether the
+    portal is rebuilt or merely cleaned, whether the vault's egress is cut while
+    the transfer is running, and whether the plant is isolated before the crew
+    reaches the manufacturing execution system. The extortion note tests the
+    executive cell separately.
+  scope: "Discussion-based tabletop with decision cards. No live systems are touched."
+  rules_of_engagement: "Facilitated exercise only. 'Pause' halts play at any time. No production access. All actions are simulated."
+  exercise_type: tabletop
+
+  variables:
+    contained: false
+    vault_exfil: false
+    plant_isolated: false
+    paid: false
+
+  cells:
+    - {key: white_cell, name: "White Cell / Control", kind: control}
+    - {key: blue_cell, name: "Blue Cell (IT security + IR)", kind: participant}
+    - {key: exec_cell, name: "Executive Cell (leadership + comms)", kind: participant}
+    - {key: observers, name: "Observers", kind: observer}
+
+  objectives:
+    - code: OBJ-1
+      title: "Contain the perimeter foothold"
+      success_criteria: "The supplier portal is taken offline and rebuilt from a known-good image, not cleaned in place."
+      meta: {capability: contain, compliance: {nist_csf: [RS.MI, PR.PS], cis_v8: ["16.13", "12.2"], iso_27001: ["A.8.8", "A.5.26"]}}
+    - code: OBJ-2
+      title: "Stop the design-vault exfiltration"
+      success_criteria: "Egress from CAD-VAULT is blocked while the transfer is in progress and the share is snapshotted for evidence."
+      meta: {capability: contain, compliance: {nist_csf: [DE.CM, RS.MI], cis_v8: ["3.13", "13.3"], iso_27001: ["A.8.12"]}}
+    - code: OBJ-3
+      title: "Protect the plant"
+      success_criteria: "The plant boundary is isolated before the adversary reaches MES-01, with the production stop accepted as a decision, not an accident."
+      meta: {capability: contain, compliance: {nist_csf: [PR.IR, RS.MI], iec_62443: ["SR 5.1"], cis_v8: ["12.2"]}}
+    - code: OBJ-4
+      title: "Handle the extortion as an organisation"
+      success_criteria: "Counsel and law enforcement are engaged before any contact with the crew; the affected customer is briefed on facts."
+      meta: {capability: communicate, compliance: {nist_csf: [RS.CO, GV.RM], iso_27001: ["A.5.5", "A.5.6"], soc2: [CC7.4]}}
+
+  injects:
+    - code: INJ-01
+      act: "Initial Access"
+      is_start: true
+      title: "WAF: exploitation attempts against the supplier portal"
+      channel: siem_alert
+      clock: "T+00:00"
+      narrative: >
+        The web application firewall in front of SUPPLIER-PORTAL logs forty requests in
+        six minutes that match a public exploit for the portal's file-upload component.
+        Three requests returned 200. The portal is how two hundred suppliers submit
+        drawings and invoices, and it runs on last quarter's version.
+      visible_to: [blue_cell, white_cell]
+      expected_actions: ["Take the portal offline behind a maintenance page", "Pull the portal's logs and upload directory"]
+      attack: [T1190]
+      target_asset: SUPPLIER-PORTAL
+      objective: OBJ-1
+      meta:
+        decision:
+          prompt: "Three exploit requests returned 200. What does the security lead do in the next ten minutes?"
+          time_limit_sec: 180
+          options:
+            - {key: a, label: "Take the portal offline behind a maintenance page and pull the upload directory for review", score: 1.0, trigger: take_portal_down,
+               note: "A public exploit with successful responses is a compromise until proven otherwise. Offline first; a two-hour supplier outage is cheap next to a foothold."}
+            - {key: b, label: "Block the source address at the WAF and keep watching", score: 0.5, trigger: block_source,
+               note: "Blocking one address stops one operator. The upload that already succeeded is still there, and the crew will come back from another address."}
+            - {key: c, label: "Wait for the vendor to confirm whether the CVE applies to this version", score: 0.1,
+               note: "The WAF already told you the requests matched and succeeded. Vendor confirmation is for the report, not for the decision."}
+      branches:
+        - {when: action_taken, trigger: take_portal_down, label: "Portal offline — upload reviewed", goto: INJ-02}
+        - {when: action_taken, trigger: block_source, label: "Source blocked; portal stays up", goto: INJ-03}
+        - {when: timeout, after: PT10M, label: "No decision — the portal stays up", goto: INJ-03}
+        - {when: proctor_choice, label: "Proctor: portal taken offline", goto: INJ-02}
+
+    - code: INJ-02
+      act: "Persistence"
+      title: "A web shell in the upload directory"
+      channel: chat
+      clock: "T+00:25"
+      narrative: >
+        The upload directory holds a renamed PHP web shell timestamped forty minutes
+        before the alert. The portal's service account can read the office file shares.
+        The infrastructure team asks whether they can delete the file and bring the
+        portal back before the morning supplier cut-off.
+      visible_to: [blue_cell, white_cell]
+      expected_actions: ["Rebuild the portal from a known-good image", "Rotate the portal service account"]
+      attack: [T1505.003, T1078]
+      target_asset: SUPPLIER-PORTAL
+      objective: OBJ-1
+      meta:
+        decision:
+          prompt: "The infrastructure team wants the portal back before the supplier cut-off. What do you tell them?"
+          time_limit_sec: 180
+          options:
+            - {key: a, label: "Rebuild from a clean image, rotate the service account, then bring it back", score: 1.0, trigger: rebuild,
+               note: "A web shell means the host is theirs. Deleting one file leaves every other change they made. Rebuild and rotate what the host could reach."}
+            - {key: b, label: "Delete the web shell, patch the upload component and bring it back now", score: 0.3, trigger: patch_only,
+               note: "This is the most common real-world choice and the reason most of these incidents have a second act. The service account is still valid and the crew already used it."}
+            - {key: c, label: "Leave it offline and wait for the forensic image before deciding", score: 0.4,
+               note: "Safe for the portal, but it delays the credential rotation that actually matters. Rotate now; image in parallel."}
+      branches:
+        - {when: action_taken, trigger: rebuild, label: "Rebuilt and rotated", goto: INJ-04}
+        - {when: action_taken, trigger: patch_only, label: "Cleaned in place — the crew keeps its credential", goto: INJ-03}
+        - {when: timeout, after: PT10M, label: "No decision — the service account stays valid", goto: INJ-03}
+        - {when: proctor_choice, label: "Proctor: rebuilt", goto: INJ-04}
+
+    - code: INJ-03
+      act: "Lateral Movement"
+      title: "SIEM identity analytics: the portal's service account signs in to an office workstation"
+      channel: siem_alert
+      clock: "T+00:50"
+      narrative: >
+        The portal service account, which has never signed in interactively, opens an
+        SMB session from the portal's network to OFFICE-WKS and then to the domain.
+        Identity analytics rates it critical. The office estate has EDR; the portal
+        segment does not.
+      visible_to: [blue_cell, white_cell]
+      expected_actions: ["Disable the service account", "Isolate the workstation with EDR"]
+      attack: [T1078, T1021.002]
+      target_asset: OFFICE-WKS
+      objective: OBJ-1
+      meta:
+        decision:
+          prompt: "The service account is moving. What does the blue cell do?"
+          time_limit_sec: 150
+          options:
+            - {key: a, label: "Disable the service account, isolate OFFICE-WKS through EDR, and hunt for the account's other sessions", score: 1.0, trigger: isolate,
+               note: "Kill the credential and the host it landed on together. Disabling the account alone leaves an active session; isolating the host alone leaves the account for the next host."}
+            - {key: b, label: "Reset the service account's password and let the portal team re-deploy it", score: 0.4, trigger: reset_only,
+               note: "A reset does not end the sessions that already exist, and the workstation still runs whatever was dropped on it."}
+            - {key: c, label: "Watch the account to learn what the crew wants", score: 0.1,
+               note: "You already know what they want: the design vault is the only thing here worth the trouble. Watching costs you the vault."}
+      branches:
+        - {when: action_taken, trigger: isolate, label: "Account disabled, workstation isolated", set: {contained: true}, goto: INJ-04}
+        - {when: action_taken, trigger: reset_only, label: "Password reset — sessions survive", goto: INJ-05}
+        - {when: timeout, after: PT10M, label: "No decision — the crew reaches the vault", goto: INJ-05}
+        - {when: proctor_choice, label: "Proctor: contained", set: {contained: true}, goto: INJ-04}
+
+    - code: INJ-04
+      act: "Communications"
+      title: "The CFO asks whether to tell the biggest customer"
+      channel: phone
+      clock: "T+01:10"
+      narrative: >
+        Sixty per cent of what is in CAD-VAULT belongs to one aerospace customer under a
+        contract that requires notice of any security incident affecting their data.
+        The CFO (T. Mbeki) wants to know whether that clause has been triggered and
+        whether telling the customer now, before anything is confirmed, risks the
+        contract more than staying quiet.
+      visible_to: [exec_cell, white_cell]
+      expected_actions: ["Brief the customer's security contact under NDA with what is known", "Log the notification decision"]
+      objective: OBJ-4
+      meta:
+        decision:
+          kind: comms
+          prompt: "Draft the message to the customer's security contact, and decide when it goes."
+          free_text: true
+          time_limit_sec: 240
+          options:
+            - {key: a, label: "Brief the customer's security contact now, under the NDA, with facts and a time for the next update", score: 1.0, trigger: brief_customer,
+               note: "Contracts reward early, factual notice and punish surprise. A customer who hears it from you at hour one is a partner; one who hears it from a leak site is a plaintiff."}
+            - {key: b, label: "Wait for forensics to confirm whether their files were touched", score: 0.4,
+               note: "Forensics will take days. The clause almost certainly says 'affecting' or 'may affect', not 'confirmed'. Waiting converts a notice obligation into a concealment argument."}
+            - {key: c, label: "Say nothing unless the contract's exact wording forces it", score: 0.1,
+               note: "Counsel can find the wording later. The relationship, and the case study your sales team will want, are decided now."}
+      branches:
+        - {when: action_taken, trigger: brief_customer, label: "Customer briefed", goto: INJ-05}
+        - {when: timeout, after: PT10M, label: "No decision — customer not told", goto: INJ-05}
+        - {when: proctor_choice, label: "Proctor: move on", goto: INJ-05}
+
+    - code: INJ-05
+      act: "Exfiltration"
+      title: "DLP: 140 GB leaving CAD-VAULT for a consumer cloud-storage service"
+      channel: siem_alert
+      clock: "T+01:30"
+      narrative: >
+        The DLP agent on the design vault reports a bulk copy of the next-generation
+        product folder to a personal cloud-storage account over HTTPS, at forty
+        megabytes a second. Six per cent has left. The transfer runs under a domain
+        account that belongs to a design engineer on holiday.
+      visible_to: [blue_cell, white_cell]
+      expected_actions: ["Block the destination at the firewall", "Freeze the share and snapshot it"]
+      attack: [T1567.002, T1005]
+      target_asset: CAD-VAULT
+      objective: OBJ-2
+      meta:
+        decision:
+          prompt: "Six per cent of the folder is gone and the transfer is running. What is the first action?"
+          time_limit_sec: 120
+          options:
+            - {key: a, label: "Block the destination and the engineer's account at the firewall, freeze the share, snapshot it for evidence", score: 1.0, trigger: block_egress,
+               note: "Stopping the copy at six per cent is the difference between an incident and a product-line loss. Evidence comes from the snapshot, not from letting the copy run."}
+            - {key: b, label: "Let the transfer run under observation to collect evidence of the destination and the operator", score: 0.2, trigger: watch,
+               note: "You already have the destination and the account. Every further minute is eighteen more design files with the customer's name on them."}
+            - {key: c, label: "Ask the engineer's manager whether the copy might be legitimate", score: 0.0,
+               note: "The engineer is on holiday, the destination is a consumer service and the DLP rule exists for this. Ask afterwards."}
+      branches:
+        - {when: action_taken, trigger: block_egress, label: "Transfer cut at 6%", goto: INJ-06}
+        - {when: action_taken, trigger: watch, label: "Transfer completes under observation", set: {vault_exfil: true}, goto: INJ-06}
+        - {when: timeout, after: PT10M, label: "No decision — the transfer completes", set: {vault_exfil: true}, goto: INJ-06}
+        - {when: proctor_choice, label: "Proctor: egress blocked", goto: INJ-06}
+
+    - code: INJ-06
+      act: "Extortion"
+      title: "An email to the CEO with three design files attached"
+      channel: email
+      clock: "T+02:00"
+      narrative: >
+        The CEO receives a message from a throwaway address: three genuine files from the
+        vault, a countdown of seventy-two hours, a price in cryptocurrency, and a promise
+        that the plant "will not survive the deadline". The message asks for a reply
+        within the hour to "open the negotiation channel". General counsel (V. Rossi) is
+        on the call.
+      visible_to: [exec_cell, white_cell]
+      expected_actions: ["Engage counsel, the cyber insurer and law enforcement", "Do not reply until a negotiator is in place"]
+      attack: [T1657]
+      target_asset: CAD-VAULT
+      objective: OBJ-4
+      meta:
+        decision:
+          kind: comms
+          prompt: "The CEO wants to know what to do with the email in the next hour. Decide, and draft the one-line holding statement for the leadership team."
+          free_text: true
+          time_limit_sec: 240
+          options:
+            - {key: a, label: "No reply. Engage counsel, the insurer's incident line and law enforcement; a retained negotiator opens the channel if anyone does", score: 1.0, trigger: engage,
+               note: "The first reply sets the price and the pace, and it is a statement you will have to explain later. Professionals reply; executives decide what the professionals may say."}
+            - {key: b, label: "Reply from the CEO's account to buy time while forensics finishes", score: 0.3,
+               note: "Buying time is exactly what a negotiator does, without confirming the CEO reads the mailbox or revealing how far you are from containment."}
+            - {key: c, label: "Pay quietly through a broker before the deadline and keep it out of the incident record", score: 0.0, trigger: pay,
+               note: "Paying a sanctioned entity is a crime, the data is not deleted, and an undocumented payment breaks the record the insurer and the customer will ask for."}
+      branches:
+        - {when: action_taken, trigger: engage, label: "Counsel and law enforcement engaged", goto: INJ-07}
+        - {when: action_taken, trigger: pay, label: "Paid quietly", set: {paid: true}, goto: INJ-10,
+           impact: {cost: 2400000, downtime_hours: 24, records: 0, customers: 3, label: "Payment, sanctions review, and the files leak anyway"}}
+        - {when: timeout, after: PT15M, label: "No decision — the deadline runs", goto: INJ-07}
+        - {when: proctor_choice, label: "Proctor: engaged", goto: INJ-07}
+
+    - code: INJ-07
+      act: "Impact"
+      title: "Plant network monitoring: scanning from the office segment toward MES-01"
+      channel: siem_alert
+      clock: "T+02:40"
+      narrative: >
+        The plant monitor sees port scans from an office address through PLANT-FW toward
+        the manufacturing execution system and the CNC cell. The plant manager
+        (E. Halvorsen) says a stop tonight costs a shift and a customer delivery; a stop
+        after encryption costs the week.
+      visible_to: [blue_cell, white_cell]
+      expected_actions: ["Isolate the plant at the boundary firewall", "Accept the production stop as a decision"]
+      attack: [T1046, T0886]
+      target_asset: MES-01
+      objective: OBJ-3
+      meta:
+        decision:
+          prompt: "Scanning has reached the plant boundary. What does the blue cell recommend to the plant manager?"
+          time_limit_sec: 150
+          options:
+            - {key: a, label: "Isolate the plant at PLANT-FW now and accept the shift's production stop", score: 1.0, trigger: isolate_plant,
+               note: "A planned stop with the MES intact restarts in hours. An unplanned stop with the MES encrypted restarts in weeks. The plant manager gets to choose which."}
+            - {key: b, label: "Keep the plant running and add firewall rules for the scanning host only", score: 0.2, trigger: keep_running,
+               note: "The crew has domain credentials and an office foothold; one blocked host is one of many. This is the choice that turns a data incident into a production outage."}
+            - {key: c, label: "Wait for the evening shift to finish before deciding", score: 0.1,
+               note: "The deadline in the extortion email is theirs, not yours; the crew does not wait for the shift to end."}
+      branches:
+        - {when: proctor_choice, condition: "contained == true", label: "Contained earlier — the crew never reached the plant", goto: INJ-08,
+           impact: {cost: 90000, downtime_hours: 4, label: "Portal rebuild, forensics and a short supplier outage"}}
+        - {when: action_taken, trigger: isolate_plant, label: "Plant isolated, shift lost", set: {plant_isolated: true}, goto: INJ-08,
+           impact: {cost: 250000, downtime_hours: 12, label: "One shift lost; MES and CNC cells intact"}}
+        - {when: action_taken, trigger: keep_running, label: "Plant kept running — MES encrypted", goto: INJ-09,
+           impact: {cost: 3100000, downtime_hours: 120, customers: 12, label: "MES and CNC controllers encrypted; five days of lost production"}}
+        - {when: timeout, after: PT10M, label: "No decision — MES encrypted", goto: INJ-09,
+           impact: {cost: 3100000, downtime_hours: 120, customers: 12, label: "MES and CNC controllers encrypted; five days of lost production"}}
+
+    - code: INJ-08
+      act: "Resolution"
+      title: "Contained: design files exposed, plant untouched (resolution)"
+      channel: briefing
+      clock: "T+03:30"
+      narrative: >
+        The plant restarts within a shift. Forensics establishes what left the vault; the
+        customer is briefed from evidence rather than guesses; the crew's leak-site post
+        lands on a company that has already told everyone who mattered. The hotwash asks
+        why the portal was a quarter behind on patches and who owns the service account.
+      visible_to: [blue_cell, exec_cell, white_cell]
+      expected_actions: ["Confirm restart and evidence preservation", "Run the hotwash"]
+      objective: OBJ-3
+      branches: []
+
+    - code: INJ-09
+      act: "Resolution"
+      title: "MES encrypted: five days without production (resolution)"
+      channel: briefing
+      clock: "T+04:30"
+      narrative: >
+        The manufacturing execution system and the CNC cell controllers are encrypted;
+        immutable backups restore the servers but the controllers are re-imaged by hand.
+        Deliveries slip to twelve customers. The extortion note is now about the plant,
+        not the drawings. The hotwash asks who had the authority to stop the plant and
+        why it was not exercised.
+      visible_to: [blue_cell, exec_cell, white_cell]
+      expected_actions: ["Capture the decision timeline", "Run the hotwash"]
+      objective: OBJ-3
+      branches: []
+
+    - code: INJ-10
+      act: "Resolution"
+      title: "Paid: the files leak anyway (resolution)"
+      channel: briefing
+      clock: "T+04:00"
+      narrative: >
+        The payment goes through a broker; the crew posts the customer's drawings six weeks
+        later regardless. The insurer declines the claim for the undocumented payment, the
+        sanctions review takes a quarter, and the customer learns about the incident from
+        the leak. The hotwash is mostly about governance.
+      visible_to: [blue_cell, exec_cell, white_cell]
+      expected_actions: ["Engage counsel and the insurer", "Run the hotwash"]
+      objective: OBJ-4
+      branches: []

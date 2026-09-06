@@ -1,0 +1,266 @@
+# Autumn 2026 scenario pack — Moose Arsenal
+# Library environment: county (Marrow County — Local Government)
+scenario:
+  name: "Operation Ballot Box — VPN password spray to ransomware in election week"
+  threat_actor: "Ransomware affiliate buying access from an initial-access broker"
+  narrative: >
+    Eight days before an election, a password spray against the county VPN lands three
+    accounts. The affiliate walks from a workstation without EDR to the departmental file
+    server, mints a domain admin, and pushes ransomware by group policy to the file
+    server and the online backup server. The 911 dispatch network is isolated by design
+    and the elections office is on the same domain as everything else. The exercise
+    asks whether the county contains at the file server, at the domain, or not at all,
+    and what it tells the Secretary of State and the press.
+  scope: "Discussion-based tabletop with decision cards. No live systems are touched."
+  rules_of_engagement: "Facilitated exercise only. 'Pause' halts play at any time. No production access. All actions are simulated."
+  exercise_type: tabletop
+
+  variables:
+    contained: false
+    dc_compromised: false
+    backups_intact: true
+    sos_briefed: false
+
+  cells:
+    - {key: white_cell, name: "White Cell / Control", kind: control}
+    - {key: blue_cell, name: "Blue Cell (county IT + state SOC)", kind: participant}
+    - {key: exec_cell, name: "Executive Cell (county administrator + comms)", kind: participant}
+    - {key: observers, name: "Observers", kind: observer}
+
+  objectives:
+    - code: OBJ-1
+      title: "Close the VPN foothold"
+      success_criteria: "The sprayed accounts are disabled and MFA re-enrolled before the affiliate moves laterally."
+      meta: {capability: contain, compliance: {nist_csf: [PR.AA, RS.MI], cis_v8: ["6.3", "6.5"], iso_27001: ["A.5.17"]}}
+    - code: OBJ-2
+      title: "Contain before the domain falls"
+      success_criteria: "The file server and the source workstation are isolated before a domain admin is created."
+      meta: {capability: contain, compliance: {nist_csf: [RS.MI, DE.CM], cis_v8: ["13.1", "17.7"], iso_27001: ["A.5.26"]}}
+    - code: OBJ-3
+      title: "Keep dispatch and the election running"
+      success_criteria: "CAD-911 isolation is confirmed rather than assumed, and the elections office continues on a paper-backed process."
+      meta: {capability: recover, compliance: {nist_csf: [PR.IR, RC.RP], cis_v8: ["11.4"], cisa_election: ["Election Infrastructure"]}}
+    - code: OBJ-4
+      title: "Protect the backups and tell the right people"
+      success_criteria: "Online backups are cut from the domain before encryption reaches them; the Secretary of State and the public hear from the county first."
+      meta: {capability: communicate, compliance: {nist_csf: [PR.DS, RS.CO], cis_v8: ["11.3"], iso_27001: ["A.8.13", "A.5.5"]}}
+
+  injects:
+    - code: INJ-01
+      act: "Initial Access"
+      is_start: true
+      title: "Domain audit: a password spray against the VPN, three successes"
+      channel: siem_alert
+      clock: "T+00:00"
+      narrative: >
+        The state SOC forwards an alert: 1,900 sign-in attempts against VPN-GW overnight
+        from a residential proxy network, one password per account, and three successes.
+        Two of the three accounts belong to the elections office; the third is a public
+        works supervisor whose MFA enrolment was "temporarily" exempted last spring.
+      visible_to: [blue_cell, white_cell]
+      expected_actions: ["Disable the three accounts and revoke their VPN sessions", "Remove every MFA exemption on the VPN"]
+      attack: [T1110.003, T1133]
+      target_asset: VPN-GW
+      objective: OBJ-1
+      meta:
+        decision:
+          prompt: "Three accounts were sprayed successfully, two of them in the elections office. What does the IT director do first?"
+          time_limit_sec: 180
+          options:
+            - {key: a, label: "Disable the three accounts, revoke their VPN sessions, remove every MFA exemption, and block the proxy ranges", score: 1.0, trigger: disable_accounts,
+               note: "Kill the sessions, not just the passwords; a reset does not end a session that already exists. The exemption is the finding that matters most."}
+            - {key: b, label: "Email the three users a password-reset link and ask them to change it today", score: 0.4, trigger: reset_email,
+               note: "One of the three mailboxes is now read by the affiliate. A reset by email is a reset the attacker can complete first."}
+            - {key: c, label: "Ask the state SOC to confirm the alert before touching election accounts in election week", score: 0.1,
+               note: "The SOC sent the alert; that was the confirmation. Election week is the reason to act faster, not slower."}
+      branches:
+        - {when: action_taken, trigger: disable_accounts, label: "Accounts disabled, sessions revoked", goto: INJ-02}
+        - {when: action_taken, trigger: reset_email, label: "Reset by email — the affiliate keeps a session", goto: INJ-03}
+        - {when: timeout, after: PT10M, label: "No decision — the affiliate keeps its sessions", goto: INJ-03}
+        - {when: proctor_choice, label: "Proctor: accounts disabled", goto: INJ-02}
+
+    - code: INJ-02
+      act: "Lateral Movement"
+      title: "SMB from a workstation without EDR to the departmental file server"
+      channel: siem_alert
+      clock: "T+00:30"
+      narrative: >
+        Before the sessions were cut, one of them reached a public works workstation that
+        is not in the EDR rollout yet. From there, SMB sessions open to DEPT-FILE using
+        the supervisor's account, and a scheduled task appears on the file server. The
+        file server holds every department's shared drive, including elections.
+      visible_to: [blue_cell, white_cell]
+      expected_actions: ["Isolate DEPT-FILE and the workstation", "Pull the domain controller's logs for the same account"]
+      attack: [T1021.002, T1053.005]
+      target_asset: DEPT-FILE
+      objective: OBJ-2
+      meta:
+        decision:
+          prompt: "The affiliate is on the file server. What does the blue cell do?"
+          time_limit_sec: 150
+          options:
+            - {key: a, label: "Isolate DEPT-FILE and the workstation at the switch, disable the account, and pull COUNTY-DC logs for that account now", score: 1.0, trigger: isolate_fs,
+               note: "A file server offline for an afternoon is an inconvenience. The DC logs tell you whether this is still a file-server problem or already a domain problem."}
+            - {key: b, label: "Kill the SMB session and delete the scheduled task, keep the file server up", score: 0.4, trigger: kill_session,
+               note: "The task will be recreated from the workstation that still has the credential. The file server is where the ransomware will run; take it out of reach."}
+            - {key: c, label: "Wait for the EDR vendor to deploy an agent to the workstation", score: 0.1,
+               note: "An agent deployed after compromise sees the next attack, not this one."}
+      branches:
+        - {when: action_taken, trigger: isolate_fs, label: "File server and workstation isolated", set: {contained: true}, goto: INJ-04}
+        - {when: action_taken, trigger: kill_session, label: "Session killed; the affiliate returns", goto: INJ-03}
+        - {when: timeout, after: PT10M, label: "No decision — the affiliate reaches the domain", goto: INJ-03}
+        - {when: proctor_choice, label: "Proctor: contained at the file server", set: {contained: true}, goto: INJ-04}
+
+    - code: INJ-03
+      act: "Privilege Escalation"
+      title: "A new domain admin, and a modified default domain policy"
+      channel: siem_alert
+      clock: "T+00:55"
+      narrative: >
+        Domain audit logging shows a new account added to Domain Admins from DEPT-FILE
+        and the default domain policy modified to run a script at next refresh. The
+        elections workstations refresh policy every ninety minutes. The IT director
+        (G. Whitfield) has one deputy and no incident-response retainer on file; the
+        state offers one through the SOC.
+      visible_to: [blue_cell, white_cell]
+      expected_actions: ["Declare a major incident and invoke the state's IR support", "Take the domain controller offline for imaging and block policy refresh"]
+      attack: [T1098, T1484.001]
+      target_asset: COUNTY-DC
+      objective: OBJ-2
+      meta:
+        decision:
+          prompt: "The domain is compromised and policy refreshes in ninety minutes. What is the call?"
+          time_limit_sec: 150
+          options:
+            - {key: a, label: "Declare a major incident, invoke the state's IR retainer, block policy refresh at the switches, and take COUNTY-DC offline for imaging", score: 1.0, trigger: declare,
+               note: "A domain compromise is beyond a two-person team; the state's retainer exists for this week. Blocking refresh buys the ninety minutes that decide the election office's week."}
+            - {key: b, label: "Delete the rogue admin account, revert the policy, and keep the domain running", score: 0.3, trigger: delete_account,
+               note: "Whoever made one domain admin made two. Reverting the policy without imaging the DC removes the evidence and none of the persistence."}
+            - {key: c, label: "Wait for the elections office to finish the day's work before disrupting the domain", score: 0.1,
+               note: "The policy refresh does not wait for the elections office. Ninety minutes is the whole budget."}
+      branches:
+        - {when: action_taken, trigger: declare, label: "Major incident, DC imaged", set: {dc_compromised: true}, goto: INJ-04}
+        - {when: action_taken, trigger: delete_account, label: "Account deleted; persistence remains", set: {dc_compromised: true}, goto: INJ-05}
+        - {when: timeout, after: PT10M, label: "No decision — policy refreshes", set: {dc_compromised: true}, goto: INJ-05}
+        - {when: proctor_choice, label: "Proctor: declared", set: {dc_compromised: true}, goto: INJ-04}
+
+    - code: INJ-04
+      act: "Communications"
+      title: "The county administrator, the elections clerk and a reporter"
+      channel: phone
+      clock: "T+01:20"
+      narrative: >
+        H. Delacroix, the county administrator, has the elections clerk (F. Abara) asking
+        whether the office can keep processing mail ballots today, the 911 communications
+        manager (B. Tanaka) asking whether dispatch should go to radio-only, and a local
+        reporter who has heard "the county got hacked". The Secretary of State's office
+        has not been called.
+      visible_to: [exec_cell, white_cell]
+      expected_actions: ["Brief the Secretary of State's office before the press", "Keep elections on a paper-backed process; confirm dispatch isolation rather than shutting it down"]
+      objective: OBJ-3
+      meta:
+        decision:
+          kind: comms
+          prompt: "Decide what the elections office and dispatch do today, and draft the sentence you give the reporter."
+          free_text: true
+          time_limit_sec: 240
+          options:
+            - {key: a, label: "Brief the Secretary of State now; elections continue on the paper-backed process with workstations off the domain; dispatch stays up with its isolation confirmed by IT", score: 1.0, trigger: brief_sos,
+               note: "The Secretary of State can send help and will be asked by the press within the hour. Paper-backed elections and radio-capable dispatch are the continuity plans; use them instead of improvising."}
+            - {key: b, label: "Shut everything down, including dispatch, until the domain is clean", score: 0.2,
+               note: "CAD-911 is on an isolated network by design. Shutting down dispatch because the file server was encrypted is the kind of over-reaction that costs lives and headlines."}
+            - {key: c, label: "Say nothing to the state or the press until the incident is over", score: 0.0,
+               note: "In election week, silence is a story. The state hears it from the reporter and the county loses the ability to set the narrative."}
+      branches:
+        - {when: action_taken, trigger: brief_sos, condition: "dc_compromised == false", label: "Contained at the file server; state briefed", set: {sos_briefed: true}, goto: INJ-06,
+           impact: {cost: 90000, downtime_hours: 8, label: "One afternoon without shared drives; a week of forensics"}}
+        - {when: action_taken, trigger: brief_sos, label: "State briefed; the domain is still compromised", set: {sos_briefed: true}, goto: INJ-05}
+        - {when: proctor_choice, condition: "dc_compromised == false", label: "Proctor: contained at the file server", goto: INJ-06,
+           impact: {cost: 90000, downtime_hours: 8, label: "One afternoon without shared drives; a week of forensics"}}
+        - {when: timeout, after: PT10M, label: "No decision — nobody briefed", goto: INJ-05}
+        - {when: proctor_choice, label: "Proctor: move on", goto: INJ-05}
+
+    - code: INJ-05
+      act: "Impact"
+      title: "Ransomware by group policy: the file server and the online backup server"
+      channel: edr_alert
+      clock: "T+01:50"
+      narrative: >
+        The policy refresh runs the affiliate's script. The partial EDR rollout blocks it
+        on the workstations that have an agent; DEPT-FILE and BACKUP-01 do not. Encryption
+        starts on both. BACKUP-01 is the nightly backup server, online, same domain. The
+        state's off-site copies are nine days old. A ransom note names the county and
+        the election.
+      visible_to: [blue_cell, white_cell]
+      expected_actions: ["Confirm CAD-911 isolation holds", "Cut BACKUP-01 from the network before encryption completes", "Invoke the ransomware playbook and the state's off-site copies"]
+      attack: [T1486, T1490]
+      target_asset: BACKUP-01
+      objective: OBJ-4
+      meta:
+        decision:
+          prompt: "Encryption is running on the file server and the backup server. What does the blue cell do in the next fifteen minutes?"
+          time_limit_sec: 120
+          options:
+            - {key: a, label: "Pull BACKUP-01's network cable now, confirm CAD-911 isolation at the firewall, and start restore from the state's off-site copies", score: 1.0, trigger: protect_backups,
+               note: "Nine-day-old backups beat none. Confirming dispatch isolation by looking, not by assuming, is the one thing the 911 manager needs to hear."}
+            - {key: b, label: "Open negotiation with the affiliate to buy time for the backups", score: 0.2, trigger: negotiate,
+               note: "Negotiation does not pause encryption; the script is already running. Pull the cable first, negotiate through counsel later if at all."}
+            - {key: c, label: "Wait for the state IR team to arrive before touching anything", score: 0.1,
+               note: "Preserving evidence does not mean letting the backup server finish encrypting. Pull the cable; the disk is the evidence."}
+      branches:
+        - {when: action_taken, trigger: protect_backups, condition: "sos_briefed == true", label: "Backups saved; restore begins", goto: INJ-07,
+           impact: {cost: 400000, downtime_hours: 72, records: 0, label: "Three days without shared drives; election on paper-backed process; state helped"}}
+        - {when: action_taken, trigger: protect_backups, label: "Backups saved; the state learns from the press", goto: INJ-07,
+           impact: {cost: 550000, downtime_hours: 96, records: 0, label: "Four days without shared drives; the state and the press heard it second-hand"}}
+        - {when: action_taken, trigger: negotiate, label: "Negotiation — backups encrypted", set: {backups_intact: false}, goto: INJ-08,
+           impact: {cost: 2600000, downtime_hours: 500, records: 90000, customers: 60000, label: "Backups lost; three weeks of outage; resident records exposed"}}
+        - {when: timeout, after: PT10M, label: "No decision — backups encrypted", set: {backups_intact: false}, goto: INJ-08,
+           impact: {cost: 2600000, downtime_hours: 500, records: 90000, customers: 60000, label: "Backups lost; three weeks of outage; resident records exposed"}}
+        - {when: proctor_choice, label: "Proctor: backups saved", goto: INJ-07,
+           impact: {cost: 400000, downtime_hours: 72, records: 0, label: "Three days without shared drives; election on paper-backed process; state helped"}}
+
+    - code: INJ-06
+      act: "Resolution"
+      title: "Contained at the file server (resolution)"
+      channel: briefing
+      clock: "T+03:00"
+      narrative: >
+        The domain was never reached. Shared drives are back the next morning from
+        last night's backup; the elections office lost an afternoon; the reporter's story
+        is about a county that caught an attack in election week. The hotwash is about the
+        MFA exemption and the EDR rollout that stopped at the departments with budget.
+      visible_to: [blue_cell, exec_cell, white_cell]
+      expected_actions: ["Confirm restoration", "Run the hotwash"]
+      objective: OBJ-2
+      branches: []
+
+    - code: INJ-07
+      act: "Resolution"
+      title: "Domain rebuilt, backups saved, election on paper (resolution)"
+      channel: briefing
+      clock: "T+05:00"
+      narrative: >
+        The domain is rebuilt with the state's help over three days. Shared drives come
+        back from the off-site copies with nine days of work re-entered by hand. Dispatch
+        never went down. The election runs on the paper-backed process it was designed
+        to fall back to. The hotwash asks why the backup server was on the domain.
+      visible_to: [blue_cell, exec_cell, white_cell]
+      expected_actions: ["Confirm restoration and re-entry plan", "Run the hotwash"]
+      objective: OBJ-4
+      branches: []
+
+    - code: INJ-08
+      act: "Resolution"
+      title: "Backups lost: three weeks of outage and a records notification (resolution)"
+      channel: briefing
+      clock: "T+06:00"
+      narrative: >
+        The backup server finished encrypting. Property-tax, permitting and personnel
+        records are rebuilt from paper and vendor copies over three weeks. The affiliate
+        publishes resident records; ninety thousand notifications go out. Dispatch,
+        isolated by design, never stopped, which is the sentence the county administrator
+        repeats at every hearing.
+      visible_to: [blue_cell, exec_cell, white_cell]
+      expected_actions: ["Engage counsel and the state", "Run the hotwash"]
+      objective: OBJ-4
+      branches: []

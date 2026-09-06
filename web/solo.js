@@ -125,7 +125,9 @@
     if (!d) {
       box.hidden = false;
       box.innerHTML = run.terminal ? `<p class="eyebrow">The story ends here</p><p>${esc(run.reason || "There is nothing more to decide.")}</p><button class="btn primary" id="btnFinishNow">See my debrief</button>`
-        : `<p class="eyebrow">No decision in this scene</p><p class="hint">Read it, then continue.</p><button class="btn primary" id="btnContinue">Continue</button>`;
+        : run.addressed === false && run.scene
+          ? `<p class="eyebrow">Another cell's call</p><p class="hint">This scene is addressed to a different cell. Read it, then continue; the engine plays that cell.</p><button class="btn primary" id="btnContinue">Continue</button>`
+          : `<p class="eyebrow">No decision in this scene</p><p class="hint">Read it, then continue.</p><button class="btn primary" id="btnContinue">Continue</button>`;
       const f = $("btnFinishNow"); if (f) f.addEventListener("click", finish);
       const c = $("btnContinue"); if (c) c.addEventListener("click", skip);
       return;
