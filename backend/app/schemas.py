@@ -593,6 +593,14 @@ class LoginIn(BaseModel):
     password: str
 
 
+class ConfirmIn(BaseModel):
+    token: str = Field(max_length=2000)
+
+
+class ResendConfirmIn(BaseModel):
+    email: str = Field(max_length=300)
+
+
 class CreateUserIn(BaseModel):
     email: str = Field(max_length=300)
     password: str = Field(min_length=8)

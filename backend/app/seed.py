@@ -330,6 +330,7 @@ def seed_if_empty(db: Session) -> bool:
         name="Demo Admin",
         role="admin",
         password_hash=hash_password(os.environ.get("GAUNTLET_DEMO_PASSWORD", "gauntlet-admin")),
+        email_verified_at=models._utcnow(),
     ))
 
     provision_library(db, org.id)
