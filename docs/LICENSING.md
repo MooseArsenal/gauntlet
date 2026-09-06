@@ -1,5 +1,13 @@
 # Licensing and entitlements
 
+Two different things are called a licence here. The **source licence** is the
+[Elastic License 2.0](../LICENSE): it governs the code itself, lets anyone use,
+modify and redistribute it, and reserves two rights to Moose Arsenal — offering
+Gauntlet as a hosted service to third parties, and altering or bypassing the
+licence-key mechanism. The **licence key** described on this page is what
+unlocks the paid tiers on a deployment. The rest of this document is about the
+key.
+
 Gauntlet is source-available and self-hosted. The paid tiers unlock features that
 scale with the buyer; the engine, the record, reports, certificates, MFA, SSO,
 audit, encryption and row-level security are never gated.
