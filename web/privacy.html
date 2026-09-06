@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gauntlet — Privacy policy</title>
+  <meta name="description" content="What personal data the hosted Gauntlet demo keeps, for how long, and how to get a copy or have it deleted.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/product.css">
+</head>
+<body class="product">
+  <div class="strip"><span>Exercise control · Privacy</span><span>Last updated 6 September 2026</span></div>
+  <header class="bar">
+    <div class="brand"><span class="mark"><span>G</span></span><b>Gauntlet</b><small>Privacy policy</small></div>
+    <div class="bar-actions">
+      <a class="btn ghost" href="/product.html">Product</a>
+      <a class="btn ghost" href="/terms.html">Terms</a>
+      <a class="btn primary" href="/">Open the console</a>
+      <button class="btn toggle" id="btnTheme" aria-label="Toggle theme">◑</button>
+    </div>
+  </header>
+
+  <main class="pd pd-legal">
+    <section class="pd-hero">
+      <p class="eyebrow">Moose Arsenal · Gauntlet</p>
+      <h1>Privacy policy</h1>
+      <p class="pd-lead">This page says what personal data the Gauntlet instances we run keep, why, for how long, and how to get it back or have it deleted. The short version: the demo keeps very little, deletes all of it every night, uses no trackers, and a self-hosted Gauntlet sends us nothing at all.</p>
+    </section>
+
+    <section class="pd-section">
+      <h2>Who is responsible</h2>
+      <p>Moose Arsenal is the controller for personal data on the instances it operates. Requests about your data, including access, correction and deletion, go to <a href="mailto:security@moosearsenal.com">security@moosearsenal.com</a>. We answer within one month.</p>
+    </section>
+
+    <section class="pd-section">
+      <h2>Self-hosted Gauntlet</h2>
+      <p>If your organisation runs Gauntlet on its own systems, that organisation is the controller and its privacy notice applies, not this one. The software makes no connection to Moose Arsenal: there is no telemetry, no usage reporting, no update check and no phone-home. Licence keys and content packs are verified offline on your instance. The only data we hold about a self-hosted customer is what is on the order form and in our email with them.</p>
+    </section>
+
+    <section class="pd-section">
+      <h2>What the hosted demo collects</h2>
+      <div class="pd-grid">
+        <div><h3>Your account</h3><p>Name (optional), email address, and a hash of your password. Created when you sign up through the Learn door, the classroom or the console. Used to sign you in, to confirm the address is yours, and to address exercise messages you ask for.</p></div>
+        <div><h3>What you do in an exercise</h3><p>The side you chose, the options you picked, anything you typed into a free-text answer, red-team moves, evidence you attached, and the time each was recorded. This is the exercise record the product exists to produce; it is shown to you, to people you invite into the same exercise, and in your debrief.</p></div>
+        <div><h3>Security log</h3><p>Sign-ins, failed sign-ins, account changes and administrative actions, each with the network address they came from. Used to throttle abuse and to investigate a compromised account. Kept in the database, so it is wiped with everything else.</p></div>
+        <div><h3>Web server log</h3><p>The reverse proxy in front of the demo records the address, the requested page, the time and the browser identifier of each request. Kept in a rolling file of a few weeks at most, then overwritten.</p></div>
+        <div><h3>Email</h3><p>When you create an account we send one confirmation message. When you, as a facilitator, ask the service to deliver an exercise message or invitation, we send it to the addresses you name. Mail goes through Google Workspace, which processes it for us under its own terms; delivery reports come back to us.</p></div>
+        <div><h3>In your browser</h3><p>Your sign-in token, theme choice and the door you picked are kept in your browser's local storage so you stay signed in between pages. There are no cookies, no analytics and no third-party trackers. The pages load fonts from Google Fonts, which sees your address when they load; a self-hosted instance can serve the fonts itself.</p></div>
+      </div>
+    </section>
+
+    <section class="pd-section">
+      <h2>How long it is kept</h2>
+      <p>The demo database is deleted and rebuilt every night at 04:00 UTC. Your account, your workspace, your runs and the security log go with it. The web server log rolls over on its own within a few weeks. Email we sent stays in the sending account for as long as Google Workspace keeps sent mail, and messages you send to our addresses stay in our mailbox until the matter they concern is closed.</p>
+      <p>A paid, hosted instance we run for a customer keeps data for the term of the order form and is deleted, or exported and then deleted, within thirty days of the end of it.</p>
+    </section>
+
+    <section class="pd-section">
+      <h2>Why we are allowed to</h2>
+      <p>Where data-protection law asks for a legal basis: we process your account and exercise record because you asked us to provide the service (performance of a contract, or your consent when you signed up); the security and web server logs because we have a legitimate interest in keeping the service working and safe from abuse, which we judge to outweigh the small intrusion of keeping an address for a short time; and email we send because you asked for it.</p>
+    </section>
+
+    <section class="pd-section">
+      <h2>Where it is, and who else sees it</h2>
+      <p>The demo runs on one virtual machine hosted by a European cloud provider. Google Workspace handles outgoing email. Nobody else processes your data for us, and we do not sell or share it. We disclose personal data only when the law requires it, and we will tell you if that happens unless we are forbidden to.</p>
+      <p>Solo learning runs are never counted toward any organisation's readiness figures or the sector benchmark. Aggregate figures from real exercises on paid tiers may be benchmarked only with identifying detail removed and only where the order form allows it.</p>
+    </section>
+
+    <section class="pd-section">
+      <h2>Your rights</h2>
+      <ul class="pd-steps">
+        <li><b>A copy.</b> An administrator of a workspace can export all of it as JSON at any time (<code>GET /api/admin/export</code>, described in the enterprise checklist). For anything else, email us.</li>
+        <li><b>Correction.</b> Change your password from the console; email us for the rest.</li>
+        <li><b>Deletion.</b> An administrator can erase a workspace and everything in it (<code>DELETE /api/admin/org</code>, confirmed with the workspace's slug). On the demo you can also simply wait: the nightly reset deletes it. Email us to have anything we hold outside the service removed.</li>
+        <li><b>Objection and restriction.</b> Email us and say what you object to; we will stop unless we have a compelling reason we can explain.</li>
+        <li><b>Complaint.</b> You can complain to the data-protection authority where you live. We would rather hear from you first.</li>
+      </ul>
+    </section>
+
+    <section class="pd-section">
+      <h2>Children</h2>
+      <p>The service is not for anyone under 16. If you learn that a child has created an account, tell us and we will delete it.</p>
+    </section>
+
+    <section class="pd-section">
+      <h2>Changes</h2>
+      <p>The date at the top says when this page last changed. A change that matters to you is announced on the sign-in page of the demo before it takes effect.</p>
+      <p>Moose Arsenal · <a href="https://moosearsenal.com" rel="noopener">moosearsenal.com</a> · <a href="mailto:security@moosearsenal.com">security@moosearsenal.com</a></p>
+    </section>
+  </main>
+
+  <footer class="pd-foot">
+    <span>Gauntlet · exercise control · made by <a href="https://moosearsenal.com" rel="noopener">Moose Arsenal</a></span>
+    <span><a href="/terms.html">Terms</a> · <a href="/privacy.html">Privacy</a> · <a href="https://github.com/MooseArsenal/gauntlet/blob/main/SECURITY.md" rel="noopener">Security policy</a></span>
+  </footer>
+  <script src="/product.js"></script>
+</body>
+</html>
