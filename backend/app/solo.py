@@ -285,7 +285,18 @@ def move(db: Session, s: models.Session, scenario: models.Scenario, user: models
         raise HTTPException(422, "name at least one technique")
     lv = engagements.levers(solo.get("difficulty", "standard"))
     max_alert, max_moves = int(lv["alert"]), int(lv["moves"])
-    env = engagements.scaled_environment(_env(db, scenario), solo.get("difficulty", "standard"))
+    base_env = _env(db, scenario)
+    # Balance (H): a made-up technique id is a detection gap by construction and a
+    # made-up asset code a free foothold; both were guaranteed wins. The move must
+    # name techniques this build knows and an asset of the arena.
+    if target and target not in {str(a.get("code") or "") for a in (base_env.assets or [])}:
+        raise HTTPException(422, f"'{target}' is not an asset of this environment; pick a target from the board")
+    scene_techs = {t for i in _injects(db, scenario.id) for t in (i.attack_techniques or [])}
+    bad = engagements.unknown_techniques(techniques, base_env, scene_techs)
+    if bad:
+        raise HTTPException(422, f"{', '.join(bad)}: not a technique this engagement knows. "
+                                 "Use ATT&CK ids (T1234 or T1234.001) that the adversary, the scenes or the environment's controls name.")
+    env = engagements.scaled_environment(base_env, solo.get("difficulty", "standard"))
     ruling = adjudication.adjudicate(env, techniques, target)
     moves = int(solo.get("moves") or 0) + 1
     tripped = bool(ruling.get("deception_tripped"))
@@ -382,7 +393,11 @@ def view(db: Session, s: models.Session, scenario: models.Scenario, user: models
     difficulty = solo.get("difficulty", "standard")
     lv = engagements.levers(difficulty)
     pub = decisions.public_spec(spec) if (spec and side != "red") else None
-    if pub and lv["shuffle"]:
+    # A worked example is hand-authored with its best option usually written
+    # first, so it shuffles at every difficulty; a generated engagement keeps
+    # the authored order on easy (the lever).
+    shuffle = bool(lv["shuffle"]) or not solo.get("type")
+    if pub and shuffle:
         pub["options"] = engagements.shuffled(pub["options"], f"{s.id}:{inject.code}")
     scene = _public_inject(inject)
     if scene and not lv["hints"]:
@@ -393,7 +408,7 @@ def view(db: Session, s: models.Session, scenario: models.Scenario, user: models
                      "narrative": scenario.narrative, "rules_of_engagement": scenario.rules_of_engagement},
         "environment": {"name": env.name if env else "", "sector": env.sector if env else ""},
         "difficulty": difficulty, "difficulty_label": engagements.DIFFICULTY_LABELS.get(difficulty, difficulty),
-        "type": solo.get("type"), "levers": {"hints": lv["hints"], "zones": lv["zones"], "weight": lv["weight"]},
+        "type": solo.get("type"), "levers": {"hints": lv["hints"], "zones": lv["zones"], "weight": lv["weight"], "shuffle": shuffle},
         "scene": scene, "scene_index": len(fired), "scenes_total": total,
         "decision": pub,
         "time_limit_sec": int(lv["clock"]) if spec and side != "red" else None,

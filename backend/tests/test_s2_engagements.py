@@ -67,17 +67,17 @@ def test_red_levers_foothold_deception_and_thresholds():
         v = c.post("/api/solo/start", headers=_h(t), json={"side": "red", "type": "insider", "difficulty": "standard"}).json()
         sid = v["id"]; jewel = v["red"]["crown_jewels"][0]
         outer = next(a["code"] for a in v["red"]["assets"] if not a["crown_jewel"])
-        r = c.post(f"/api/solo/{sid}/move", headers=_h(t), json={"techniques": ["T1999"], "target": jewel}).json()
+        r = c.post(f"/api/solo/{sid}/move", headers=_h(t), json={"techniques": ["T1200"], "target": jewel}).json()
         assert r["ruling"]["detected"] is False and r["captured"] is False and "foothold" in r["ruling"]["rationale"]
-        r = c.post(f"/api/solo/{sid}/move", headers=_h(t), json={"techniques": ["T1999"], "target": outer}).json()
+        r = c.post(f"/api/solo/{sid}/move", headers=_h(t), json={"techniques": ["T1200"], "target": outer}).json()
         assert r["foothold"] is True
-        r = c.post(f"/api/solo/{sid}/move", headers=_h(t), json={"techniques": ["T1999"], "target": jewel}).json()
+        r = c.post(f"/api/solo/{sid}/move", headers=_h(t), json={"techniques": ["T1200"], "target": jewel}).json()
         assert r["captured"] is True and r["status"] == "complete"
         d = c.get(f"/api/solo/{sid}/debrief", headers=_h(t)).json()
         assert d["difficulty"] == "standard" and d["weight"] == 1.0 and d["score"] == d["raw_score"]
         # easy: no foothold needed, and the score is weighted down
         v = c.post("/api/solo/start", headers=_h(t), json={"side": "red", "type": "insider", "difficulty": "easy"}).json()
-        r = c.post(f"/api/solo/{v['id']}/move", headers=_h(t), json={"techniques": ["T1999"], "target": v["red"]["crown_jewels"][0]}).json()
+        r = c.post(f"/api/solo/{v['id']}/move", headers=_h(t), json={"techniques": ["T1200"], "target": v["red"]["crown_jewels"][0]}).json()
         assert r["captured"] is True
         d = c.get(f"/api/solo/{v['id']}/debrief", headers=_h(t)).json()
         assert d["score"] == min(100, round(d["raw_score"] * 0.85))

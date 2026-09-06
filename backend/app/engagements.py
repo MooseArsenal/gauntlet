@@ -10,14 +10,25 @@ remain available as worked examples.
 
 Difficulty is a set of levers, applied at play time from the run's state:
 
-* red — control efficacy scaling, alert threshold, move budget, whether a
-  crown jewel needs a foothold first, whether deception assets are live (and
-  cost two alert points), whether technique hints and zones are shown;
+* red — control efficacy scaling (named controls only: the wildcard SIEM
+  that watches everything is baseline noise and stays at its authored value,
+  otherwise a 1.15× on a 0.45 baseline detects every move and hard is not
+  hard but impossible), alert threshold, move budget, whether a crown jewel
+  needs a foothold first, whether deception assets are live (and cost two
+  alert points), whether technique hints and zones are shown;
 * blue / executive — the decision clock, option shuffling, extra plausible
   distractors (authored into the generated scenario), whether the "consider"
   hints are shown, an impact multiplier;
 * both — a score weight, so the same choices on expert are worth more and a
   history can compare across difficulties.
+
+Two things are not levers. A red move must name techniques this build knows
+and an asset of the arena: a made-up technique id is a detection gap by
+construction and a made-up asset code is a free foothold, and both were
+guaranteed wins at every difficulty. And a worked example (a hand-authored
+scenario, where the best option is usually written first) shuffles its
+options at every difficulty, easy included; only generated engagements
+keep the authored order on easy.
 """
 from __future__ import annotations
 
@@ -29,7 +40,8 @@ from sqlalchemy.orm import Session
 from . import models
 from .authoring import environments as env_library
 from .authoring import generator
-from .authoring.catalog import THREAT_ACTORS
+from .authoring.catalog import INJECT_BANK, THREAT_ACTORS
+from .engine import technique
 
 DIFFICULTIES = ("easy", "standard", "hard", "expert")
 LEVERS: dict[str, dict] = {
@@ -179,7 +191,12 @@ def build(db: Session, org_id: int, side: str, etype: str, difficulty: str, seed
 
 def scaled_environment(env: models.Environment, difficulty: str) -> models.Environment:
     """A transient copy of the environment with the red-side levers applied:
-    efficacy scaled, deception live or not. Never persisted."""
+    named controls' efficacy scaled, deception live or not. Never persisted.
+
+    Wildcard controls (``covers: ["*"]``, the SIEM that sees a little of
+    everything) are left alone: they sit just under the detection threshold by
+    design, and scaling them over it made every move detected on hard and
+    expert in four of the six arenas (nothing unseen, nothing to learn)."""
     lv = levers(difficulty)
     copy = models.Environment(id=env.id, org_id=env.org_id, name=env.name, sector=env.sector, box_type=env.box_type,
                               assets=list(env.assets or []), crown_jewels=list(env.crown_jewels or []))
@@ -187,13 +204,47 @@ def scaled_environment(env: models.Environment, difficulty: str) -> models.Envir
         out = []
         for c in items or []:
             c = dict(c)
-            c["efficacy"] = max(0.0, min(0.98, float(c.get("efficacy", 0.0)) * lv["efficacy"]))
+            if "*" not in (c.get("covers") or []):
+                c["efficacy"] = max(0.0, min(0.98, float(c.get("efficacy", 0.0)) * lv["efficacy"]))
             out.append(c)
         return out
     copy.controls = scale(env.controls)
     copy.detections = scale(env.detections)
     copy.deception_assets = list(env.deception_assets or []) if lv["deception"] else []
     return copy
+
+
+_KNOWN: set[str] = set()
+
+
+def known_techniques() -> set[str]:
+    """Every technique id this build models: the inject bank, the adversary
+    catalog, and the controls of the library environments. Computed once."""
+    if not _KNOWN:
+        for b in INJECT_BANK.values():
+            _KNOWN.update(technique.normalize(t) for t in b.get("techniques") or [])
+        for a in THREAT_ACTORS.values():
+            _KNOWN.update(technique.normalize(t) for t in a.get("techniques") or [])
+        for t in env_library.ENVIRONMENT_TEMPLATES.values():
+            for c in (t.get("controls") or []) + (t.get("detections") or []) + (t.get("deception_assets") or []):
+                _KNOWN.update(technique.normalize(x) for x in c.get("covers") or [] if x != "*")
+        _KNOWN.discard("")
+    return _KNOWN
+
+
+def unknown_techniques(techniques: list[str], env: models.Environment, scenario_techniques: set[str]) -> list[str]:
+    """Ids a red move may not use: malformed, or known neither to this build,
+    nor to the arena's controls, nor to the scenario's own scenes. Parents
+    and sub-techniques of a known id count as known."""
+    known = set(known_techniques()) | {technique.normalize(t) for t in scenario_techniques}
+    for c in list(env.controls or []) + list(env.detections or []) + list(env.deception_assets or []):
+        known.update(technique.normalize(x) for x in c.get("covers") or [] if x != "*")
+    bad = []
+    for t in techniques:
+        n = technique.normalize(t)
+        if not technique.is_valid(n) or not any(technique.covers(k, n) for k in known):
+            bad.append(t)
+    return bad
 
 
 def shuffled(options: list[dict], seed: str) -> list[dict]:
