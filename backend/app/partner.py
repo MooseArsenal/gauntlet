@@ -17,7 +17,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from . import models
+from . import entitlements, models
 from .security import hash_password
 
 
@@ -46,6 +46,7 @@ def create_client(db: Session, partner_org_id: int, name: str, created_by: model
     name = (name or "").strip()
     if not name:
         raise HTTPException(422, "name the client organisation")
+    entitlements.check_client_seats(db, partner_org_id)
     org = models.Organization(name=name[:200], slug=_slug(name))
     db.add(org)
     db.flush()

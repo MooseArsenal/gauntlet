@@ -98,10 +98,10 @@ with an SBOM, and described in [`CHANGELOG.md`](CHANGELOG.md).
 
 | Tier | For | Adds |
 |---|---|---|
-| **Community** (free) | Anyone self-hosting | The full engine, the record, reports, certificates, exports, libraries, game mode, one organisation |
-| **Team** | A security team running a programme | Facilitator seats, telemetry loop, tracker push, white-label branding, scenario content packs |
-| **Education** | A course, a lab or a cyber club | Team, plus cohorts, anonymous grading, the gradebook, session replay and rewind |
-| **Enterprise** | Regulated, multi-team or air-gapped | Education, plus SSO and SCIM, partner mode, the intel feed, sector benchmarking, support |
+| **Community** (free) | Anyone self-hosting | The full engine, the record, reports, certificates, exports, libraries, SSO, MFA, air-gapped mode, game mode, solo learning, one organisation, unlimited seats |
+| **Team** ($6,000/yr) | A security team running a programme | 5 facilitator seats ($900 per extra seat), telemetry loop, tracker push, white-label branding, quarterly content packs, next-business-day support |
+| **Education** ($3,000/yr) | A course, a lab or a cyber club | 2 instructor seats, unlimited students; cohorts, anonymous grading, the gradebook, session replay and rewind, white-label |
+| **Enterprise** (from $24,000/yr) | Regulated, multi-team or consultancies | Team and Education, plus SCIM, partner mode (5 client organisations included, $2,000 per additional), the intel feed, sector benchmarking, support SLA |
 
 Details and the packaging page: [`docs/LICENSING.md`](docs/LICENSING.md) and
 `/product.html` on a running instance.
