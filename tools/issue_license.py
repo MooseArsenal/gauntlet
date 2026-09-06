@@ -3,7 +3,7 @@
 
     python tools/issue_license.py keygen --out vendor-license.key
     python tools/issue_license.py issue --key-file vendor-license.key --tier team --customer "Acme" \
-        --exp 2027-09-01 [--feature replay] [--seats facilitators=5] [--org acme]
+        --exp 2027-09-01 [--feature replay] [--seats facilitators=5] [--seats clients=5] [--org acme]
     python tools/issue_license.py revoke --key-file vendor-license.key --serial 1a2b… [--serial …] \
         [--previous revocations.grl] > revocations.grl
     python tools/issue_license.py inspect <token>
@@ -65,7 +65,8 @@ def main() -> int:
     iss.add_argument("--exp", required=True, help="YYYY-MM-DD")
     iss.add_argument("--org", default="*")
     iss.add_argument("--feature", action="append", default=[], choices=entitlements.ALL_FEATURES)
-    iss.add_argument("--seats", action="append", default=[], help="kind=count, e.g. facilitators=5")
+    iss.add_argument("--seats", action="append", default=[],
+                     help="kind=count: facilitators=N (admins + facilitators; instructors on Education), clients=N (partner-mode client organisations)")
     rv = sub.add_parser("revoke"); _signing_args(rv)
     rv.add_argument("--serial", action="append", default=[], required=True)
     rv.add_argument("--previous", help="an earlier revocation list to carry forward")
