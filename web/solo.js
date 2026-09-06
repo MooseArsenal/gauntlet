@@ -95,7 +95,7 @@
     const lv = cat.difficulties.find((d) => d.key === difficulty) || {};
     $("diffHint").textContent = side === "red"
       ? `Red on ${difficulty}: ${lv.alert} detections evict you, ${lv.moves} moves, ${lv.foothold ? "a foothold before any crown jewel" : "no foothold needed"}, ${lv.deception ? "canaries live (a touch costs two alert points)" : "no canaries"}, ${lv.hints ? "technique hints on" : "no hints"}${lv.zones ? "" : ", zones hidden"}. Score weight ×${lv.weight}.`
-      : side ? `${side === "exec" ? "Executive" : "Blue"} on ${difficulty}: ${lv.clock} s per decision, ${lv.shuffle ? "options shuffled" : "options in authored order"}, ${lv.distractors ? lv.distractors + " distractor" + (lv.distractors > 1 ? "s" : "") + " mixed in" : "no distractors"}, ${lv.hints ? "hints shown" : "no hints"}, impact ×${lv.impact}. Score weight ×${lv.weight}.`
+      : side ? `${side === "exec" ? "Executive" : "Blue"} on ${difficulty}: ${lv.clock} s per decision, ${lv.shuffle ? "options shuffled" : "options in authored order (worked examples always shuffle)"}, ${lv.distractors ? lv.distractors + " distractor" + (lv.distractors > 1 ? "s" : "") + " mixed in" : "no distractors"}, ${lv.hints ? "hints shown" : "no hints"}, impact ×${lv.impact}. Score weight ×${lv.weight}.`
       : "Pick a side to see what the difficulty changes.";
     const types = side ? (cat.types[side] || []) : [];
     $("pickHint").textContent = side ? "The engine assembles a fresh run from the library each time: a sector environment, an adversary from the pool, the attack that fits." : "Choose a side first.";
