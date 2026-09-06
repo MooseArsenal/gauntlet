@@ -37,21 +37,50 @@
   }
 
   // ---- account ----
+  // Sign-up confirmation (G): a deployment with mail configured answers 202 to
+  // a registration and sends a link; the link lands here with ?confirm=<token>.
+  function showConfirmNotice(el, email) {
+    el.innerHTML = `<b>Check your inbox.</b> We sent a confirmation link to ${esc(email)}. Follow it to finish creating your account; it works for a day. ` +
+      `<a href="#" id="lnkResend">Send it again</a>`;
+    el.hidden = false;
+    $("lnkResend").addEventListener("click", async (ev) => {
+      ev.preventDefault();
+      try { await api("/api/auth/confirm/resend", "POST", { email }); toast("Sent again, if the address is registered and unconfirmed."); }
+      catch (e) { toast(e.message); }
+    });
+  }
   async function login() {
     $("liErr").hidden = true;
+    const email = $("liEmail").value.trim();
     try {
-      const out = await api("/api/auth/login", "POST", { email: $("liEmail").value.trim(), password: $("liPass").value });
+      const out = await api("/api/auth/login", "POST", { email, password: $("liPass").value });
       if (out.mfa_required) { $("liErr").textContent = "This account uses two-factor sign-in; sign in on the console first."; $("liErr").hidden = false; return; }
       setTokens(out.access_token, out.refresh_token); await boot();
-    } catch (e) { $("liErr").textContent = e.message; $("liErr").hidden = false; }
+    } catch (e) {
+      if (e.status === 403 && /confirm your email/i.test(e.message)) { showConfirmNotice($("liErr"), email); return; }
+      $("liErr").textContent = e.message; $("liErr").hidden = false;
+    }
   }
   async function register() {
     $("rgErr").hidden = true;
     const name = $("rgName").value.trim();
+    const email = $("rgEmail").value.trim();
     try {
-      const out = await api("/api/auth/register", "POST", { org_name: `${name || "My"} lab`, email: $("rgEmail").value.trim(), password: $("rgPass").value, name });
+      const out = await api("/api/auth/register", "POST", { org_name: `${name || "My"} lab`, email, password: $("rgPass").value, name });
+      if (out && out.confirmation_required) { showConfirmNotice($("rgErr"), out.email || email); return; }
       setTokens(out.access_token, out.refresh_token); toast("Welcome. Your workspace is ready."); await boot();
     } catch (e) { $("rgErr").textContent = e.message; $("rgErr").hidden = false; }
+  }
+  async function confirmFromLink(token) {
+    // Scrub the token from the address bar whatever happens; it is single-use.
+    try { history.replaceState(null, "", location.pathname); } catch (e) { /* noop */ }
+    try {
+      const out = await api("/api/auth/confirm", "POST", { token });
+      setTokens(out.access_token, out.refresh_token); toast("Email confirmed. Welcome — your workspace is ready.");
+    } catch (e) {
+      if (e.status === 409) toast("That address is already confirmed. Sign in.");
+      else { $("rgErr").textContent = e.message + " Sign up again or ask for a new link from the sign-in card."; $("rgErr").hidden = false; }
+    }
   }
 
   // ---- pick ----
@@ -218,6 +247,8 @@
   }
 
   async function boot() {
+    const confirmTok = new URLSearchParams(location.search).get("confirm");
+    if (confirmTok) await confirmFromLink(confirmTok);
     try { me = await api("/api/auth/me"); } catch (e) { me = null; }
     if (!me) { show("authView"); return; }
     $("userChip").hidden = false; $("userLabel").textContent = me.email;

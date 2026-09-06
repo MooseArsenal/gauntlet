@@ -207,7 +207,8 @@ async def create_user(request: Request, org: models.Organization = Depends(scim_
     entitlements.check_seats(db, org.id, _role_of(body))
     u = models.User(org_id=org.id, email=email, name=_name_of(body), role=_role_of(body),
                     is_active=bool(body.get("active", True)), scim_external_id=(body.get("externalId") or None),
-                    password_hash=security.hash_password(secrets.token_urlsafe(24)))
+                    password_hash=security.hash_password(secrets.token_urlsafe(24)),
+                    email_verified_at=datetime.now(timezone.utc))  # the identity provider vouches for the address
     db.add(u)
     db.flush()
     audit.record(db, "scim.user.create", request=request, user=None, org_id=org.id, actor_email="scim",

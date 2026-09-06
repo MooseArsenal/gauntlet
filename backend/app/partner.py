@@ -71,7 +71,7 @@ def shadow_for(db: Session, user: models.User, client: models.Organization) -> m
     if row is None:
         row = models.User(org_id=client.id, email=shadow_email(user, client), name=f"{user.name or user.email} (via {user.organization.name})",
                           role="admin", password_hash=hash_password(secrets.token_urlsafe(32)),
-                          partner_user_id=user.id, is_active=True)
+                          partner_user_id=user.id, is_active=True, email_verified_at=models._utcnow())
         db.add(row)
         db.flush()
     elif not row.is_active:

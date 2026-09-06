@@ -1,6 +1,8 @@
 """Education edition endpoints (L4). Gated by the ``education`` feature."""
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -85,7 +87,7 @@ def enrol(payload: schemas.CohortEnrolIn, request: Request, db: Session = Depend
     if db.execute(select(models.User).where(func.lower(models.User.email) == email)).scalar_one_or_none() is not None:
         raise HTTPException(status.HTTP_409_CONFLICT, "that email already has an account: sign in, then join the cohort with its code")
     user = models.User(org_id=c.org_id, email=email, name=payload.name.strip(), password_hash=hash_password(payload.password),
-                       role="participant")
+                       role="participant", email_verified_at=datetime.now(timezone.utc))  # the class code is the gate
     db.add(user)
     db.flush()
     m = education.add_member(db, c, user)
