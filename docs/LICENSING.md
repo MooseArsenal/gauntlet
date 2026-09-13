@@ -10,13 +10,22 @@ audit, encryption and row-level security are never gated.
 |---|---|---|---|
 | Community (no licence) | free | unlimited | The full engine, environment and CTEP libraries, adversary catalog, reports, certificates, exports, SSO, MFA, audit, encryption at rest, air-gapped mode, game mode, solo learning. |
 | Team | $6,000 / year | 5 facilitators, $900 per extra seat | White-label branding, the content subscription (quarterly packs), the telemetry loop, Jira/ServiceNow push. Email support next business day. |
-| Education | $3,000 / year | 2 instructors, $900 per extra seat; unlimited students | The education edition (cohorts, gradebook, anonymous grading), session replay, white-label branding. Not the programme features: a classroom that also runs a programme buys Team or Enterprise. |
-| Enterprise | from $24,000 / year | quoted | Team and Education together, plus SCIM provisioning, partner mode (5 client organisations included, $2,000 per additional client per year), the adversary intel feed, the sector benchmark cohort, a support SLA (4 business hours for severity 1). |
+| Education | $3,500 / year | 2 instructors, $900 per extra seat; up to 500 enrolled students per licence, a second licence beyond that | The education edition (cohorts, gradebook, anonymous grading), session replay, white-label branding. Sold only to accredited universities, colleges and recognised training programmes (see *Buying a licence*). Not the programme features: a classroom that also runs a programme buys Team or Enterprise. |
+| Enterprise | from $24,000 / year | quoted | Team and Education together, plus SCIM provisioning, partner mode (5 client organisations included, $3,000 per additional client per year), the adversary intel feed, the sector benchmark cohort, a support SLA (4 business hours for severity 1). |
 
 Prices are per organisation, billed annually, and one licence runs one
-instance. Facilitated exercises are sold separately from $8,000 each. The
-grace period after expiry is 30 days. The pricing table on the packaging page
-(`/product.html`) is the customer-facing copy of this one; change both.
+instance. Facilitated exercises are sold separately: from $12,000 for a
+half-day virtual exercise, from $18,000 on site, the signed record, reports
+and certificate included. The grace period after expiry is 30 days. The
+pricing table on the packaging page (`/product.html`) is the customer-facing
+copy of this one; change both.
+
+**Founding-customer pricing.** The prices published are held at renewal for
+every customer who stays continuously licensed. List prices may rise for new
+customers (the plan is Team to $9,000 within twelve months of the first sale,
+once reference customers exist); an existing customer's terms never change
+under them. The word "Indicative" comes off the page the day the first quote
+goes out.
 
 A licence may add individual features beyond its tier and may cap seats:
 
@@ -85,3 +94,12 @@ once. Procedure and ceremony: `docs/KEY_MANAGEMENT.md`.
 Write to sales@moosearsenal.com with the organisation name, the tier and the
 number of facilitators. Licences are issued the same working day; support is
 support@moosearsenal.com.
+
+**Education eligibility.** The Education tier is sold only to accredited
+universities and colleges and to recognised training programmes, so that it
+cannot be used to undercut Team. The order form records the institution and
+its accrediting body (or the programme and the body that recognises it), the
+licence's `customer` field names the institution, and the licence is for that
+institution's own teaching. A company that runs a programme buys Team; a
+company that also teaches buys Enterprise. The 500-student ceiling is per
+licence; a second licence covers the next 500.
