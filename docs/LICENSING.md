@@ -65,6 +65,11 @@ release later. A signed revocation list (`GR1`) installed on the Members page
 or via `GAUNTLET_LICENSE_REVOCATIONS` degrades a revoked serial to Community at
 once. Procedure and ceremony: `docs/KEY_MANAGEMENT.md`.
 
+## Support
+
+What each tier's support means (hours, channels, severity, response targets)
+is in `docs/SUPPORT.md`; the order form refers to it.
+
 ## Buying a licence
 
 Write to sales@moosearsenal.com with the organisation name, the tier and the
