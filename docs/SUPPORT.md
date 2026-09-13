@@ -36,12 +36,23 @@ when they write; support may re-classify it and will say why.
 
 | Severity | Meaning | Examples |
 |---|---|---|
-| **1 — an exercise cannot run** | The product cannot be used for an exercise that is scheduled or in progress, or data is at risk | Instance down or nobody can sign in with a run scheduled; injects will not fire, participants cannot answer, the timeline will not record, or the certificate cannot be issued in a run that is under way; a valid licence refused so paid features close during a scheduled exercise; data loss or corruption; a security vulnerability being actively exploited |
+| **1 — an exercise cannot run** | The product cannot be used for an exercise that is scheduled or in progress | Instance down or nobody can sign in with a run scheduled; injects will not fire, participants cannot answer, the timeline will not record, or the certificate cannot be issued in a run that is under way; a valid licence refused so paid features close during a scheduled exercise; a Gauntlet defect that destroys or corrupts exercise records (for example an upgrade migration that loses timelines) |
 | **2 — a paid feature is broken, with a way round** | Something the tier pays for does not work, but the exercise can still be run | A report will not export; tracker push fails; a content pack will not install; SCIM stops provisioning; white-label branding does not apply |
 | **3 — everything else** | Cosmetic defects, questions, requests | A layout fault; how to author a branch condition; a feature request; a question about a licence |
 
 A broken export the day before a board meeting is severity 2 with an urgent
 note, not severity 1. Severity 1 is reserved for the room that cannot sit.
+
+**Your data and your instance are yours.** Gauntlet is self-hosted and
+sends nothing to Moose Arsenal, so we hold none of your data and cannot
+lose it. Loss or corruption caused by your own disks, backups, database,
+upgrades you performed outside the documented procedure, or administrative
+action is not a support case, though support will help you read what the
+timeline's signed heads say about a restore. An intrusion on your instance
+is your incident to run; support can confirm what Gauntlet recorded. A
+vulnerability *in Gauntlet* is not a support severity at all: report it to
+security@moosearsenal.com and it is handled under `SECURITY.md`, which
+commits to a fix for confirmed high-severity issues within fourteen days.
 
 ## Response targets
 
@@ -86,6 +97,8 @@ against a severity 1 on the day, and it is free on every paid tier.
 - The customer's own infrastructure: their proxy, database, identity
   provider, mail relay, network or hosting. Support will say where Gauntlet
   stops and the platform starts, and no further.
+- The customer's data and backups, and incident response on the customer's
+  instance. Gauntlet holds no copy of either.
 - Third-party services connected through the tracker, SSO, SCIM, SMTP or
   the range adapters, beyond confirming what Gauntlet sent and received.
 - Versions older than the latest tagged release.
