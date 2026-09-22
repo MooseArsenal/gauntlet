@@ -32,10 +32,15 @@ from .security import get_current_user
 TIERS = ("community", "team", "education", "enterprise")
 
 # Features by tier. A licence may add features beyond its tier.
+#
+# Education is a classroom product, not a discounted Team: it carries the
+# education edition, replay and white-label, and none of the programme
+# features (telemetry loop, tracker push, content subscription). Enterprise
+# is Team and Education together plus the enterprise-only features.
 TIER_FEATURES: dict[str, set[str]] = {
     "community": set(),
     "team": {"white_label", "content_packs", "telemetry_loop", "tracker_push"},
-    "education": {"white_label", "content_packs", "telemetry_loop", "tracker_push", "education", "replay"},
+    "education": {"white_label", "education", "replay"},
     "enterprise": {"white_label", "content_packs", "telemetry_loop", "tracker_push", "education", "replay",
                    "partner_mode", "scim", "benchmark_cohort", "intel_feed"},
 }
@@ -47,6 +52,11 @@ FEATURE_LABELS = {
 }
 GRACE_DAYS = 30
 SETTING_KEY = "license"
+# Seat kinds a licence may cap. "facilitators" counts admins and facilitators
+# (instructors, on Education); "clients" counts the client organisations a
+# partner may link (Enterprise includes five; more are sold per client).
+SEAT_KINDS = ("facilitators", "clients")
+PARTNER_CLIENTS_INCLUDED = 5
 
 # Trust anchors (which vendor public keys are trusted, and key rotation) live
 # in signing.py; the deployment never trusts a key an environment variable
@@ -269,3 +279,18 @@ def check_seats(db: Session, org_id: int, role: str, adding: int = 1) -> None:
         models.User.role.in_(("admin", "facilitator")))).scalar_one()
     if used + adding > limit:
         raise HTTPException(402, f"this licence allows {limit} facilitator seat(s); {used} are in use")
+
+
+def check_client_seats(db: Session, partner_org_id: int, adding: int = 1) -> None:
+    """Partner mode: the number of client organisations a partner may link is
+    a seat in the licence (``seats.clients``). A licence without the cap is
+    unlimited, as before; the packaging page says what Enterprise includes."""
+    limit = seat_limit(db, "clients")
+    if limit is None:
+        return
+    from sqlalchemy import func
+    used = db.execute(select(func.count()).select_from(models.OrgLink).where(
+        models.OrgLink.partner_org_id == partner_org_id)).scalar_one()
+    if used + adding > limit:
+        raise HTTPException(402, f"this licence allows {limit} client organisation(s) in partner mode; {used} are linked. "
+                                 "Additional clients are added to the licence per client.")

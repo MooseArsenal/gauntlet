@@ -6,16 +6,36 @@ audit, encryption and row-level security are never gated.
 
 ## Tiers
 
-| Tier | Includes |
-|---|---|
-| Community (no licence) | The full engine, environment and CTEP libraries, adversary catalog, reports, certificates, exports, SSO, MFA, audit, air-gapped mode. |
-| Team | White-label branding, the content subscription, the telemetry loop, Jira/ServiceNow push. |
-| Education | Team, plus the education edition (cohorts, gradebook, anonymous grading) and session replay. |
-| Enterprise | Education, plus partner mode, SCIM provisioning, the instance benchmark cohort, the adversary intel feed. |
+| Tier | Price | Seats | Includes |
+|---|---|---|---|
+| Community (no licence) | free | unlimited | The full engine, environment and CTEP libraries, adversary catalog, reports, certificates, exports, SSO, MFA, audit, encryption at rest, air-gapped mode, game mode, solo learning. |
+| Team | $6,000 / year | 5 facilitators, $900 per extra seat | White-label branding, the content subscription (quarterly packs), the telemetry loop, Jira/ServiceNow push. Email support next business day. |
+| Education | $3,500 / year | 2 instructors, $900 per extra seat; up to 500 enrolled students per licence, a second licence beyond that | The education edition (cohorts, gradebook, anonymous grading), session replay, white-label branding. Sold only to accredited universities, colleges and recognised training programmes (see *Buying a licence*). Not the programme features: a classroom that also runs a programme buys Team or Enterprise. |
+| Enterprise | from $24,000 / year | quoted | Team and Education together, plus SCIM provisioning, partner mode (5 client organisations included, $3,000 per additional client per year), the adversary intel feed, the sector benchmark cohort, a support SLA (4 business hours for severity 1). |
 
-A licence may add individual features beyond its tier and may cap
-**facilitator seats** (admins and facilitators count; evaluators and
-participants do not).
+Prices are per organisation, billed annually, and one licence runs one
+instance. Facilitated exercises are sold separately: from $12,000 for a
+half-day virtual exercise, from $18,000 on site, the signed record, reports
+and certificate included. The grace period after expiry is 30 days. The
+pricing table on the packaging page (`/product.html`) is the customer-facing
+copy of this one; change both.
+
+**Founding-customer pricing.** The prices published are held at renewal for
+every customer who stays continuously licensed. List prices may rise for new
+customers (the plan is Team to $9,000 within twelve months of the first sale,
+once reference customers exist); an existing customer's terms never change
+under them. The word "Indicative" comes off the page the day the first quote
+goes out.
+
+A licence may add individual features beyond its tier and may cap seats:
+
+- `facilitators` — admins and facilitators count (instructors, on Education);
+  evaluators, participants and students do not. Adding a member beyond the
+  cap is refused with a `402` naming the limit.
+- `clients` — the client organisations a partner may link in partner mode.
+  Enterprise licences are issued with `clients=5`; a customer who buys more
+  gets a re-issued licence with the higher number. Linking a client beyond
+  the cap is refused with a `402`; existing clients are untouched.
 
 ## How a licence works
 
@@ -37,8 +57,12 @@ the console can label what is locked.
 
 ```bash
 python tools/issue_license.py keygen
-python tools/issue_license.py issue --key <private> --tier team --customer "Acme" \
-    --exp 2027-09-01 --feature replay --seats facilitators=5
+python tools/issue_license.py issue --key-file <key> --tier team --customer "Acme" \
+    --exp 2027-09-01 --seats facilitators=5
+python tools/issue_license.py issue --key-file <key> --tier education --customer "Some College" \
+    --exp 2027-09-01 --seats facilitators=2
+python tools/issue_license.py issue --key-file <key> --tier enterprise --customer "Acme Consulting" \
+    --exp 2027-09-01 --seats facilitators=10 --seats clients=5
 ```
 
 Keep the private key outside the repository. Rotate by issuing a new keypair,
@@ -75,3 +99,12 @@ is in `docs/SUPPORT.md`; the order form refers to it.
 Write to sales@moosearsenal.com with the organisation name, the tier and the
 number of facilitators. Licences are issued the same working day; support is
 support@moosearsenal.com.
+
+**Education eligibility.** The Education tier is sold only to accredited
+universities and colleges and to recognised training programmes, so that it
+cannot be used to undercut Team. The order form records the institution and
+its accrediting body (or the programme and the body that recognises it), the
+licence's `customer` field names the institution, and the licence is for that
+institution's own teaching. A company that runs a programme buys Team; a
+company that also teaches buys Enterprise. The 500-student ceiling is per
+licence; a second licence covers the next 500.

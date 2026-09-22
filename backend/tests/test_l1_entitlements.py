@@ -141,3 +141,31 @@ def test_seat_limits(monkeypatch):
         members = c.get("/api/members", headers=ha).json()
         ev = next(m for m in members if m["email"].startswith("e"))
         assert c.patch(f"/api/members/{ev['id']}", headers=ha, json={"role": "facilitator"}).status_code == 402
+
+
+def test_education_is_a_classroom_tier_not_a_cheaper_team():
+    """Pricing lockdown: Education carries the classroom features and white-label
+    only; the programme features stay with Team and Enterprise."""
+    ed, team, ent = (entitlements.TIER_FEATURES[t] for t in ("education", "team", "enterprise"))
+    assert ed == {"white_label", "education", "replay"}
+    assert not (ed & {"telemetry_loop", "tracker_push", "content_packs"})
+    assert (ed | team) <= ent and {"scim", "partner_mode", "intel_feed", "benchmark_cohort"} <= ent
+
+
+def test_partner_mode_client_cap_is_a_seat(monkeypatch):
+    monkeypatch.setenv("GAUNTLET_LICENSE", entitlements.issue(
+        TEST_PRIV, tier="enterprise", customer="Acme Consulting", exp="2999-01-01", seats={"clients": 2}))
+    with TestClient(app) as c:
+        o, admin = _org(c); ha = _h(admin)
+        assert c.get("/api/license", headers=ha).json()["seats"] == {"clients": 2}
+        first = c.post("/api/partner/clients", headers=ha, json={"name": "Bright Bank"})
+        assert first.status_code == 201
+        assert c.post("/api/partner/clients", headers=ha, json={"name": "Second Client"}).status_code == 201
+        third = c.post("/api/partner/clients", headers=ha, json={"name": "One Too Many"})
+        assert third.status_code == 402 and "2 client organisation" in third.json()["detail"]
+        assert len(c.get("/api/partner/clients", headers=ha).json()["clients"]) == 2
+        # entering an existing client is not linking a new one
+        assert c.post(f"/api/partner/clients/{first.json()['id']}/enter", headers=ha).status_code == 200
+        # unlinking frees the seat
+        assert c.delete(f"/api/partner/clients/{first.json()['id']}", headers=ha).status_code == 204
+        assert c.post("/api/partner/clients", headers=ha, json={"name": "Replacement"}).status_code == 201
