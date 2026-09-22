@@ -1,0 +1,262 @@
+# Autumn 2026 scenario pack — Moose Arsenal
+# Library environment: university (Northgate University — Campus & Research)
+scenario:
+  name: "Operation Cold Archive — MFA fatigue to a grant-restricted research store"
+  threat_actor: "State-sponsored research-theft group (patient, credential-led, targets export-controlled data)"
+  narrative: >
+    At two in the morning a research computing director's phone receives forty
+    authentication prompts; one is approved. The group registers its own device with
+    the identity provider, reaches the grant-restricted research store through an
+    unmanaged lab workstation, and starts copying a dataset that the grant agreement
+    says may not leave the country. The same credential is then tried against the
+    student health centre. The exercise is about acting on identity signals before
+    the data moves, and about a notification clock that starts before forensics ends.
+  scope: "Discussion-based tabletop with decision cards. No live systems are touched."
+  rules_of_engagement: "Facilitated exercise only. 'Pause' halts play at any time. No production access. All actions are simulated."
+  exercise_type: tabletop
+
+  variables:
+    account_locked: false
+    egress_blocked: false
+    exfil_confirmed: false
+    health_touched: false
+
+  cells:
+    - {key: white_cell, name: "White Cell / Control", kind: control}
+    - {key: blue_cell, name: "Blue Cell (campus security operations)", kind: participant}
+    - {key: exec_cell, name: "Executive Cell (CISO, research compliance, counsel)", kind: participant}
+    - {key: observers, name: "Observers", kind: observer}
+
+  objectives:
+    - code: OBJ-1
+      title: "Act on the identity signal"
+      success_criteria: "The account's sessions are revoked and the account locked within thirty minutes of the approved prompt."
+      meta: {capability: detect, compliance: {nist_csf: [DE.AE, PR.AA], cis_v8: ["6.5", "8.11"], iso_27001: ["A.5.17"]}}
+    - code: OBJ-2
+      title: "Remove the attacker's device"
+      success_criteria: "The newly registered device is removed and device registration requires a managed endpoint."
+      meta: {capability: contain, compliance: {nist_csf: [PR.AA, RS.MI], cis_v8: ["6.4"], iso_27001: ["A.5.16"]}}
+    - code: OBJ-3
+      title: "Stop the transfer, keep the evidence"
+      success_criteria: "Egress from the research store is blocked while the copy runs and the store is snapshotted."
+      meta: {capability: contain, compliance: {nist_csf: [DE.CM, RS.MI], cis_v8: ["13.3", "3.13"], nist_800_171: ["3.13.1", "3.1.3"]}}
+    - code: OBJ-4
+      title: "Notify on the clock, not on the forensics"
+      success_criteria: "The grant agency and counsel are notified within the agreement's window; the privacy officer is engaged if health records are in scope."
+      meta: {capability: communicate, compliance: {nist_csf: [RS.CO], nist_800_171: ["3.6.2"], hipaa: ["164.408"], iso_27001: ["A.5.5"]}}
+
+  injects:
+    - code: INJ-01
+      act: "Initial Access"
+      is_start: true
+      title: "Identity anomaly: forty push prompts at 02:10, one approved"
+      channel: siem_alert
+      clock: "T+00:00"
+      narrative: >
+        The identity anomaly detector flags the research computing director's account
+        (W. Chen): forty push notifications in eleven minutes from an address in another
+        country, the last one approved. Chen is asleep. The account has access to the
+        HPC cluster and the research data store, including a dataset restricted by an
+        export-controlled grant.
+      visible_to: [blue_cell, white_cell]
+      expected_actions: ["Revoke every session on the account and lock it", "Reach the user by phone, not email"]
+      attack: [T1621, T1078.004]
+      target_asset: IDP-SHIB
+      objective: OBJ-1
+      meta:
+        decision:
+          prompt: "One of forty prompts was approved at 02:21. What does the on-call analyst do?"
+          time_limit_sec: 150
+          options:
+            - {key: a, label: "Revoke all sessions, lock the account, and phone the director now to confirm it was not them", score: 1.0, trigger: lock,
+               note: "Forty prompts and an approval at two in the morning is the textbook signature. Lock first; a director woken by a phone call will forgive you, a director whose dataset is on a leak site will not."}
+            - {key: b, label: "Email the director asking whether they approved a prompt overnight", score: 0.3, trigger: email_user,
+               note: "The mailbox is now read by whoever approved the prompt, and the director reads email at nine. Seven hours is a long time for a research store."}
+            - {key: c, label: "Add the address to a watch-list and review in the morning", score: 0.1,
+               note: "Watching is what the anomaly detector already does. The signal it gave you is the one you wait for."}
+      branches:
+        - {when: action_taken, trigger: lock, label: "Sessions revoked, account locked", set: {account_locked: true}, goto: INJ-02}
+        - {when: action_taken, trigger: email_user, label: "Emailed the user — the session lives", goto: INJ-03}
+        - {when: timeout, after: PT10M, label: "No decision — the session lives", goto: INJ-03}
+        - {when: proctor_choice, label: "Proctor: locked", set: {account_locked: true}, goto: INJ-02}
+
+    - code: INJ-02
+      act: "Persistence"
+      title: "A new device registered with the identity provider before the lock"
+      channel: siem_alert
+      clock: "T+00:25"
+      narrative: >
+        Between the approval and the lock, the session registered a new device with
+        IDP-SHIB and enrolled it for push authentication. The device name is the
+        director's own laptop model with a one-letter difference. Registered devices
+        survive a password reset and, on this identity provider, survive the lock.
+      visible_to: [blue_cell, white_cell]
+      expected_actions: ["Remove the device and force re-registration from a managed endpoint", "Review conditional-access policy for device registration"]
+      attack: [T1098.005]
+      target_asset: IDP-SHIB
+      objective: OBJ-2
+      meta:
+        decision:
+          prompt: "The attacker's device is enrolled for push. What does the blue cell do with it?"
+          time_limit_sec: 150
+          options:
+            - {key: a, label: "Remove the device, force re-registration from a managed endpoint, and require a managed device for any new registration campus-wide", score: 1.0, trigger: remove_device,
+               note: "The device is the persistence. Removing it and closing the registration path is the difference between an incident and a recurring one."}
+            - {key: b, label: "Leave the device until the director confirms which one is real", score: 0.1,
+               note: "The director has one laptop. A second one with a typo in its name is not the director's. Remove it; re-enrol the real one in the morning."}
+            - {key: c, label: "Reset the director's password and consider the account clean", score: 0.3,
+               note: "A registered device is exactly the thing a password reset does not touch. This is the most common way an account gets 'cleaned' twice."}
+      branches:
+        - {when: action_taken, trigger: remove_device, label: "Device removed, registration policy tightened", goto: INJ-04}
+        - {when: timeout, after: PT10M, label: "No decision — the device stays", goto: INJ-03}
+        - {when: proctor_choice, label: "Proctor: device removed", goto: INJ-04}
+
+    - code: INJ-03
+      act: "Exfiltration"
+      title: "Research egress: 300 GB from the research store to a personal cloud account"
+      channel: siem_alert
+      clock: "T+00:50"
+      narrative: >
+        Research egress monitoring shows a copy from RESEARCH-STORE, through an unmanaged
+        lab workstation on the departmental network, to a personal cloud-storage
+        account, at present a fifth complete. The folder is the export-controlled dataset.
+        The lab workstation has no EDR agent because the department declined managed
+        endpoints two years ago.
+      visible_to: [blue_cell, white_cell]
+      expected_actions: ["Block egress at the research boundary", "Snapshot the store and preserve the lab workstation"]
+      attack: [T1048.002, T1567.002]
+      target_asset: RESEARCH-STORE
+      objective: OBJ-3
+      meta:
+        decision:
+          prompt: "A fifth of the dataset has left. What is the first action?"
+          time_limit_sec: 120
+          options:
+            - {key: a, label: "Block egress from the research network at the boundary, snapshot RESEARCH-STORE, and pull LAB-WKS's network cable without powering it off", score: 1.0, trigger: block_egress,
+               note: "Block, snapshot, preserve. The workstation's memory is evidence; the store's snapshot is the baseline for what left; the boundary is where you can act without the department's permission."}
+            - {key: b, label: "Throttle the transfer and watch it to identify the destination account", score: 0.3, trigger: throttle,
+               note: "You have the destination. Throttling means the dataset leaves slowly instead of quickly, and the grant agreement does not distinguish."}
+            - {key: c, label: "Ask the department chair for permission to touch the lab workstation", score: 0.0,
+               note: "The chair declined managed endpoints; asking now costs the dataset. The boundary is yours; act there and inform the chair afterwards."}
+      branches:
+        - {when: action_taken, trigger: block_egress, label: "Egress blocked at a fifth", set: {egress_blocked: true}, goto: INJ-04}
+        - {when: action_taken, trigger: throttle, label: "Throttled — the copy completes", set: {exfil_confirmed: true}, goto: INJ-04}
+        - {when: timeout, after: PT10M, label: "No decision — the copy completes", set: {exfil_confirmed: true}, goto: INJ-04}
+        - {when: proctor_choice, label: "Proctor: egress blocked", set: {egress_blocked: true}, goto: INJ-04}
+
+    - code: INJ-04
+      act: "Communications"
+      title: "The research compliance officer and the 24-hour clock"
+      channel: phone
+      clock: "T+01:20"
+      narrative: >
+        C. Dubois, the research compliance officer, points out that the grant agreement
+        requires the agency to be notified within twenty-four hours of a suspected
+        unauthorised access to the dataset, and that the export-control regulation has
+        its own reporting path. The CISO (O. Bergström) wants forensics to say what
+        happened first. General counsel is on the call.
+      visible_to: [exec_cell, white_cell]
+      expected_actions: ["Notify the grant agency and counsel within the window with what is known", "Prepare the export-control report"]
+      objective: OBJ-4
+      meta:
+        decision:
+          kind: comms
+          prompt: "Decide whether the agency hears today, and draft the three-sentence notification."
+          free_text: true
+          time_limit_sec: 240
+          options:
+            - {key: a, label: "Notify the grant agency and counsel today with what is known and a date for the next update; start the export-control report in parallel", score: 1.0, trigger: notify_agency,
+               note: "Agencies write the rules to be notified early and updated often. 'Suspected' is the trigger; forensics is the update. A notification that says 'we do not yet know how much' is a compliant one."}
+            - {key: b, label: "Wait for forensics to confirm how much of the dataset left before notifying", score: 0.4,
+               note: "Forensics on an unmanaged workstation takes a week. The twenty-four hours started at 02:21."}
+            - {key: c, label: "Do not notify; treat it as an internal matter unless the agency asks", score: 0.0,
+               note: "This choice ends the grant, and probably the next one. The agency will ask; the question is whether you told them first."}
+      branches:
+        - {when: action_taken, trigger: notify_agency, label: "Agency notified on the clock", goto: INJ-05}
+        - {when: timeout, after: PT10M, label: "No decision — the clock runs", goto: INJ-05}
+        - {when: proctor_choice, label: "Proctor: move on", goto: INJ-05}
+
+    - code: INJ-05
+      act: "Lateral Movement"
+      title: "The same credential tried against the student health centre"
+      channel: siem_alert
+      clock: "T+01:45"
+      narrative: >
+        The campus SIEM shows the director's credential, from the lab workstation, trying
+        to open SMB sessions to HEALTH-EHR. The health-centre network isolation control
+        rejects them. The privacy officer has not been told there is an incident. The
+        department wants its lab workstation back.
+      visible_to: [blue_cell, white_cell]
+      expected_actions: ["Confirm the isolation held by reading the health-centre firewall, not the SIEM summary", "Rotate every service account the lab workstation could see", "Engage the privacy officer"]
+      attack: [T1021.002, T1078]
+      target_asset: HEALTH-EHR
+      objective: OBJ-4
+      meta:
+        decision:
+          prompt: "The credential reached for the health centre and was refused. What does the blue cell do?"
+          time_limit_sec: 150
+          options:
+            - {key: a, label: "Confirm at the health-centre firewall that nothing got through, rotate every credential the lab workstation could reach, and brief the privacy officer now", score: 1.0, trigger: confirm_isolation,
+               note: "'Rejected' in a SIEM summary is a claim; the firewall's own log is the evidence. The privacy officer would rather hear about a near miss tonight than a breach next month."}
+            - {key: b, label: "Assume the isolation held and close the health-centre thread", score: 0.2, trigger: assume_isolated,
+               note: "Isolation controls have exceptions, and exceptions have owners who left. Assuming is how a research incident becomes a health-records breach."}
+            - {key: c, label: "Give the lab workstation back to the department and finish in the morning", score: 0.0,
+               note: "The workstation is the evidence and the attacker's foothold. It goes back after imaging, not before."}
+      branches:
+        - {when: action_taken, trigger: confirm_isolation, condition: "exfil_confirmed == false", label: "Isolation confirmed; the dataset stayed", goto: INJ-06,
+           impact: {cost: 80000, downtime_hours: 12, label: "Research network paused for a night; forensics on one workstation"}}
+        - {when: action_taken, trigger: confirm_isolation, label: "Isolation confirmed; the dataset left", goto: INJ-07,
+           impact: {cost: 900000, downtime_hours: 48, records: 1, label: "Export-controlled dataset exfiltrated; agency review and grant conditions"}}
+        - {when: proctor_choice, condition: "exfil_confirmed == false", label: "Proctor: contained", goto: INJ-06,
+           impact: {cost: 80000, downtime_hours: 12, label: "Research network paused for a night; forensics on one workstation"}}
+        - {when: action_taken, trigger: assume_isolated, label: "Assumed — the exception was real", set: {health_touched: true}, goto: INJ-08,
+           impact: {cost: 2200000, downtime_hours: 72, records: 12000, customers: 12000, label: "Student health records accessed; HIPAA and state notifications"}}
+        - {when: timeout, after: PT10M, label: "No decision — the exception was real", set: {health_touched: true}, goto: INJ-08,
+           impact: {cost: 2200000, downtime_hours: 72, records: 12000, customers: 12000, label: "Student health records accessed; HIPAA and state notifications"}}
+        - {when: proctor_choice, label: "Proctor: the dataset left", goto: INJ-07,
+           impact: {cost: 900000, downtime_hours: 48, records: 1, label: "Export-controlled dataset exfiltrated; agency review and grant conditions"}}
+
+    - code: INJ-06
+      act: "Resolution"
+      title: "Contained: the dataset stayed, the health centre was never reached (resolution)"
+      channel: briefing
+      clock: "T+03:00"
+      narrative: >
+        A fifth of the dataset left before egress was blocked; the agency was notified on
+        the clock and accepts the university's plan. The lab workstation is imaged and the
+        department joins managed endpoints. The hotwash is about number-matching prompts
+        and the department that opted out.
+      visible_to: [blue_cell, exec_cell, white_cell]
+      expected_actions: ["Confirm containment and the agency plan", "Run the hotwash"]
+      objective: OBJ-3
+      branches: []
+
+    - code: INJ-07
+      act: "Resolution"
+      title: "The dataset left: agency review and grant conditions (resolution)"
+      channel: briefing
+      clock: "T+04:00"
+      narrative: >
+        The whole dataset left the country. The agency opens a review, the export-control
+        report is filed, and the grant continues under conditions that cost the
+        university a compliance programme it should have had. The health centre was
+        never reached, which is what keeps this out of the press.
+      visible_to: [blue_cell, exec_cell, white_cell]
+      expected_actions: ["Engage counsel and the agency", "Run the hotwash"]
+      objective: OBJ-4
+      branches: []
+
+    - code: INJ-08
+      act: "Resolution"
+      title: "Health records accessed: two notification regimes at once (resolution)"
+      channel: briefing
+      clock: "T+05:00"
+      narrative: >
+        The isolation control had an exception for a decommissioned reporting server that
+        was never removed. The credential reached the health-centre records through it.
+        Twelve thousand student notifications, a HIPAA breach report and the research
+        agency's review run in parallel. The hotwash is about assumptions.
+      visible_to: [blue_cell, exec_cell, white_cell]
+      expected_actions: ["Engage the privacy officer, counsel and the agency", "Run the hotwash"]
+      objective: OBJ-4
+      branches: []

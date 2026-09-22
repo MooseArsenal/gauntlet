@@ -165,6 +165,15 @@ def _env(db: Session, scenario: models.Scenario) -> models.Environment:
     return db.get(models.Environment, scenario.environment_id)
 
 
+def _addressed(inject: models.Inject | None, side: str | None) -> bool:
+    """Whether the scene is the player's cell's to decide. A multi-cell scenario
+    has scenes for the executive cell that a blue player only reads (and the
+    other way round); the engine takes those for them."""
+    if inject is None or side not in SIDES:
+        return False
+    return visibility.inject_visible_to(inject.visible_to or [], SIDES[side])
+
+
 def _script_adversary(db: Session, s: models.Session, scenario: models.Scenario, inject: models.Inject) -> dict | None:
     """The scene's own techniques, ruled against the environment: the adversary
     the blue player is responding to actually 'moves', so detection figures exist."""
@@ -247,6 +256,8 @@ def respond(db: Session, s: models.Session, scenario: models.Scenario, user: mod
     spec = decisions.spec_for(inject) if inject else None
     if inject is None or spec is None:
         raise HTTPException(status.HTTP_409_CONFLICT, "nothing to decide right now")
+    if not _addressed(inject, side):
+        raise HTTPException(status.HTTP_409_CONFLICT, "this scene is another cell's call; continue and the engine takes it")
     ev = decisions.record(db, s, scenario, user, SIDES[side], user.name or user.email, inject.code, option, text)
     chosen = next((o for o in spec["options"] if o["key"] == option), None) if option else None
     _autopilot(db, s, scenario, inject, spec, chosen)
@@ -263,6 +274,12 @@ def skip(db: Session, s: models.Session, scenario: models.Scenario, user: models
     spec = decisions.spec_for(inject) if inject else None
     if inject is None:
         raise HTTPException(status.HTTP_409_CONFLICT, "nothing to skip")
+    if spec is not None and not _addressed(inject, side):
+        # Another cell's scene: the engine plays that cell well, so a blue
+        # player is not punished for a call the executive cell never made.
+        _autopilot(db, s, scenario, inject, spec, None, timed_out=False)
+        db.flush()
+        return {"status": s.status}
     if spec is not None and decisions.my_response(s, user.id, inject.code) is None:
         append_event(db, s.id, kind="response", ref=inject.code, game_clock=inject.clock or "",
                      payload={"inject_code": inject.code, "cell": SIDES[side], "user_id": user.id,
@@ -381,7 +398,8 @@ def view(db: Session, s: models.Session, scenario: models.Scenario, user: models
     fired_at = _aware(fired[-1].at) if fired else None
     difficulty = solo.get("difficulty", "standard")
     lv = engagements.levers(difficulty)
-    pub = decisions.public_spec(spec) if (spec and side != "red") else None
+    mine = _addressed(inject, side)
+    pub = decisions.public_spec(spec) if (spec and side != "red" and mine) else None
     if pub and lv["shuffle"]:
         pub["options"] = engagements.shuffled(pub["options"], f"{s.id}:{inject.code}")
     scene = _public_inject(inject)
@@ -395,8 +413,8 @@ def view(db: Session, s: models.Session, scenario: models.Scenario, user: models
         "difficulty": difficulty, "difficulty_label": engagements.DIFFICULTY_LABELS.get(difficulty, difficulty),
         "type": solo.get("type"), "levers": {"hints": lv["hints"], "zones": lv["zones"], "weight": lv["weight"]},
         "scene": scene, "scene_index": len(fired), "scenes_total": total,
-        "decision": pub,
-        "time_limit_sec": int(lv["clock"]) if spec and side != "red" else None,
+        "decision": pub, "addressed": mine,
+        "time_limit_sec": int(lv["clock"]) if pub else None,
         "scene_started_at": fired_at.isoformat() if fired_at else None,
         "my_response": decisions.my_response(s, user.id, inject.code) if inject else None,
         "terminal": bool(inject and _terminal(inject, s.state)),

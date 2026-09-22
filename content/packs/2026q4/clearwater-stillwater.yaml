@@ -1,0 +1,300 @@
+# Autumn 2026 scenario pack — Moose Arsenal
+# Library environment: water_utility (Clearwater District — Water & Wastewater)
+scenario:
+  name: "Operation Stillwater — From an engineer's inbox to the dosing PLC"
+  threat_actor: "State-aligned OT intrusion group (pre-positioning, then a process-tampering attempt)"
+  narrative: >
+    A phishing email reaches the controls engineer whose workstation bridges IT and OT.
+    The group uses the cached engineering credentials to open a remote session to the
+    plant HMI outside the change window and attempts to write a new chemical dosing
+    set-point. The interlocks hold, if nobody switches them back to automatic. The
+    exercise asks the plant to choose safety over convenience three times, and asks
+    the executive cell when the regulator and the public hear about it.
+  scope: "Discussion-based tabletop with decision cards. No live systems are touched."
+  rules_of_engagement: "Facilitated exercise only. 'Pause' halts play at any time. No production access. All actions are simulated."
+  exercise_type: tabletop
+
+  variables:
+    ot_isolated: false
+    manual_control: false
+    setpoint_changed: false
+    public_notified: false
+
+  cells:
+    - {key: white_cell, name: "White Cell / Control", kind: control}
+    - {key: blue_cell, name: "Blue Cell (IT + OT operations)", kind: participant}
+    - {key: exec_cell, name: "Executive Cell (general manager + comms)", kind: participant}
+    - {key: observers, name: "Observers", kind: observer}
+
+  objectives:
+    - code: OBJ-1
+      title: "Contain the IT/OT bridge"
+      success_criteria: "The engineering workstation is isolated and the IT/OT conduit locked to the change window before any OT session is opened from it."
+      meta: {capability: contain, compliance: {nist_csf: [PR.AA, RS.MI], iec_62443: ["SR 1.1", "SR 5.1"], cis_v8: ["12.2"]}}
+    - code: OBJ-2
+      title: "Put the plant on manual control when the HMI is in doubt"
+      success_criteria: "Operators take manual control and cut the conduit before the set-point write is attempted."
+      meta: {capability: contain, compliance: {nist_csf: [RS.MI, PR.IR], iec_62443: ["SR 7.1"], awia: ["Sec. 2013"]}}
+    - code: OBJ-3
+      title: "Verify the process, not the screen"
+      success_criteria: "Water chemistry is verified by hand and the interlock confirmed before automatic control is restored."
+      meta: {capability: recover, compliance: {nist_csf: [RC.RP, DE.AE], iec_62443: ["SR 3.6"]}}
+    - code: OBJ-4
+      title: "Notify early"
+      success_criteria: "The state regulator is notified within the reporting window and a public advisory is prepared before it is needed."
+      meta: {capability: communicate, compliance: {nist_csf: [RS.CO], awia: ["Sec. 2013"], iso_27001: ["A.5.5"]}}
+
+  injects:
+    - code: INJ-01
+      act: "Initial Access"
+      is_start: true
+      title: "A 'firmware update' email to the controls engineer"
+      channel: email
+      clock: "T+00:00"
+      narrative: >
+        S. Brennan, the OT/controls engineer, forwards an email to the IT manager: it
+        appears to come from the PLC vendor, references the real model number of the
+        dosing PLC, and carries a macro-enabled document titled "Firmware advisory
+        2026-09". Brennan opened it on ENG-WKS-01, the workstation that holds the
+        engineering software and a saved session to the plant HMI.
+      visible_to: [blue_cell, white_cell]
+      expected_actions: ["Isolate ENG-WKS-01", "Check whether the OT jump path has been used since the document was opened"]
+      attack: [T1566.001, T1204.002]
+      target_asset: ENG-WKS-01
+      objective: OBJ-1
+      meta:
+        decision:
+          prompt: "The document was opened on the workstation that reaches the HMI. What happens first?"
+          time_limit_sec: 180
+          options:
+            - {key: a, label: "Isolate ENG-WKS-01 from both networks and check the conduit logs for sessions since the document was opened", score: 1.0, trigger: isolate_ews,
+               note: "This workstation is the one path from the corporate network to the plant. Isolating it costs the engineer an afternoon and closes the door the group came for."}
+            - {key: b, label: "Delete the email, run a scan, and warn the engineer not to open attachments", score: 0.4, trigger: warn_only,
+               note: "The macro ran before the warning. Scans find what they know; the cached HMI session is the prize and a scan does not revoke it."}
+            - {key: c, label: "Ask the vendor whether they sent an advisory", score: 0.1,
+               note: "The vendor will confirm they did not, tomorrow. The engineering workstation is exposed today."}
+      branches:
+        - {when: action_taken, trigger: isolate_ews, label: "Workstation isolated", goto: INJ-02}
+        - {when: action_taken, trigger: warn_only, label: "Warned only — the session stays cached", goto: INJ-03}
+        - {when: timeout, after: PT10M, label: "No decision — the group uses the cached session", goto: INJ-03}
+        - {when: proctor_choice, label: "Proctor: isolated", goto: INJ-02}
+
+    - code: INJ-02
+      act: "Credential Access"
+      title: "EDR: the macro ran, and the HMI credentials were in reach"
+      channel: edr_alert
+      clock: "T+00:20"
+      narrative: >
+        EDR on the corporate estate shows the document spawned PowerShell, which read the
+        engineering software's saved-connection store. That store holds the shared
+        engineering account for SCADA-HMI-01 and the historian. The account is shared by
+        three engineers and the integrator, and is not covered by MFA because the HMI
+        cannot do it.
+      visible_to: [blue_cell, white_cell]
+      expected_actions: ["Rotate the shared engineering account on the HMI and historian", "Lock the IT/OT conduit to the change window"]
+      attack: [T1059.001, T1552.001]
+      target_asset: ENG-WKS-01
+      objective: OBJ-1
+      meta:
+        decision:
+          prompt: "The shared OT engineering credential must be assumed stolen. What does the blue cell do about the conduit?"
+          time_limit_sec: 180
+          options:
+            - {key: a, label: "Rotate the shared account on the HMI and historian, and lock the IT/OT firewall conduit to change-window-only with a named approver", score: 1.0, trigger: lock_conduit,
+               note: "Rotation without closing the conduit invites a second attempt with a second credential. Closing the conduit is the control the group cannot phish."}
+            - {key: b, label: "Rotate the shared account and leave the conduit as it is", score: 0.5, trigger: rotate_only,
+               note: "Better than nothing, and the integrator now needs the new password, which means it will be emailed. The conduit is what makes the credential useful."}
+            - {key: c, label: "Wait for the integrator to confirm nobody is mid-change before rotating", score: 0.1,
+               note: "A rotation during a change is recoverable. An HMI session from a stolen credential during a change is not."}
+      branches:
+        - {when: action_taken, trigger: lock_conduit, label: "Rotated and conduit locked", set: {ot_isolated: true}, goto: INJ-04}
+        - {when: action_taken, trigger: rotate_only, label: "Rotated; conduit open", goto: INJ-03}
+        - {when: timeout, after: PT10M, label: "No decision — conduit open, credential valid", goto: INJ-03}
+        - {when: proctor_choice, label: "Proctor: conduit locked", set: {ot_isolated: true}, goto: INJ-04}
+
+    - code: INJ-03
+      act: "Lateral Movement"
+      title: "OT monitor: a remote session to the plant HMI outside the change window"
+      channel: siem_alert
+      clock: "T+00:45"
+      narrative: >
+        The passive OT monitor alerts on a new remote-desktop session from ENG-WKS-01 to
+        SCADA-HMI-01 at 22:40, using the shared engineering account. There is no change
+        ticket. The on-shift operator sees the HMI cursor move on its own for a moment and
+        then the session window close. The plant superintendent (M. Haddad) is on the
+        phone.
+      visible_to: [blue_cell, white_cell]
+      expected_actions: ["Put the plant on manual control", "Cut the IT/OT conduit at the boundary firewall"]
+      attack: [T0886, T1021.001]
+      target_asset: SCADA-HMI-01
+      objective: OBJ-2
+      meta:
+        decision:
+          prompt: "Someone else has been on the HMI. What does the superintendent hear from the blue cell?"
+          time_limit_sec: 150
+          options:
+            - {key: a, label: "Put the plant on manual control now, cut the conduit at FW-ITOT, and keep the HMI powered for evidence", score: 1.0, trigger: manual,
+               note: "Manual control is what the operators drill for. It costs overtime and attention; it removes the HMI from the group's reach without removing it from yours."}
+            - {key: b, label: "Terminate the session, keep automatic control, and watch for it to return", score: 0.5, trigger: kill_session,
+               note: "The session will return, and the next one may not be as easy to see. Automatic control with an untrusted HMI means the process trusts whatever the HMI says."}
+            - {key: c, label: "Call the integrator to ask whether it was them", score: 0.1,
+               note: "There is no ticket, it is 22:40, and the cursor moved on its own. The phone call can happen after the plant is on manual."}
+      branches:
+        - {when: action_taken, trigger: manual, label: "Manual control, conduit cut", set: {manual_control: true, ot_isolated: true}, goto: INJ-04}
+        - {when: action_taken, trigger: kill_session, label: "Session killed; automatic control", goto: INJ-05}
+        - {when: timeout, after: PT10M, label: "No decision — automatic control, conduit open", goto: INJ-05}
+        - {when: proctor_choice, label: "Proctor: manual control", set: {manual_control: true, ot_isolated: true}, goto: INJ-04}
+
+    - code: INJ-04
+      act: "Communications"
+      title: "The general manager asks whether the regulator and the public hear tonight"
+      channel: phone
+      clock: "T+01:15"
+      narrative: >
+        R. Castellanos, the general manager, has the state drinking-water programme's
+        after-hours number and the district's public-information officer on the line.
+        Nothing has yet been confirmed about the water. The reporting rule for a
+        cyber incident affecting operations starts a clock at "reasonable belief".
+      visible_to: [exec_cell, white_cell]
+      expected_actions: ["Notify the state regulator now", "Prepare a public advisory and hold it"]
+      objective: OBJ-4
+      meta:
+        decision:
+          kind: comms
+          prompt: "Decide who is told tonight, and draft the two-sentence advisory that would go out if the chemistry cannot be verified."
+          free_text: true
+          time_limit_sec: 240
+          options:
+            - {key: a, label: "Notify the state regulator now with what is known; draft the public advisory and hold it pending chemistry results", score: 1.0, trigger: notify_regulator,
+               note: "Regulators remember who called early and who called after the newspaper did. A held advisory costs nothing; a late one costs the district's credibility for a decade."}
+            - {key: b, label: "Wait until the set-point change is confirmed or ruled out, then decide", score: 0.4,
+               note: "The rule starts at reasonable belief, and an unauthorised HMI session is reasonable belief. Waiting for confirmation is how a 24-hour window becomes a 72-hour violation."}
+            - {key: c, label: "Tell nobody outside the district until the incident is closed", score: 0.0,
+               note: "This is the choice that turns a well-handled intrusion into a public-trust failure and a regulatory finding."}
+      branches:
+        - {when: action_taken, trigger: notify_regulator, label: "Regulator notified, advisory held", set: {public_notified: true}, goto: INJ-05}
+        - {when: timeout, after: PT10M, label: "No decision — nobody told", goto: INJ-05}
+        - {when: proctor_choice, label: "Proctor: move on", goto: INJ-05}
+
+    - code: INJ-05
+      act: "Impact"
+      title: "A set-point write to the dosing PLC, and an interlock alarm"
+      channel: siem_alert
+      clock: "T+01:40"
+      narrative: >
+        The historian records a write to PLC-CHEM raising the coagulant dosing set-point
+        to four times its normal value, sourced from the HMI. The dosing interlock rejects
+        the value and raises an alarm. The HMI trend screen, however, shows the
+        set-point as normal. The night operator asks whether to trust the screen and
+        restore automatic control so the shift can end on time.
+      visible_to: [blue_cell, white_cell]
+      expected_actions: ["Confirm the interlock held", "Verify chemistry by hand before restoring automatic control"]
+      attack: [T0836, T0831]
+      target_asset: PLC-CHEM
+      objective: OBJ-3
+      meta:
+        decision:
+          prompt: "The interlock alarmed but the screen looks normal. What does the blue cell tell the operator?"
+          time_limit_sec: 150
+          options:
+            - {key: a, label: "Hold manual control, verify the chemistry with grab samples and the bench, and confirm the interlock at the PLC, not the HMI", score: 1.0, trigger: verify_chem,
+               note: "The HMI is the thing that was compromised. Its screen is testimony from the suspect. The interlock, the bench and the operator's eyes are the witnesses."}
+            - {key: b, label: "Trust the historian and the screen, restore automatic control, and review in the morning", score: 0.2, trigger: restore_auto,
+               note: "The historian recorded the write; the screen hid it. Restoring automatic control hands the process back to the HMI you do not trust."}
+            - {key: c, label: "Do nothing until the day shift and the integrator arrive", score: 0.1,
+               note: "Doing nothing on automatic control is a decision to trust the HMI for eight more hours."}
+      branches:
+        - {when: action_taken, trigger: verify_chem, label: "Chemistry verified by hand", goto: INJ-06}
+        - {when: proctor_choice, condition: "ot_isolated == true and manual_control == true", label: "Plant already on manual — the write never reached the process", goto: INJ-06}
+        - {when: action_taken, trigger: restore_auto, condition: "public_notified == true", label: "Automatic restored — the set-point takes", set: {setpoint_changed: true}, goto: INJ-08,
+           impact: {cost: 1800000, downtime_hours: 96, customers: 40000, label: "Boil-water advisory for four days; regulator notified in time"}}
+        - {when: action_taken, trigger: restore_auto, label: "Automatic restored — the set-point takes, nobody was told", set: {setpoint_changed: true}, goto: INJ-09,
+           impact: {cost: 2900000, downtime_hours: 120, customers: 40000, label: "Boil-water advisory for five days; late notification finding"}}
+        - {when: timeout, after: PT10M, condition: "public_notified == true", label: "No decision — the set-point takes", set: {setpoint_changed: true}, goto: INJ-08,
+           impact: {cost: 1800000, downtime_hours: 96, customers: 40000, label: "Boil-water advisory for four days; regulator notified in time"}}
+        - {when: timeout, after: PT10M, label: "No decision — the set-point takes, nobody was told", set: {setpoint_changed: true}, goto: INJ-09,
+           impact: {cost: 2900000, downtime_hours: 120, customers: 40000, label: "Boil-water advisory for five days; late notification finding"}}
+
+    - code: INJ-06
+      act: "Impact"
+      title: "Cellular heartbeat lost from remote pump station 7"
+      channel: siem_alert
+      clock: "T+02:10"
+      narrative: >
+        RTU-PUMP-07, the remote pump station on a cellular link, stops sending
+        heartbeats. The last telemetry showed the wet-well level rising. The OT
+        engineer's view is that the group is blinding the station to force a manual
+        response, or that the modem simply dropped, as it does twice a month.
+      visible_to: [blue_cell, white_cell]
+      expected_actions: ["Dispatch an operator to the station", "Confirm local control at the site"]
+      attack: [T0814, T0816]
+      target_asset: RTU-PUMP-07
+      objective: OBJ-3
+      meta:
+        decision:
+          prompt: "The station has gone quiet with a rising wet well. What does the blue cell do?"
+          time_limit_sec: 120
+          options:
+            - {key: a, label: "Dispatch an operator to the station now, confirm local control and pump state by eye, and keep the RTU offline until it is re-imaged", score: 1.0, trigger: dispatch,
+               note: "A truck roll at night is the cheapest thing in this exercise. A sewage overflow because the modem 'always does that' is not."}
+            - {key: b, label: "Treat it as the usual modem drop and check again in an hour", score: 0.2, trigger: assume_glitch,
+               note: "Base rates matter until you are inside an incident. Tonight the base rate is not the point; the rising level is."}
+            - {key: c, label: "Power-cycle the RTU remotely and see if it comes back", score: 0.3,
+               note: "A remote power-cycle from a compromised path is another write from the HMI you do not trust. Send the person."}
+      branches:
+        - {when: action_taken, trigger: dispatch, label: "Operator on site, local control", goto: INJ-07,
+           impact: {cost: 60000, downtime_hours: 6, label: "Manual operations overnight; re-imaging the workstation, HMI and RTU"}}
+        - {when: action_taken, trigger: assume_glitch, condition: "public_notified == true", label: "Overflow at station 7", goto: INJ-08,
+           impact: {cost: 650000, downtime_hours: 36, customers: 6000, label: "Wet-well overflow and a precautionary advisory; regulator notified in time"}}
+        - {when: action_taken, trigger: assume_glitch, label: "Overflow at station 7, nobody was told", goto: INJ-09,
+           impact: {cost: 950000, downtime_hours: 48, customers: 6000, label: "Wet-well overflow, precautionary advisory and a late-notification finding"}}
+        - {when: timeout, after: PT10M, label: "No decision — operator dispatched by the superintendent", goto: INJ-07,
+           impact: {cost: 60000, downtime_hours: 6, label: "Manual operations overnight; re-imaging the workstation, HMI and RTU"}}
+        - {when: proctor_choice, label: "Proctor: dispatched", goto: INJ-07,
+           impact: {cost: 60000, downtime_hours: 6, label: "Manual operations overnight; re-imaging the workstation, HMI and RTU"}}
+
+    - code: INJ-07
+      act: "Resolution"
+      title: "Safe: manual operations, no water-quality event (resolution)"
+      channel: briefing
+      clock: "T+03:00"
+      narrative: >
+        The plant runs on manual through the night; chemistry is verified every hour by
+        hand; the workstation, HMI and RTU are re-imaged and the shared engineering account
+        is replaced by named accounts through a jump host. The regulator's file records a
+        near miss handled well. The hotwash asks how a shared, MFA-less credential
+        survived three audits.
+      visible_to: [blue_cell, exec_cell, white_cell]
+      expected_actions: ["Confirm chemistry and restart plan", "Run the hotwash"]
+      objective: OBJ-3
+      branches: []
+
+    - code: INJ-08
+      act: "Resolution"
+      title: "Boil-water advisory, notified in time (resolution)"
+      channel: briefing
+      clock: "T+05:00"
+      narrative: >
+        The set-point change reached the process for about ninety minutes before manual
+        sampling caught it. A four-day advisory follows. Because the regulator was called
+        the night before, the district's notification record is clean and the public
+        message is the district's own. The hotwash is about trusting screens.
+      visible_to: [blue_cell, exec_cell, white_cell]
+      expected_actions: ["Run the advisory", "Run the hotwash"]
+      objective: OBJ-4
+      branches: []
+
+    - code: INJ-09
+      act: "Resolution"
+      title: "Boil-water advisory and a late-notification finding (resolution)"
+      channel: briefing
+      clock: "T+05:30"
+      narrative: >
+        The process was affected, the public learned about it from a neighbouring
+        district's warning, and the regulator's report notes that notification came
+        thirty hours after reasonable belief. The technical failures were recoverable;
+        the notification failure is what the board hears about.
+      visible_to: [blue_cell, exec_cell, white_cell]
+      expected_actions: ["Engage counsel and the regulator", "Run the hotwash"]
+      objective: OBJ-4
+      branches: []
