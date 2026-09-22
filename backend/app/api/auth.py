@@ -2,15 +2,19 @@
 from __future__ import annotations
 
 import re
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from .. import audit, models, oidc, schemas, security
+from .. import audit, delivery, models, oidc, schemas, security
 from ..audit import client_ip
-from ..config import LOGIN_ACCOUNT_MAX_ATTEMPTS, OIDC_ENABLED, REGISTER_MAX_PER_WINDOW
+from ..config import (
+    LOGIN_ACCOUNT_MAX_ATTEMPTS, OIDC_ENABLED, REGISTER_MAX_PER_WINDOW, SIGNUP_CONFIRM_TTL_HOURS,
+    signup_confirmation_required,
+)
 from ..database import get_db
 from ..security import (
     create_token,
@@ -55,32 +59,117 @@ def _email_taken(db: Session, email: str) -> bool:
     ).scalar_one_or_none() is not None
 
 
+# --------------------------------------------------------------------------- #
+# sign-up confirmation (G): a self-registered account must follow a link sent
+# to its address before it can sign in, when the deployment requires it
+# --------------------------------------------------------------------------- #
+def _base_url(request: Request) -> str:
+    return f"{request.base_url.scheme}://{request.base_url.netloc}"
+
+
+def _confirmation_message(user: models.User, base_url: str) -> dict:
+    link = f"{base_url}/solo.html?confirm={security.create_confirm_token(user)}"
+    text = "\n".join([
+        f"Hello{(' ' + user.name) if user.name else ''},", "",
+        "Someone — we hope you — created a Gauntlet account with this address.",
+        "Follow this link to confirm it and sign in:", "", link, "",
+        f"The link works for {SIGNUP_CONFIRM_TTL_HOURS} hours and only once.",
+        "If you did not create the account, ignore this message; nothing happens without the link.", "",
+        "Gauntlet is a simulation. Nothing in it touches a real system.",
+    ])
+    return {"subject": "[Gauntlet] Confirm your email address", "text": text}
+
+
+def _send_confirmation(user: models.User, base_url: str) -> str:
+    msg = _confirmation_message(user, base_url)
+    return delivery.send_email([user.email], msg["subject"], msg["text"])
+
+
+def _unconfirmed(user: models.User) -> bool:
+    return user.email_verified_at is None
+
+
 @router.post("/register", response_model=schemas.TokenOut, status_code=201)
 def register(payload: schemas.RegisterIn, request: Request, db: Session = Depends(get_db)):
-    """Create a new organisation and its first user (an admin)."""
+    """Create a new organisation and its first user (an admin).
+
+    When the deployment requires sign-up confirmation the account is created
+    unconfirmed, a link is emailed, and the response is 202 without tokens;
+    ``POST /api/auth/confirm`` with the link's token signs the person in."""
     reg_key = f"reg|{client_ip(request)}"
     if throttle.retry_after(reg_key) > 0:
         raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS,
                             "too many organisations created from this address; try again later")
     _enforce_password(payload.password)
-    if _email_taken(db, payload.email):
+    email = payload.email.strip().lower()
+    if not delivery.valid_emails([email]):
+        raise HTTPException(422, {"email": ["enter a valid email address"]})
+    if _email_taken(db, email):
         raise HTTPException(status.HTTP_409_CONFLICT, "email already registered")
+    confirm = signup_confirmation_required()
 
     org = models.Organization(name=payload.org_name, slug=_slugify(payload.org_name, db))
     db.add(org)
     db.flush()
     user = models.User(
-        org_id=org.id, email=payload.email.lower(), name=payload.name,
+        org_id=org.id, email=email, name=payload.name,
         password_hash=hash_password(payload.password), role="admin",
+        email_verified_at=None if confirm else datetime.now(timezone.utc),
     )
     db.add(user)
     db.flush()
     audit.record(db, "auth.register", request=request, user=user,
-                 detail={"org": org.name}, commit=False)
+                 detail={"org": org.name, "confirmation_required": confirm}, commit=False)
+    if confirm:
+        err = _send_confirmation(user, _base_url(request))
+        if err:
+            # No account without a way to confirm it; the person can try again.
+            db.rollback()
+            raise HTTPException(status.HTTP_502_BAD_GATEWAY,
+                                "the confirmation email could not be sent; try again in a moment")
+        db.commit()
+        throttle.record_failure(reg_key, limit=REGISTER_MAX_PER_WINDOW)  # counts registrations, not failures
+        return JSONResponse(status_code=status.HTTP_202_ACCEPTED, content={
+            "confirmation_required": True, "email": user.email,
+            "message": f"We sent a confirmation link to {user.email}. Follow it to finish creating your account.",
+        })
     result = _tokens(db, user)
     db.commit()
     throttle.record_failure(reg_key, limit=REGISTER_MAX_PER_WINDOW)  # counts registrations, not failures
     return result
+
+
+@router.post("/confirm", response_model=schemas.TokenOut)
+def confirm_email(payload: schemas.ConfirmIn, request: Request, db: Session = Depends(get_db)):
+    """Follow the link from the confirmation email: mark the address confirmed
+    and sign the person in. A link is good once; a confirmed account answers
+    409 and signs in the ordinary way."""
+    user_id, email = security.read_confirm_token(payload.token)
+    user = db.get(models.User, user_id)
+    if not user or not user.is_active or user.email.lower() != email:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "this confirmation link is invalid or has expired")
+    if not _unconfirmed(user):
+        raise HTTPException(status.HTTP_409_CONFLICT, "this address is already confirmed; sign in")
+    user.email_verified_at = datetime.now(timezone.utc)
+    audit.record(db, "auth.email.confirmed", request=request, user=user, commit=False)
+    t = _tokens(db, user)
+    db.commit()
+    return t
+
+
+@router.post("/confirm/resend", status_code=204)
+def resend_confirmation(payload: schemas.ResendConfirmIn, request: Request, db: Session = Depends(get_db)):
+    """Send the link again. Always 204, so the endpoint does not say whether
+    an address is registered; throttled per address and per source."""
+    email = payload.email.strip().lower()
+    for key in (f"confirm|{client_ip(request)}", f"confirm|{email}"):
+        if throttle.retry_after(key) > 0:
+            raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "try again later")
+        throttle.record_failure(key, limit=3)
+    user = db.execute(select(models.User).where(func.lower(models.User.email) == email)).scalar_one_or_none()
+    if user and user.is_active and _unconfirmed(user) and signup_confirmation_required():
+        err = _send_confirmation(user, _base_url(request))
+        audit.record(db, "auth.email.confirm_resent", request=request, user=user, detail={"sent": err == ""})
 
 
 @router.post("/login", response_model=schemas.LoginResult)
@@ -106,6 +195,12 @@ def login(payload: schemas.LoginIn, request: Request, db: Session = Depends(get_
 
     throttle.reset(key)
     throttle.reset(acct)
+    if _unconfirmed(user) and signup_confirmation_required():
+        # The password was right, so telling this person is not enumeration.
+        audit.record(db, "auth.login.unconfirmed", request=request, user=user)
+        raise HTTPException(status.HTTP_403_FORBIDDEN,
+                            f"confirm your email address first: follow the link we sent to {user.email}, "
+                            "or ask for it again")
     # First factor passed. If MFA is enabled, hand back a challenge, not tokens.
     if user.mfa_enabled and user.mfa_secret:
         audit.record(db, "auth.login.mfa_challenge", request=request, user=user)
@@ -206,6 +301,7 @@ def create_user(
     user = models.User(
         org_id=admin.org_id, email=payload.email.lower(), name=payload.name,
         password_hash=hash_password(payload.password), role=payload.role,
+        email_verified_at=datetime.now(timezone.utc),  # an admin vouches for a member's address
     )
     db.add(user)
     db.flush()
@@ -286,6 +382,8 @@ def _sso_user(db: Session, claims: dict) -> models.User:
     if user is None or not user.is_active:
         raise HTTPException(status.HTTP_403_FORBIDDEN,
                             "no active Gauntlet account for this identity")
+    if user.email_verified_at is None and claims.get("email_verified") is True:
+        user.email_verified_at = datetime.now(timezone.utc)  # the provider vouched for the address
     return user
 
 

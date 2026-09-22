@@ -218,6 +218,30 @@ def create_mfa_challenge(user: models.User) -> str:
     )
 
 
+def create_confirm_token(user: models.User) -> str:
+    """The link in the sign-up confirmation email (G): proves the holder read
+    mail at the address, for a day. Bound to the address so a changed email
+    cannot be confirmed with an old link."""
+    from .config import SIGNUP_CONFIRM_TTL_HOURS
+    now = datetime.now(timezone.utc)
+    return jwt.encode(
+        {"sub": str(user.id), "email": user.email.lower(), "type": "confirm_email", "iat": now,
+         "exp": now + timedelta(hours=SIGNUP_CONFIRM_TTL_HOURS)},
+        jwt_key(), algorithm="HS256",
+    )
+
+
+def read_confirm_token(token: str) -> tuple[int, str]:
+    """Return (user id, email) from a confirmation link, or 400."""
+    try:
+        payload = _decode(token)
+    except jwt.PyJWTError:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "this confirmation link is invalid or has expired")
+    if payload.get("type") != "confirm_email":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "not a confirmation link")
+    return int(payload.get("sub", 0)), str(payload.get("email") or "").lower()
+
+
 def read_mfa_challenge(token: str) -> tuple[int, str]:
     """Return (user id, challenge id). A spent challenge is rejected (S-4)."""
     try:

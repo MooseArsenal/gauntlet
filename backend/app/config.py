@@ -92,6 +92,20 @@ WORKERS = int(os.environ.get("WEB_CONCURRENCY", os.environ.get("GAUNTLET_WORKERS
 # Registration is open (any visitor may create an organisation); cap how many
 # one address can create in a window (S-11).
 REGISTER_MAX_PER_WINDOW = int(os.environ.get("GAUNTLET_REGISTER_MAX_PER_WINDOW", "5"))
+# Self-registered accounts must follow a link sent to their address before
+# they can sign in (G), so a public instance does not fill with bot accounts.
+# "auto" (the default) requires it whenever SMTP is configured; 1 / 0 force it.
+SIGNUP_CONFIRM = os.environ.get("GAUNTLET_SIGNUP_CONFIRM", "auto").strip().lower()
+SIGNUP_CONFIRM_TTL_HOURS = int(os.environ.get("GAUNTLET_SIGNUP_CONFIRM_TTL_HOURS", "24"))
+
+
+def signup_confirmation_required() -> bool:
+    """Read at call time: the SMTP host is looked up per call, as delivery does."""
+    if SIGNUP_CONFIRM in ("1", "true", "yes", "on"):
+        return True
+    if SIGNUP_CONFIRM in ("0", "false", "no", "off", ""):
+        return False
+    return bool(os.environ.get("GAUNTLET_SMTP_HOST", "").strip())
 
 # Air-gapped mode (D2). When on, every outbound network call (OIDC discovery,
 # LLM authoring assist, tracker push, range adapter, webhook notify) is refused

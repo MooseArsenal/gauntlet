@@ -70,6 +70,12 @@ class User(Base):
     partner_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
     # The identity provider's id for this user when provisioned over SCIM (M5).
     scim_external_id: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    # When the address was confirmed (G). Accounts an admin, SCIM, a class code
+    # or the seed create set this on creation (no column default: the ORM would
+    # apply one to an explicit None); a self-registered account
+    # on a deployment that requires confirmation stays NULL until the link in
+    # the email is followed, and cannot sign in until then.
+    email_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
     organization: Mapped["Organization"] = relationship(back_populates="users")

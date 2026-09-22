@@ -115,6 +115,8 @@ Details and the packaging page: [`docs/LICENSING.md`](docs/LICENSING.md) and
 | `GAUNTLET_ACCESS_TTL_MIN` | `30` | Access-token lifetime (minutes) |
 | `GAUNTLET_REFRESH_TTL_DAYS` | `30` | Refresh-token lifetime (days) |
 | `GAUNTLET_PASSWORD_MIN_LEN` | `10` | Minimum password length |
+| `GAUNTLET_SIGNUP_CONFIRM` | `auto` | Self-registered accounts must confirm their address by email before signing in: `auto` = whenever SMTP is configured, `1` / `0` to force |
+| `GAUNTLET_SIGNUP_CONFIRM_TTL_HOURS` | `24` | How long a confirmation link works |
 | `GAUNTLET_WS_TICKET_TTL_SEC` | `30` | WebSocket connection-ticket lifetime (seconds) |
 | `GAUNTLET_MFA_ISSUER` | `Gauntlet` | Issuer label shown in authenticator apps |
 | `GAUNTLET_OIDC_ISSUER` / `_CLIENT_ID` / `_CLIENT_SECRET` / `_REDIRECT_URI` | — | OIDC SSO (enabled when issuer + client id are set) |
