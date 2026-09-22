@@ -10,7 +10,7 @@ anyone can verify.
 
 Self-hosted, one container, SQLite or Postgres, air-gap capable. The full
 engine is free; paid tiers add what a programme, a classroom or an enterprise
-needs around it.
+needs around it. Source available under the [Elastic License 2.0](LICENSE).
 
 ![The facilitator console during a running exercise: the current scene, the room's decision tally, the kill chain, live adjudication and the scoreboard](docs/screenshots/console-session.png)
 
@@ -174,6 +174,17 @@ docs/                   design, deployment, enterprise, threat model, licensing,
 - [`docs/LICENSING.md`](docs/LICENSING.md), [`docs/KEY_MANAGEMENT.md`](docs/KEY_MANAGEMENT.md), [`docs/CONTENT_PACKS.md`](docs/CONTENT_PACKS.md) — the paid surface and how it is signed
 - [`docs/API_TOUR.md`](docs/API_TOUR.md) — per-feature API walkthroughs
 - [`docs/POSITIONING.md`](docs/POSITIONING.md) — who it is for and against what
+
+## Licence
+
+Gauntlet is **source available** under the
+[Elastic License 2.0](LICENSE), with Moose Arsenal as the licensor. You may
+use, copy, modify and redistribute it, including inside your own organisation
+and for clients you run exercises for. Two things are reserved: you may not
+offer Gauntlet to third parties as a hosted or managed service, and you may
+not remove or work around the licence-key mechanism that unlocks the paid
+tiers. Everything the Community tier includes stays free to run. Questions
+about a use the licence does not obviously cover: sales@moosearsenal.com.
 
 ## Contact
 
