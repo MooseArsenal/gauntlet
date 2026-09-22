@@ -51,8 +51,11 @@ docker compose up -d --build    # app + Postgres, migrations run on start
 
 One process, one worker per container, TLS at your proxy. The production
 checklist, the air-gapped procedure and scaling notes are in
-[`docs/DEPLOY.md`](docs/DEPLOY.md); releases are tagged, published to GHCR
-with an SBOM, and described in [`CHANGELOG.md`](CHANGELOG.md).
+[`docs/DEPLOY.md`](docs/DEPLOY.md); releases are tagged, published as
+`ghcr.io/moosearsenal/gauntlet:<version>` with an SBOM, and described in
+[`CHANGELOG.md`](CHANGELOG.md). The source lives at
+<https://github.com/MooseArsenal/gauntlet>; bugs and questions go to its
+issue tracker, security reports to [`SECURITY.md`](SECURITY.md).
 
 ## How an exercise runs
 
