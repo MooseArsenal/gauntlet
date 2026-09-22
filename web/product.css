@@ -28,5 +28,12 @@
 .pd-final{text-align:center;border:2px solid var(--ink);padding:2rem;box-shadow:var(--ink-shadow);background:var(--surface)}
 .pd-final h2{border:0;display:inline-block}
 .pd-foot{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;max-width:1120px;margin:0 auto;padding:1rem 2rem 2rem;font-family:var(--mono);font-size:.72rem;letter-spacing:.06em;color:var(--ink-soft)}
+/* Legal pages (terms, privacy): prose width, numbered sections as plain text. */
+.pd-legal .pd-hero h1{font-size:clamp(2rem,4.4vw,3.2rem)}
+.pd-legal .pd-section{margin-top:2.4rem;max-width:76ch}
+.pd-legal .pd-section h2{font-size:1.4rem}
+.pd-legal p{font-size:1rem;line-height:1.55}
+.pd-legal .pd-steps{list-style:disc}
+.pd-legal .pd-grid{grid-template-columns:1fr 1fr}
 @media(max-width:900px){.pd-figures,.pd-cols,.pd-grid,.pd-tiers{grid-template-columns:1fr 1fr}}
 @media(max-width:600px){.pd-figures,.pd-cols,.pd-grid,.pd-tiers{grid-template-columns:1fr}.pd{padding:1.5rem 1.1rem 3rem}}
